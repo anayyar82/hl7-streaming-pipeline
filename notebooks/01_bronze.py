@@ -1,5 +1,10 @@
 # Databricks notebook source
-# MAGIC %pip install /Workspace/Users/ankur.nayyar@databricks.com/.bundle/hl7_streaming_pipeline/dev/files/libraries/funke-0.1.0a1-py3-none-any.whl
+import subprocess, sys, os
+
+bundle_files_path = spark.conf.get("hl7.bundle_files_path")
+wheel_name = spark.conf.get("hl7.funke_wheel_name", "funke-0.1.0a1-py3-none-any.whl")
+wheel_path = os.path.join(bundle_files_path, "libraries", wheel_name)
+subprocess.check_call([sys.executable, "-m", "pip", "install", wheel_path, "-q"])
 
 # COMMAND ----------
 
@@ -39,11 +44,19 @@ from funke.parsing.hl7 import HL7v2Schema
 
 # MAGIC %md
 # MAGIC ## Configuration
+# MAGIC All paths are resolved dynamically from pipeline configuration.
 
 # COMMAND ----------
 
-SOURCE_PATH = spark.conf.get("hl7.source_path", "/mnt/hl7/raw")
-CHECKPOINT_PATH = spark.conf.get("hl7.checkpoint_path", "/mnt/hl7/checkpoints")
+catalog = spark.conf.get("hl7.catalog")
+schema = spark.conf.get("hl7.schema")
+volume = spark.conf.get("hl7.source_volume", "landing")
+
+pipeline_target = spark.conf.get("pipelines.default.catalog.schema", f"{catalog}.{schema}")
+target_schema = pipeline_target.split(".")[-1] if "." in pipeline_target else pipeline_target
+
+SOURCE_PATH = f"/Volumes/{catalog}/{target_schema}/{volume}"
+CHECKPOINT_PATH = f"{SOURCE_PATH}/_checkpoints"
 
 hl7v2_schema = HL7v2Schema()
 

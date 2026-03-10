@@ -8,6 +8,9 @@ variables:
   source_volume:
     description: Volume name for landing HL7 files
     default: landing
+  funke_wheel_name:
+    description: Filename of the funke wheel package
+    default: funke-0.1.0a1-py3-none-any.whl
 
 resources:
   schemas:
@@ -35,8 +38,11 @@ resources:
       edition: ADVANCED
       continuous: false
       configuration:
-        hl7.source_path: /Volumes/${var.catalog}/dev_ankur_nayyar_${var.schema}/${var.source_volume}
-        hl7.checkpoint_path: /Volumes/${var.catalog}/dev_ankur_nayyar_${var.schema}/${var.source_volume}/_checkpoints
+        hl7.catalog: ${var.catalog}
+        hl7.schema: ${var.schema}
+        hl7.source_volume: ${var.source_volume}
+        hl7.bundle_files_path: ${workspace.root_path}/files
+        hl7.funke_wheel_name: ${var.funke_wheel_name}
       libraries:
         - notebook:
             path: ../notebooks/01_bronze.py
@@ -54,4 +60,4 @@ resources:
             spark.databricks.delta.autoCompact.enabled: "true"
           custom_tags:
             project: hl7-streaming
-            environment: dev
+            environment: ${bundle.target}
