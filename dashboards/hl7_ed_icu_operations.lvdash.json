@@ -1,109 +1,124 @@
 {
   "datasets": [
     {
+      "name": "ds_total_messages",
+      "displayName": "Total Messages",
+      "query": "SELECT COUNT(*) AS total_messages FROM users.ankur_nayyar.silver_msh"
+    },
+    {
+      "name": "ds_total_patients",
+      "displayName": "Total Patients",
+      "query": "SELECT COUNT(*) AS total_patients FROM users.ankur_nayyar.gold_patient_dim"
+    },
+    {
+      "name": "ds_total_encounters",
+      "displayName": "Total Encounters",
+      "query": "SELECT COUNT(*) AS total_encounters FROM users.ankur_nayyar.gold_encounter_fact"
+    },
+    {
+      "name": "ds_total_observations",
+      "displayName": "Total Observations",
+      "query": "SELECT COUNT(*) AS total_observations FROM users.ankur_nayyar.gold_observation_fact"
+    },
+    {
+      "name": "ds_total_diagnoses",
+      "displayName": "Total Diagnoses",
+      "query": "SELECT COUNT(*) AS total_diagnoses FROM users.ankur_nayyar.gold_diagnosis_fact"
+    },
+    {
+      "name": "ds_total_orders",
+      "displayName": "Total Orders",
+      "query": "SELECT COUNT(*) AS total_orders FROM users.ankur_nayyar.gold_order_fact"
+    },
+    {
+      "name": "ds_encounters_by_class",
+      "displayName": "Encounters by Patient Class",
+      "query": "SELECT patient_class_desc, COUNT(*) AS encounter_count FROM users.ankur_nayyar.gold_encounter_fact GROUP BY patient_class_desc ORDER BY encounter_count DESC"
+    },
+    {
+      "name": "ds_encounters_by_facility",
+      "displayName": "Encounters by Facility",
+      "query": "SELECT source_system AS facility, COUNT(*) AS encounter_count FROM users.ankur_nayyar.gold_encounter_fact GROUP BY source_system ORDER BY encounter_count DESC"
+    },
+    {
+      "name": "ds_encounters_by_trigger",
+      "displayName": "Encounters by ADT Event",
+      "query": "SELECT trigger_event, CASE trigger_event WHEN 'A01' THEN 'Admit' WHEN 'A03' THEN 'Discharge' WHEN 'A04' THEN 'Register' WHEN 'A08' THEN 'Update' ELSE trigger_event END AS event_desc, COUNT(*) AS cnt FROM users.ankur_nayyar.gold_encounter_fact GROUP BY trigger_event ORDER BY cnt DESC"
+    },
+    {
+      "name": "ds_messages_by_type",
+      "displayName": "Messages by Type",
+      "query": "SELECT message_type, sending_facility, SUM(message_count) AS total_messages FROM users.ankur_nayyar.gold_message_metrics GROUP BY message_type, sending_facility ORDER BY total_messages DESC"
+    },
+    {
+      "name": "ds_encounters_by_dept",
+      "displayName": "Encounters by Department",
+      "query": "SELECT CASE WHEN patient_class = 'E' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department, COUNT(*) AS encounter_count FROM users.ankur_nayyar.gold_encounter_fact GROUP BY department ORDER BY encounter_count DESC"
+    },
+    {
+      "name": "ds_dept_arrivals_discharges",
+      "displayName": "Arrivals vs Discharges by Department",
+      "query": "SELECT department, SUM(CASE WHEN trigger_event IN ('A01','A04','A02') THEN 1 ELSE 0 END) AS arrivals, SUM(CASE WHEN trigger_event = 'A03' THEN 1 ELSE 0 END) AS discharges FROM (SELECT *, CASE WHEN patient_class = 'E' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department FROM users.ankur_nayyar.gold_encounter_fact) GROUP BY department ORDER BY arrivals DESC"
+    },
+    {
+      "name": "ds_hourly_encounters",
+      "displayName": "Encounters by Hour of Day",
+      "query": "SELECT HOUR(TO_TIMESTAMP(admit_datetime, 'yyyyMMddHHmmss')) AS hour_of_day, CASE WHEN patient_class = 'E' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department, COUNT(*) AS encounters FROM users.ankur_nayyar.gold_encounter_fact WHERE admit_datetime IS NOT NULL GROUP BY hour_of_day, department ORDER BY hour_of_day"
+    },
+    {
+      "name": "ds_daily_encounters",
+      "displayName": "Daily Encounter Volume",
+      "query": "SELECT TO_DATE(TO_TIMESTAMP(admit_datetime, 'yyyyMMddHHmmss')) AS activity_date, CASE WHEN patient_class = 'E' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department, COUNT(*) AS encounters FROM users.ankur_nayyar.gold_encounter_fact WHERE admit_datetime IS NOT NULL GROUP BY activity_date, department ORDER BY activity_date"
+    },
+    {
+      "name": "ds_patient_sex",
+      "displayName": "Patients by Sex",
+      "query": "SELECT sex, COUNT(*) AS patient_count FROM users.ankur_nayyar.gold_patient_dim GROUP BY sex ORDER BY patient_count DESC"
+    },
+    {
+      "name": "ds_top_diagnoses",
+      "displayName": "Top 15 Diagnoses",
+      "query": "SELECT diagnosis_code, diagnosis_description, COUNT(*) AS diagnosis_count FROM users.ankur_nayyar.gold_diagnosis_fact GROUP BY diagnosis_code, diagnosis_description ORDER BY diagnosis_count DESC LIMIT 15"
+    },
+    {
+      "name": "ds_allergens",
+      "displayName": "Allergen Distribution",
+      "query": "SELECT allergen_description, severity_text, is_severe, COUNT(*) AS allergy_count FROM users.ankur_nayyar.gold_allergy_fact GROUP BY allergen_description, severity_text, is_severe ORDER BY allergy_count DESC"
+    },
+    {
+      "name": "ds_allergy_severity",
+      "displayName": "Allergy Severity Breakdown",
+      "query": "SELECT severity_text, COUNT(*) AS cnt FROM users.ankur_nayyar.gold_allergy_fact GROUP BY severity_text ORDER BY cnt DESC"
+    },
+    {
+      "name": "ds_top_vitals",
+      "displayName": "Vital Sign Averages",
+      "query": "SELECT observation_text AS vital_sign, ROUND(AVG(observation_value_numeric), 1) AS avg_value, ROUND(MIN(observation_value_numeric), 1) AS min_value, ROUND(MAX(observation_value_numeric), 1) AS max_value, COUNT(*) AS reading_count FROM users.ankur_nayyar.gold_observation_fact WHERE value_type = 'NM' AND observation_value_numeric IS NOT NULL GROUP BY observation_text ORDER BY reading_count DESC"
+    },
+    {
+      "name": "ds_abnormal_results",
+      "displayName": "Abnormal vs Normal Results",
+      "query": "SELECT CASE WHEN is_abnormal THEN 'Abnormal' ELSE 'Normal' END AS result_status, COUNT(*) AS cnt FROM users.ankur_nayyar.gold_observation_fact GROUP BY result_status"
+    },
+    {
+      "name": "ds_top_providers",
+      "displayName": "Top 10 Attending Providers",
+      "query": "SELECT attending_doctor_name AS provider, COUNT(*) AS encounter_count FROM users.ankur_nayyar.gold_encounter_fact WHERE attending_doctor_name IS NOT NULL GROUP BY attending_doctor_name ORDER BY encounter_count DESC LIMIT 10"
+    },
+    {
+      "name": "ds_lab_orders",
+      "displayName": "Lab Orders by Test",
+      "query": "SELECT universal_service_text AS test_name, COUNT(*) AS order_count FROM users.ankur_nayyar.gold_order_fact GROUP BY universal_service_text ORDER BY order_count DESC LIMIT 10"
+    },
+    {
       "name": "ds_census_current",
-      "displayName": "Current Census by Department",
-      "query": "SELECT department, location_facility, total_arrivals, total_discharges, estimated_census, snapshot_at FROM users.ankur_nayyar.gold_department_census_current WHERE department IN ('ED', 'ICU') ORDER BY department"
+      "displayName": "Current Department Census",
+      "query": "SELECT department, location_facility, total_arrivals, total_discharges, estimated_census FROM users.ankur_nayyar.gold_department_census_current ORDER BY department"
     },
     {
-      "name": "ds_ed_total_arrivals",
-      "displayName": "ED Total Arrivals Today",
-      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_ed_arrivals FROM users.ankur_nayyar.gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
-    },
-    {
-      "name": "ds_ed_total_discharges",
-      "displayName": "ED Total Discharges Today",
-      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_ed_discharges FROM users.ankur_nayyar.gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
-    },
-    {
-      "name": "ds_icu_total_arrivals",
-      "displayName": "ICU Total Arrivals Today",
-      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_icu_arrivals FROM users.ankur_nayyar.gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
-    },
-    {
-      "name": "ds_icu_total_discharges",
-      "displayName": "ICU Total Discharges Today",
-      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_icu_discharges FROM users.ankur_nayyar.gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
-    },
-    {
-      "name": "ds_ed_census_value",
-      "displayName": "ED Current Census",
-      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS ed_census FROM users.ankur_nayyar.gold_department_census_current WHERE department = 'ED'"
-    },
-    {
-      "name": "ds_icu_census_value",
-      "displayName": "ICU Current Census",
-      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS icu_census FROM users.ankur_nayyar.gold_department_census_current WHERE department = 'ICU'"
-    },
-    {
-      "name": "ds_ed_hourly_trend",
-      "displayName": "ED Hourly Arrivals & Discharges",
-      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM users.ankur_nayyar.gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
-    },
-    {
-      "name": "ds_icu_hourly_trend",
-      "displayName": "ICU Hourly Arrivals & Discharges",
-      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM users.ankur_nayyar.gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
-    },
-    {
-      "name": "ds_ed_by_hour_of_day",
-      "displayName": "ED Arrivals by Hour of Day",
-      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM users.ankur_nayyar.gold_ed_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
-    },
-    {
-      "name": "ds_icu_by_hour_of_day",
-      "displayName": "ICU Arrivals by Hour of Day",
-      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM users.ankur_nayyar.gold_icu_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
-    },
-    {
-      "name": "ds_ed_daily",
-      "displayName": "ED Daily Summary",
-      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_minutes, median_los_minutes, peak_arrival_hour, unique_providers FROM users.ankur_nayyar.gold_ed_daily_summary ORDER BY activity_date DESC LIMIT 30"
-    },
-    {
-      "name": "ds_icu_daily",
-      "displayName": "ICU Daily Summary",
-      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_hours, median_los_hours, peak_arrival_hour, unique_providers, beds_used FROM users.ankur_nayyar.gold_icu_daily_summary ORDER BY activity_date DESC LIMIT 30"
-    },
-    {
-      "name": "ds_ed_weekday_vs_weekend",
-      "displayName": "ED Weekday vs Weekend",
-      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM users.ankur_nayyar.gold_ed_hourly_census GROUP BY day_type"
-    },
-    {
-      "name": "ds_icu_weekday_vs_weekend",
-      "displayName": "ICU Weekday vs Weekend",
-      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM users.ankur_nayyar.gold_icu_hourly_census GROUP BY day_type"
-    },
-    {
-      "name": "ds_ed_forecast_features",
-      "displayName": "ED Forecast Feature Trends",
-      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM users.ankur_nayyar.gold_ed_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
-    },
-    {
-      "name": "ds_icu_forecast_features",
-      "displayName": "ICU Forecast Feature Trends",
-      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM users.ankur_nayyar.gold_icu_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
-    },
-    {
-      "name": "ds_combined_features",
-      "displayName": "Combined ED + ICU Pressure",
-      "query": "SELECT event_hour, ed_arrivals, icu_arrivals, ed_discharges, icu_discharges, net_system_pressure, ed_arrivals_rolling_24h, icu_arrivals_rolling_24h FROM users.ankur_nayyar.gold_combined_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
-    },
-    {
-      "name": "ds_forecast_predictions",
-      "displayName": "Latest Forecast Predictions",
-      "query": "SELECT department, target_metric, target_hour, predicted_value, prediction_lower_bound, prediction_upper_bound, forecast_horizon_hours, model_name, confidence_level FROM users.ankur_nayyar.gold_forecast_predictions WHERE forecast_generated_at >= CURRENT_DATE() - INTERVAL 2 DAYS ORDER BY target_hour"
-    },
-    {
-      "name": "ds_forecast_accuracy",
-      "displayName": "Forecast Accuracy",
-      "query": "SELECT prediction_date, model_name, department, target_metric, forecast_horizon_hours, prediction_count, mae, mape, coverage_pct FROM users.ankur_nayyar.gold_forecast_accuracy ORDER BY prediction_date DESC LIMIT 60"
-    },
-    {
-      "name": "ds_message_volume",
-      "displayName": "HL7 Message Volume",
-      "query": "SELECT processing_hour, message_type, SUM(message_count) AS message_count FROM users.ankur_nayyar.gold_message_metrics WHERE processing_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY processing_hour, message_type ORDER BY processing_hour"
+      "name": "ds_daily_arrivals_discharges",
+      "displayName": "Daily Arrivals vs Discharges",
+      "query": "SELECT TO_DATE(TO_TIMESTAMP(admit_datetime, 'yyyyMMddHHmmss')) AS activity_date, SUM(CASE WHEN trigger_event IN ('A01','A04') THEN 1 ELSE 0 END) AS arrivals, SUM(CASE WHEN trigger_event = 'A03' THEN 1 ELSE 0 END) AS discharges FROM users.ankur_nayyar.gold_encounter_fact WHERE admit_datetime IS NOT NULL GROUP BY activity_date ORDER BY activity_date"
     }
   ],
   "pages": [
@@ -114,619 +129,256 @@
         {
           "widget": {
             "name": "w_title",
-            "textbox_spec": "# ED & ICU Operations Dashboard\nReal-time monitoring of Emergency Department and ICU arrivals, discharges, and census from HL7 ADT messages."
+            "textbox_spec": "# HL7 Streaming Pipeline Dashboard\nReal-time monitoring of HL7 v2.x message processing, patient encounters, and clinical data across ED, ICU, and all departments."
           },
           "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_ed_arrivals_counter",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_total_arrivals",
-                "fields": [{ "name": "total_ed_arrivals", "expression": "`total_ed_arrivals`" }],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": { "fieldName": "total_ed_arrivals", "displayName": "ED Arrivals Today" }
-              }
-            }
+            "name": "w_total_messages",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_total_messages", "fields": [{ "name": "total_messages", "expression": "`total_messages`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_messages", "displayName": "Messages Processed" } } }
           },
           "position": { "x": 0, "y": 1, "width": 1, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_ed_discharges_counter",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_total_discharges",
-                "fields": [{ "name": "total_ed_discharges", "expression": "`total_ed_discharges`" }],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": { "fieldName": "total_ed_discharges", "displayName": "ED Discharges Today" }
-              }
-            }
+            "name": "w_total_patients",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_total_patients", "fields": [{ "name": "total_patients", "expression": "`total_patients`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_patients", "displayName": "Unique Patients" } } }
           },
           "position": { "x": 1, "y": 1, "width": 1, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_ed_census_counter",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_census_value",
-                "fields": [{ "name": "ed_census", "expression": "`ed_census`" }],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": { "fieldName": "ed_census", "displayName": "ED Census" }
-              }
-            }
+            "name": "w_total_encounters",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_total_encounters", "fields": [{ "name": "total_encounters", "expression": "`total_encounters`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_encounters", "displayName": "Total Encounters" } } }
           },
           "position": { "x": 2, "y": 1, "width": 1, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_icu_arrivals_counter",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_total_arrivals",
-                "fields": [{ "name": "total_icu_arrivals", "expression": "`total_icu_arrivals`" }],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": { "fieldName": "total_icu_arrivals", "displayName": "ICU Arrivals Today" }
-              }
-            }
+            "name": "w_total_observations",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_total_observations", "fields": [{ "name": "total_observations", "expression": "`total_observations`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_observations", "displayName": "Lab/Vital Results" } } }
           },
           "position": { "x": 3, "y": 1, "width": 1, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_icu_discharges_counter",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_total_discharges",
-                "fields": [{ "name": "total_icu_discharges", "expression": "`total_icu_discharges`" }],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": { "fieldName": "total_icu_discharges", "displayName": "ICU Discharges Today" }
-              }
-            }
+            "name": "w_total_diagnoses",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_total_diagnoses", "fields": [{ "name": "total_diagnoses", "expression": "`total_diagnoses`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_diagnoses", "displayName": "Diagnoses Recorded" } } }
           },
           "position": { "x": 4, "y": 1, "width": 1, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_icu_census_counter",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_census_value",
-                "fields": [{ "name": "icu_census", "expression": "`icu_census`" }],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": { "fieldName": "icu_census", "displayName": "ICU Census" }
-              }
-            }
+            "name": "w_total_orders",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_total_orders", "fields": [{ "name": "total_orders", "expression": "`total_orders`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_orders", "displayName": "Lab Orders" } } }
           },
           "position": { "x": 5, "y": 1, "width": 1, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_census_bar",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_census_current",
-                "fields": [
-                  { "name": "department", "expression": "`department`" },
-                  { "name": "estimated_census", "expression": "`estimated_census`" },
-                  { "name": "total_arrivals", "expression": "`total_arrivals`" },
-                  { "name": "total_discharges", "expression": "`total_discharges`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "bar",
-              "encodings": {
-                "x": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" },
-                "y": { "fieldName": "estimated_census", "scale": { "type": "quantitative" }, "displayName": "Current Census" }
-              }
-            }
+            "name": "w_encounters_by_dept",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_encounters_by_dept", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "encounter_count", "expression": "`encounter_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" }, "y": { "fieldName": "encounter_count", "scale": { "type": "quantitative" }, "displayName": "Encounters" } } }
           },
-          "position": { "x": 0, "y": 2, "width": 3, "height": 2 }
+          "position": { "x": 0, "y": 2, "width": 2, "height": 2 }
         },
         {
           "widget": {
-            "name": "w_msg_volume",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_message_volume",
-                "fields": [
-                  { "name": "processing_hour", "expression": "`processing_hour`" },
-                  { "name": "message_type", "expression": "`message_type`" },
-                  { "name": "message_count", "expression": "`message_count`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "area",
-              "encodings": {
-                "x": { "fieldName": "processing_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
-                "y": { "fieldName": "message_count", "scale": { "type": "quantitative" }, "displayName": "Messages" },
-                "color": { "fieldName": "message_type", "scale": { "type": "categorical" }, "displayName": "Type" }
-              }
-            }
+            "name": "w_encounters_by_class",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_encounters_by_class", "fields": [{ "name": "patient_class_desc", "expression": "`patient_class_desc`" }, { "name": "encounter_count", "expression": "`encounter_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "encounter_count", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "color": { "fieldName": "patient_class_desc", "scale": { "type": "categorical" }, "displayName": "Patient Class" } } }
           },
-          "position": { "x": 3, "y": 2, "width": 3, "height": 2 }
+          "position": { "x": 2, "y": 2, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_encounters_by_trigger",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_encounters_by_trigger", "fields": [{ "name": "event_desc", "expression": "`event_desc`" }, { "name": "cnt", "expression": "`cnt`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "event_desc", "scale": { "type": "categorical" }, "displayName": "ADT Event" }, "y": { "fieldName": "cnt", "scale": { "type": "quantitative" }, "displayName": "Count" } } }
+          },
+          "position": { "x": 4, "y": 2, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_messages_by_type",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_messages_by_type", "fields": [{ "name": "message_type", "expression": "`message_type`" }, { "name": "sending_facility", "expression": "`sending_facility`" }, { "name": "total_messages", "expression": "`total_messages`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "message_type", "scale": { "type": "categorical" }, "displayName": "Message Type" }, "y": { "fieldName": "total_messages", "scale": { "type": "quantitative" }, "displayName": "Count" }, "color": { "fieldName": "sending_facility", "scale": { "type": "categorical" }, "displayName": "Facility" } } }
+          },
+          "position": { "x": 0, "y": 4, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_encounters_by_facility",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_encounters_by_facility", "fields": [{ "name": "facility", "expression": "`facility`" }, { "name": "encounter_count", "expression": "`encounter_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "encounter_count", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "color": { "fieldName": "facility", "scale": { "type": "categorical" }, "displayName": "Facility" } } }
+          },
+          "position": { "x": 3, "y": 4, "width": 3, "height": 2 }
         }
       ]
     },
     {
-      "name": "pg_ed",
-      "displayName": "ED Operations",
+      "name": "pg_encounters",
+      "displayName": "Encounters & Flow",
       "layout": [
         {
           "widget": {
-            "name": "w_ed_title",
-            "textbox_spec": "# Emergency Department Operations\nHourly and daily ED arrival/discharge trends with seasonal patterns."
+            "name": "w_enc_title",
+            "textbox_spec": "# Patient Encounters & Department Flow\nAdmissions, discharges, and patient flow across ED, ICU, and other departments over time."
           },
           "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
         },
         {
           "widget": {
-            "name": "w_ed_hourly_line",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_hourly_trend",
-                "fields": [
-                  { "name": "event_hour", "expression": "`event_hour`" },
-                  { "name": "arrivals", "expression": "`arrivals`" },
-                  { "name": "discharges", "expression": "`discharges`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "line",
-              "encodings": {
-                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Hour" },
-                "y": { "fieldName": "arrivals", "scale": { "type": "quantitative" }, "displayName": "Count" }
-              }
-            }
+            "name": "w_daily_encounters",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_daily_encounters", "fields": [{ "name": "activity_date", "expression": "`activity_date`" }, { "name": "department", "expression": "`department`" }, { "name": "encounters", "expression": "`encounters`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "activity_date", "scale": { "type": "temporal" }, "displayName": "Date" }, "y": { "fieldName": "encounters", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "color": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" } } }
           },
-          "position": { "x": 0, "y": 1, "width": 4, "height": 2 }
+          "position": { "x": 0, "y": 1, "width": 6, "height": 2 }
         },
         {
           "widget": {
-            "name": "w_ed_hour_pattern",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_by_hour_of_day",
-                "fields": [
-                  { "name": "hour_of_day", "expression": "`hour_of_day`" },
-                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
-                  { "name": "avg_discharges", "expression": "`avg_discharges`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "bar",
-              "encodings": {
-                "x": { "fieldName": "hour_of_day", "scale": { "type": "categorical" }, "displayName": "Hour of Day" },
-                "y": { "fieldName": "avg_arrivals", "scale": { "type": "quantitative" }, "displayName": "Avg Arrivals" }
-              }
-            }
-          },
-          "position": { "x": 4, "y": 1, "width": 2, "height": 2 }
-        },
-        {
-          "widget": {
-            "name": "w_ed_weekday",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_weekday_vs_weekend",
-                "fields": [
-                  { "name": "day_type", "expression": "`day_type`" },
-                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
-                  { "name": "total_arrivals", "expression": "`total_arrivals`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "pie",
-              "encodings": {
-                "angle": { "fieldName": "total_arrivals", "scale": { "type": "quantitative" }, "displayName": "Total Arrivals" },
-                "color": { "fieldName": "day_type", "scale": { "type": "categorical" }, "displayName": "Day Type" }
-              }
-            }
-          },
-          "position": { "x": 0, "y": 3, "width": 2, "height": 2 }
-        },
-        {
-          "widget": {
-            "name": "w_ed_daily_table",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_daily",
-                "fields": [
-                  { "name": "activity_date", "expression": "`activity_date`" },
-                  { "name": "total_arrivals", "expression": "`total_arrivals`" },
-                  { "name": "total_discharges", "expression": "`total_discharges`" },
-                  { "name": "unique_patients", "expression": "`unique_patients`" },
-                  { "name": "avg_los_minutes", "expression": "`avg_los_minutes`" },
-                  { "name": "median_los_minutes", "expression": "`median_los_minutes`" },
-                  { "name": "peak_arrival_hour", "expression": "`peak_arrival_hour`" },
-                  { "name": "unique_providers", "expression": "`unique_providers`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 1,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  { "fieldName": "activity_date", "displayAs": "string", "visible": true, "order": 0, "title": "Date", "displayName": "Date" },
-                  { "fieldName": "total_arrivals", "displayAs": "number", "visible": true, "order": 1, "title": "Arrivals", "displayName": "Arrivals" },
-                  { "fieldName": "total_discharges", "displayAs": "number", "visible": true, "order": 2, "title": "Discharges", "displayName": "Discharges" },
-                  { "fieldName": "unique_patients", "displayAs": "number", "visible": true, "order": 3, "title": "Patients", "displayName": "Patients" },
-                  { "fieldName": "avg_los_minutes", "displayAs": "number", "visible": true, "order": 4, "title": "Avg LOS (min)", "displayName": "Avg LOS (min)" },
-                  { "fieldName": "median_los_minutes", "displayAs": "number", "visible": true, "order": 5, "title": "Med LOS (min)", "displayName": "Med LOS (min)" },
-                  { "fieldName": "peak_arrival_hour", "displayAs": "number", "visible": true, "order": 6, "title": "Peak Hour", "displayName": "Peak Hour" },
-                  { "fieldName": "unique_providers", "displayAs": "number", "visible": true, "order": 7, "title": "Providers", "displayName": "Providers" }
-                ]
-              }
-            }
-          },
-          "position": { "x": 2, "y": 3, "width": 4, "height": 2 }
-        }
-      ]
-    },
-    {
-      "name": "pg_icu",
-      "displayName": "ICU Operations",
-      "layout": [
-        {
-          "widget": {
-            "name": "w_icu_title",
-            "textbox_spec": "# ICU Operations\nHourly and daily ICU admission/discharge trends with bed utilization."
-          },
-          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
-        },
-        {
-          "widget": {
-            "name": "w_icu_hourly_line",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_hourly_trend",
-                "fields": [
-                  { "name": "event_hour", "expression": "`event_hour`" },
-                  { "name": "arrivals", "expression": "`arrivals`" },
-                  { "name": "discharges", "expression": "`discharges`" },
-                  { "name": "net_change", "expression": "`net_change`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "line",
-              "encodings": {
-                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Hour" },
-                "y": { "fieldName": "arrivals", "scale": { "type": "quantitative" }, "displayName": "Count" }
-              }
-            }
-          },
-          "position": { "x": 0, "y": 1, "width": 4, "height": 2 }
-        },
-        {
-          "widget": {
-            "name": "w_icu_hour_pattern",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_by_hour_of_day",
-                "fields": [
-                  { "name": "hour_of_day", "expression": "`hour_of_day`" },
-                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
-                  { "name": "avg_discharges", "expression": "`avg_discharges`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "bar",
-              "encodings": {
-                "x": { "fieldName": "hour_of_day", "scale": { "type": "categorical" }, "displayName": "Hour of Day" },
-                "y": { "fieldName": "avg_arrivals", "scale": { "type": "quantitative" }, "displayName": "Avg Arrivals" }
-              }
-            }
-          },
-          "position": { "x": 4, "y": 1, "width": 2, "height": 2 }
-        },
-        {
-          "widget": {
-            "name": "w_icu_weekday",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_weekday_vs_weekend",
-                "fields": [
-                  { "name": "day_type", "expression": "`day_type`" },
-                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
-                  { "name": "total_arrivals", "expression": "`total_arrivals`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "pie",
-              "encodings": {
-                "angle": { "fieldName": "total_arrivals", "scale": { "type": "quantitative" }, "displayName": "Total Arrivals" },
-                "color": { "fieldName": "day_type", "scale": { "type": "categorical" }, "displayName": "Day Type" }
-              }
-            }
-          },
-          "position": { "x": 0, "y": 3, "width": 2, "height": 2 }
-        },
-        {
-          "widget": {
-            "name": "w_icu_daily_table",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_daily",
-                "fields": [
-                  { "name": "activity_date", "expression": "`activity_date`" },
-                  { "name": "total_arrivals", "expression": "`total_arrivals`" },
-                  { "name": "total_discharges", "expression": "`total_discharges`" },
-                  { "name": "unique_patients", "expression": "`unique_patients`" },
-                  { "name": "avg_los_hours", "expression": "`avg_los_hours`" },
-                  { "name": "median_los_hours", "expression": "`median_los_hours`" },
-                  { "name": "beds_used", "expression": "`beds_used`" },
-                  { "name": "unique_providers", "expression": "`unique_providers`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 1,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  { "fieldName": "activity_date", "displayAs": "string", "visible": true, "order": 0, "title": "Date", "displayName": "Date" },
-                  { "fieldName": "total_arrivals", "displayAs": "number", "visible": true, "order": 1, "title": "Arrivals", "displayName": "Arrivals" },
-                  { "fieldName": "total_discharges", "displayAs": "number", "visible": true, "order": 2, "title": "Discharges", "displayName": "Discharges" },
-                  { "fieldName": "unique_patients", "displayAs": "number", "visible": true, "order": 3, "title": "Patients", "displayName": "Patients" },
-                  { "fieldName": "avg_los_hours", "displayAs": "number", "visible": true, "order": 4, "title": "Avg LOS (hrs)", "displayName": "Avg LOS (hrs)" },
-                  { "fieldName": "beds_used", "displayAs": "number", "visible": true, "order": 5, "title": "Beds Used", "displayName": "Beds Used" },
-                  { "fieldName": "unique_providers", "displayAs": "number", "visible": true, "order": 6, "title": "Providers", "displayName": "Providers" }
-                ]
-              }
-            }
-          },
-          "position": { "x": 2, "y": 3, "width": 4, "height": 2 }
-        }
-      ]
-    },
-    {
-      "name": "pg_forecast",
-      "displayName": "Forecasting & Predictions",
-      "layout": [
-        {
-          "widget": {
-            "name": "w_forecast_title",
-            "textbox_spec": "# Forecasting & Predictive Analytics\nTime-series features, rolling averages, and model prediction outputs for ED and ICU demand forecasting."
-          },
-          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
-        },
-        {
-          "widget": {
-            "name": "w_ed_rolling_avg",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_ed_forecast_features",
-                "fields": [
-                  { "name": "event_hour", "expression": "`event_hour`" },
-                  { "name": "arrivals", "expression": "`arrivals`" },
-                  { "name": "arrivals_rolling_6h", "expression": "`arrivals_rolling_6h`" },
-                  { "name": "arrivals_rolling_24h", "expression": "`arrivals_rolling_24h`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "line",
-              "encodings": {
-                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
-                "y": { "fieldName": "arrivals_rolling_24h", "scale": { "type": "quantitative" }, "displayName": "Rolling Sum" }
-              }
-            }
-          },
-          "position": { "x": 0, "y": 1, "width": 3, "height": 2 }
-        },
-        {
-          "widget": {
-            "name": "w_icu_rolling_avg",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_icu_forecast_features",
-                "fields": [
-                  { "name": "event_hour", "expression": "`event_hour`" },
-                  { "name": "arrivals", "expression": "`arrivals`" },
-                  { "name": "arrivals_rolling_6h", "expression": "`arrivals_rolling_6h`" },
-                  { "name": "arrivals_rolling_24h", "expression": "`arrivals_rolling_24h`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "line",
-              "encodings": {
-                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
-                "y": { "fieldName": "arrivals_rolling_24h", "scale": { "type": "quantitative" }, "displayName": "Rolling Sum" }
-              }
-            }
-          },
-          "position": { "x": 3, "y": 1, "width": 3, "height": 2 }
-        },
-        {
-          "widget": {
-            "name": "w_system_pressure",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_combined_features",
-                "fields": [
-                  { "name": "event_hour", "expression": "`event_hour`" },
-                  { "name": "net_system_pressure", "expression": "`net_system_pressure`" },
-                  { "name": "ed_arrivals", "expression": "`ed_arrivals`" },
-                  { "name": "icu_arrivals", "expression": "`icu_arrivals`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 2,
-              "widgetType": "area",
-              "encodings": {
-                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
-                "y": { "fieldName": "net_system_pressure", "scale": { "type": "quantitative" }, "displayName": "Net System Pressure" }
-              }
-            }
+            "name": "w_hourly_encounters",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_hourly_encounters", "fields": [{ "name": "hour_of_day", "expression": "`hour_of_day`" }, { "name": "department", "expression": "`department`" }, { "name": "encounters", "expression": "`encounters`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "hour_of_day", "scale": { "type": "categorical" }, "displayName": "Hour of Day" }, "y": { "fieldName": "encounters", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "color": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" } } }
           },
           "position": { "x": 0, "y": 3, "width": 3, "height": 2 }
         },
         {
           "widget": {
-            "name": "w_predictions_table",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_forecast_predictions",
-                "fields": [
-                  { "name": "department", "expression": "`department`" },
-                  { "name": "target_metric", "expression": "`target_metric`" },
-                  { "name": "target_hour", "expression": "`target_hour`" },
-                  { "name": "predicted_value", "expression": "`predicted_value`" },
-                  { "name": "prediction_lower_bound", "expression": "`prediction_lower_bound`" },
-                  { "name": "prediction_upper_bound", "expression": "`prediction_upper_bound`" },
-                  { "name": "forecast_horizon_hours", "expression": "`forecast_horizon_hours`" },
-                  { "name": "model_name", "expression": "`model_name`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 1,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  { "fieldName": "department", "displayAs": "string", "visible": true, "order": 0, "title": "Dept", "displayName": "Dept" },
-                  { "fieldName": "target_metric", "displayAs": "string", "visible": true, "order": 1, "title": "Metric", "displayName": "Metric" },
-                  { "fieldName": "target_hour", "displayAs": "string", "visible": true, "order": 2, "title": "Target Hour", "displayName": "Target Hour" },
-                  { "fieldName": "predicted_value", "displayAs": "number", "visible": true, "order": 3, "title": "Predicted", "displayName": "Predicted" },
-                  { "fieldName": "prediction_lower_bound", "displayAs": "number", "visible": true, "order": 4, "title": "Lower", "displayName": "Lower" },
-                  { "fieldName": "prediction_upper_bound", "displayAs": "number", "visible": true, "order": 5, "title": "Upper", "displayName": "Upper" },
-                  { "fieldName": "forecast_horizon_hours", "displayAs": "number", "visible": true, "order": 6, "title": "Horizon (h)", "displayName": "Horizon (h)" },
-                  { "fieldName": "model_name", "displayAs": "string", "visible": true, "order": 7, "title": "Model", "displayName": "Model" }
-                ]
-              }
-            }
+            "name": "w_dept_arrivals_discharges",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_dept_arrivals_discharges", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "arrivals", "expression": "`arrivals`" }, { "name": "discharges", "expression": "`discharges`" }], "disaggregated": true } }],
+            "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "department", "displayAs": "string", "visible": true, "order": 0, "title": "Department", "displayName": "Department" }, { "fieldName": "arrivals", "displayAs": "number", "visible": true, "order": 1, "title": "Arrivals", "displayName": "Arrivals" }, { "fieldName": "discharges", "displayAs": "number", "visible": true, "order": 2, "title": "Discharges", "displayName": "Discharges" } ] } }
           },
           "position": { "x": 3, "y": 3, "width": 3, "height": 2 }
         },
         {
           "widget": {
-            "name": "w_accuracy_table",
-            "queries": [{
-              "name": "main_query",
-              "query": {
-                "datasetName": "ds_forecast_accuracy",
-                "fields": [
-                  { "name": "prediction_date", "expression": "`prediction_date`" },
-                  { "name": "model_name", "expression": "`model_name`" },
-                  { "name": "department", "expression": "`department`" },
-                  { "name": "target_metric", "expression": "`target_metric`" },
-                  { "name": "mae", "expression": "`mae`" },
-                  { "name": "mape", "expression": "`mape`" },
-                  { "name": "coverage_pct", "expression": "`coverage_pct`" }
-                ],
-                "disaggregated": true
-              }
-            }],
-            "spec": {
-              "version": 1,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  { "fieldName": "prediction_date", "displayAs": "string", "visible": true, "order": 0, "title": "Date", "displayName": "Date" },
-                  { "fieldName": "model_name", "displayAs": "string", "visible": true, "order": 1, "title": "Model", "displayName": "Model" },
-                  { "fieldName": "department", "displayAs": "string", "visible": true, "order": 2, "title": "Dept", "displayName": "Dept" },
-                  { "fieldName": "target_metric", "displayAs": "string", "visible": true, "order": 3, "title": "Metric", "displayName": "Metric" },
-                  { "fieldName": "mae", "displayAs": "number", "visible": true, "order": 4, "title": "MAE", "displayName": "MAE" },
-                  { "fieldName": "mape", "displayAs": "number", "visible": true, "order": 5, "title": "MAPE %", "displayName": "MAPE %" },
-                  { "fieldName": "coverage_pct", "displayAs": "number", "visible": true, "order": 6, "title": "Coverage %", "displayName": "Coverage %" }
-                ]
-              }
-            }
+            "name": "w_daily_arr_dis",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_daily_arrivals_discharges", "fields": [{ "name": "activity_date", "expression": "`activity_date`" }, { "name": "arrivals", "expression": "`arrivals`" }, { "name": "discharges", "expression": "`discharges`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "line", "encodings": { "x": { "fieldName": "activity_date", "scale": { "type": "temporal" }, "displayName": "Date" }, "y": { "fieldName": "arrivals", "scale": { "type": "quantitative" }, "displayName": "Count" } } }
           },
-          "position": { "x": 0, "y": 5, "width": 6, "height": 2 }
+          "position": { "x": 0, "y": 5, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_top_providers",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_top_providers", "fields": [{ "name": "provider", "expression": "`provider`" }, { "name": "encounter_count", "expression": "`encounter_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "encounter_count", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "y": { "fieldName": "provider", "scale": { "type": "categorical" }, "displayName": "Provider" } } }
+          },
+          "position": { "x": 3, "y": 5, "width": 3, "height": 2 }
+        }
+      ]
+    },
+    {
+      "name": "pg_clinical",
+      "displayName": "Clinical Data",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_clinical_title",
+            "textbox_spec": "# Clinical Data: Diagnoses, Labs, Allergies & Vitals\nDeep-dive into clinical observations, diagnosis codes, allergy profiles, and lab orders from HL7 messages."
+          },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_top_diagnoses",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_top_diagnoses", "fields": [{ "name": "diagnosis_description", "expression": "`diagnosis_description`" }, { "name": "diagnosis_count", "expression": "`diagnosis_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "diagnosis_count", "scale": { "type": "quantitative" }, "displayName": "Count" }, "y": { "fieldName": "diagnosis_description", "scale": { "type": "categorical" }, "displayName": "Diagnosis" } } }
+          },
+          "position": { "x": 0, "y": 1, "width": 3, "height": 3 }
+        },
+        {
+          "widget": {
+            "name": "w_allergens",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_allergens", "fields": [{ "name": "allergen_description", "expression": "`allergen_description`" }, { "name": "severity_text", "expression": "`severity_text`" }, { "name": "allergy_count", "expression": "`allergy_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "allergen_description", "scale": { "type": "categorical" }, "displayName": "Allergen" }, "y": { "fieldName": "allergy_count", "scale": { "type": "quantitative" }, "displayName": "Count" }, "color": { "fieldName": "severity_text", "scale": { "type": "categorical" }, "displayName": "Severity" } } }
+          },
+          "position": { "x": 3, "y": 1, "width": 3, "height": 3 }
+        },
+        {
+          "widget": {
+            "name": "w_vitals_table",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_top_vitals", "fields": [{ "name": "vital_sign", "expression": "`vital_sign`" }, { "name": "avg_value", "expression": "`avg_value`" }, { "name": "min_value", "expression": "`min_value`" }, { "name": "max_value", "expression": "`max_value`" }, { "name": "reading_count", "expression": "`reading_count`" }], "disaggregated": true } }],
+            "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "vital_sign", "displayAs": "string", "visible": true, "order": 0, "title": "Vital / Lab", "displayName": "Vital / Lab" }, { "fieldName": "avg_value", "displayAs": "number", "visible": true, "order": 1, "title": "Avg", "displayName": "Avg" }, { "fieldName": "min_value", "displayAs": "number", "visible": true, "order": 2, "title": "Min", "displayName": "Min" }, { "fieldName": "max_value", "displayAs": "number", "visible": true, "order": 3, "title": "Max", "displayName": "Max" }, { "fieldName": "reading_count", "displayAs": "number", "visible": true, "order": 4, "title": "Readings", "displayName": "Readings" } ] } }
+          },
+          "position": { "x": 0, "y": 4, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_abnormal_results",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_abnormal_results", "fields": [{ "name": "result_status", "expression": "`result_status`" }, { "name": "cnt", "expression": "`cnt`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "cnt", "scale": { "type": "quantitative" }, "displayName": "Count" }, "color": { "fieldName": "result_status", "scale": { "type": "categorical" }, "displayName": "Status" } } }
+          },
+          "position": { "x": 3, "y": 4, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_allergy_severity",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_allergy_severity", "fields": [{ "name": "severity_text", "expression": "`severity_text`" }, { "name": "cnt", "expression": "`cnt`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "cnt", "scale": { "type": "quantitative" }, "displayName": "Count" }, "color": { "fieldName": "severity_text", "scale": { "type": "categorical" }, "displayName": "Severity" } } }
+          },
+          "position": { "x": 5, "y": 4, "width": 1, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_lab_orders",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_lab_orders", "fields": [{ "name": "test_name", "expression": "`test_name`" }, { "name": "order_count", "expression": "`order_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "test_name", "scale": { "type": "categorical" }, "displayName": "Test" }, "y": { "fieldName": "order_count", "scale": { "type": "quantitative" }, "displayName": "Orders" } } }
+          },
+          "position": { "x": 0, "y": 6, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_patient_sex",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_patient_sex", "fields": [{ "name": "sex", "expression": "`sex`" }, { "name": "patient_count", "expression": "`patient_count`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "patient_count", "scale": { "type": "quantitative" }, "displayName": "Patients" }, "color": { "fieldName": "sex", "scale": { "type": "categorical" }, "displayName": "Sex" } } }
+          },
+          "position": { "x": 3, "y": 6, "width": 3, "height": 2 }
+        }
+      ]
+    },
+    {
+      "name": "pg_census",
+      "displayName": "Department Census",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_census_title",
+            "textbox_spec": "# Department Census & Capacity\nCurrent estimated census by department and facility, computed from cumulative arrivals minus discharges across the HL7 ADT stream."
+          },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_census_table",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_census_current", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "location_facility", "expression": "`location_facility`" }, { "name": "total_arrivals", "expression": "`total_arrivals`" }, { "name": "total_discharges", "expression": "`total_discharges`" }, { "name": "estimated_census", "expression": "`estimated_census`" }], "disaggregated": true } }],
+            "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "department", "displayAs": "string", "visible": true, "order": 0, "title": "Department", "displayName": "Department" }, { "fieldName": "location_facility", "displayAs": "string", "visible": true, "order": 1, "title": "Facility", "displayName": "Facility" }, { "fieldName": "total_arrivals", "displayAs": "number", "visible": true, "order": 2, "title": "Total Arrivals", "displayName": "Total Arrivals" }, { "fieldName": "total_discharges", "displayAs": "number", "visible": true, "order": 3, "title": "Total Discharges", "displayName": "Total Discharges" }, { "fieldName": "estimated_census", "displayAs": "number", "visible": true, "order": 4, "title": "Est. Census", "displayName": "Est. Census" } ] } }
+          },
+          "position": { "x": 0, "y": 1, "width": 6, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_census_bar",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_census_current", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "location_facility", "expression": "`location_facility`" }, { "name": "estimated_census", "expression": "`estimated_census`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" }, "y": { "fieldName": "estimated_census", "scale": { "type": "quantitative" }, "displayName": "Estimated Census" }, "color": { "fieldName": "location_facility", "scale": { "type": "categorical" }, "displayName": "Facility" } } }
+          },
+          "position": { "x": 0, "y": 3, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_dept_arr_dis_bar",
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_dept_arrivals_discharges", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "arrivals", "expression": "`arrivals`" }, { "name": "discharges", "expression": "`discharges`" }], "disaggregated": true } }],
+            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" }, "y": { "fieldName": "arrivals", "scale": { "type": "quantitative" }, "displayName": "Count" } } }
+          },
+          "position": { "x": 3, "y": 3, "width": 3, "height": 2 }
         }
       ]
     }

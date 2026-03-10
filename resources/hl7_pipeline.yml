@@ -20,6 +20,12 @@ resources:
       warehouse_id: e9b34f7a2e4b0561
       embed_credentials: true
 
+    hl7_patient_clinical_dashboard:
+      display_name: "[${bundle.target}] HL7 Patient & Clinical Analytics"
+      file_path: ../dashboards/hl7_patient_clinical_analytics.lvdash.json
+      warehouse_id: e9b34f7a2e4b0561
+      embed_credentials: true
+
   pipelines:
     hl7_streaming_dlt:
       name: "[${bundle.target}] HL7 Streaming Pipeline"
