@@ -1,0 +1,734 @@
+{
+  "datasets": [
+    {
+      "name": "ds_census_current",
+      "displayName": "Current Census by Department",
+      "query": "SELECT department, location_facility, total_arrivals, total_discharges, estimated_census, snapshot_at FROM gold_department_census_current WHERE department IN ('ED', 'ICU') ORDER BY department"
+    },
+    {
+      "name": "ds_ed_total_arrivals",
+      "displayName": "ED Total Arrivals Today",
+      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_ed_arrivals FROM gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
+    },
+    {
+      "name": "ds_ed_total_discharges",
+      "displayName": "ED Total Discharges Today",
+      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_ed_discharges FROM gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
+    },
+    {
+      "name": "ds_icu_total_arrivals",
+      "displayName": "ICU Total Arrivals Today",
+      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_icu_arrivals FROM gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
+    },
+    {
+      "name": "ds_icu_total_discharges",
+      "displayName": "ICU Total Discharges Today",
+      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_icu_discharges FROM gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
+    },
+    {
+      "name": "ds_ed_census_value",
+      "displayName": "ED Current Census",
+      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS ed_census FROM gold_department_census_current WHERE department = 'ED'"
+    },
+    {
+      "name": "ds_icu_census_value",
+      "displayName": "ICU Current Census",
+      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS icu_census FROM gold_department_census_current WHERE department = 'ICU'"
+    },
+    {
+      "name": "ds_ed_hourly_trend",
+      "displayName": "ED Hourly Arrivals & Discharges",
+      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
+    },
+    {
+      "name": "ds_icu_hourly_trend",
+      "displayName": "ICU Hourly Arrivals & Discharges",
+      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
+    },
+    {
+      "name": "ds_ed_by_hour_of_day",
+      "displayName": "ED Arrivals by Hour of Day",
+      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM gold_ed_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
+    },
+    {
+      "name": "ds_icu_by_hour_of_day",
+      "displayName": "ICU Arrivals by Hour of Day",
+      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM gold_icu_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
+    },
+    {
+      "name": "ds_ed_daily",
+      "displayName": "ED Daily Summary",
+      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_minutes, median_los_minutes, peak_arrival_hour, unique_providers FROM gold_ed_daily_summary ORDER BY activity_date DESC LIMIT 30"
+    },
+    {
+      "name": "ds_icu_daily",
+      "displayName": "ICU Daily Summary",
+      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_hours, median_los_hours, peak_arrival_hour, unique_providers, beds_used FROM gold_icu_daily_summary ORDER BY activity_date DESC LIMIT 30"
+    },
+    {
+      "name": "ds_ed_weekday_vs_weekend",
+      "displayName": "ED Weekday vs Weekend",
+      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM gold_ed_hourly_census GROUP BY day_type"
+    },
+    {
+      "name": "ds_icu_weekday_vs_weekend",
+      "displayName": "ICU Weekday vs Weekend",
+      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM gold_icu_hourly_census GROUP BY day_type"
+    },
+    {
+      "name": "ds_ed_forecast_features",
+      "displayName": "ED Forecast Feature Trends",
+      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM gold_ed_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
+    },
+    {
+      "name": "ds_icu_forecast_features",
+      "displayName": "ICU Forecast Feature Trends",
+      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM gold_icu_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
+    },
+    {
+      "name": "ds_combined_features",
+      "displayName": "Combined ED + ICU Pressure",
+      "query": "SELECT event_hour, ed_arrivals, icu_arrivals, ed_discharges, icu_discharges, net_system_pressure, ed_arrivals_rolling_24h, icu_arrivals_rolling_24h FROM gold_combined_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
+    },
+    {
+      "name": "ds_forecast_predictions",
+      "displayName": "Latest Forecast Predictions",
+      "query": "SELECT department, target_metric, target_hour, predicted_value, prediction_lower_bound, prediction_upper_bound, forecast_horizon_hours, model_name, confidence_level FROM gold_forecast_predictions WHERE forecast_generated_at >= CURRENT_DATE() - INTERVAL 2 DAYS ORDER BY target_hour"
+    },
+    {
+      "name": "ds_forecast_accuracy",
+      "displayName": "Forecast Accuracy",
+      "query": "SELECT prediction_date, model_name, department, target_metric, forecast_horizon_hours, prediction_count, mae, mape, coverage_pct FROM gold_forecast_accuracy ORDER BY prediction_date DESC LIMIT 60"
+    },
+    {
+      "name": "ds_message_volume",
+      "displayName": "HL7 Message Volume",
+      "query": "SELECT processing_hour, message_type, SUM(message_count) AS message_count FROM gold_message_metrics WHERE processing_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY processing_hour, message_type ORDER BY processing_hour"
+    }
+  ],
+  "pages": [
+    {
+      "name": "pg_overview",
+      "displayName": "Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_title",
+            "textbox_spec": "# ED & ICU Operations Dashboard\nReal-time monitoring of Emergency Department and ICU arrivals, discharges, and census from HL7 ADT messages."
+          },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_arrivals_counter",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_total_arrivals",
+                "fields": [{ "name": "total_ed_arrivals", "expression": "`total_ed_arrivals`" }],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "total_ed_arrivals", "displayName": "ED Arrivals Today" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_discharges_counter",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_total_discharges",
+                "fields": [{ "name": "total_ed_discharges", "expression": "`total_ed_discharges`" }],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "total_ed_discharges", "displayName": "ED Discharges Today" }
+              }
+            }
+          },
+          "position": { "x": 1, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_census_counter",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_census_value",
+                "fields": [{ "name": "ed_census", "expression": "`ed_census`" }],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "ed_census", "displayName": "ED Census" }
+              }
+            }
+          },
+          "position": { "x": 2, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_arrivals_counter",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_total_arrivals",
+                "fields": [{ "name": "total_icu_arrivals", "expression": "`total_icu_arrivals`" }],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "total_icu_arrivals", "displayName": "ICU Arrivals Today" }
+              }
+            }
+          },
+          "position": { "x": 3, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_discharges_counter",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_total_discharges",
+                "fields": [{ "name": "total_icu_discharges", "expression": "`total_icu_discharges`" }],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "total_icu_discharges", "displayName": "ICU Discharges Today" }
+              }
+            }
+          },
+          "position": { "x": 4, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_census_counter",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_census_value",
+                "fields": [{ "name": "icu_census", "expression": "`icu_census`" }],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": { "fieldName": "icu_census", "displayName": "ICU Census" }
+              }
+            }
+          },
+          "position": { "x": 5, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_census_bar",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_census_current",
+                "fields": [
+                  { "name": "department", "expression": "`department`" },
+                  { "name": "estimated_census", "expression": "`estimated_census`" },
+                  { "name": "total_arrivals", "expression": "`total_arrivals`" },
+                  { "name": "total_discharges", "expression": "`total_discharges`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" },
+                "y": { "fieldName": "estimated_census", "scale": { "type": "quantitative" }, "displayName": "Current Census" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 2, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_msg_volume",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_message_volume",
+                "fields": [
+                  { "name": "processing_hour", "expression": "`processing_hour`" },
+                  { "name": "message_type", "expression": "`message_type`" },
+                  { "name": "message_count", "expression": "`message_count`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "area",
+              "encodings": {
+                "x": { "fieldName": "processing_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
+                "y": { "fieldName": "message_count", "scale": { "type": "quantitative" }, "displayName": "Messages" },
+                "color": { "fieldName": "message_type", "scale": { "type": "categorical" }, "displayName": "Type" }
+              }
+            }
+          },
+          "position": { "x": 3, "y": 2, "width": 3, "height": 2 }
+        }
+      ]
+    },
+    {
+      "name": "pg_ed",
+      "displayName": "ED Operations",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_ed_title",
+            "textbox_spec": "# Emergency Department Operations\nHourly and daily ED arrival/discharge trends with seasonal patterns."
+          },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_hourly_line",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_hourly_trend",
+                "fields": [
+                  { "name": "event_hour", "expression": "`event_hour`" },
+                  { "name": "arrivals", "expression": "`arrivals`" },
+                  { "name": "discharges", "expression": "`discharges`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "line",
+              "encodings": {
+                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Hour" },
+                "y": { "fieldName": "arrivals", "scale": { "type": "quantitative" }, "displayName": "Count" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 1, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_hour_pattern",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_by_hour_of_day",
+                "fields": [
+                  { "name": "hour_of_day", "expression": "`hour_of_day`" },
+                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
+                  { "name": "avg_discharges", "expression": "`avg_discharges`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "hour_of_day", "scale": { "type": "categorical" }, "displayName": "Hour of Day" },
+                "y": { "fieldName": "avg_arrivals", "scale": { "type": "quantitative" }, "displayName": "Avg Arrivals" }
+              }
+            }
+          },
+          "position": { "x": 4, "y": 1, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_weekday",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_weekday_vs_weekend",
+                "fields": [
+                  { "name": "day_type", "expression": "`day_type`" },
+                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
+                  { "name": "total_arrivals", "expression": "`total_arrivals`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": { "fieldName": "total_arrivals", "scale": { "type": "quantitative" }, "displayName": "Total Arrivals" },
+                "color": { "fieldName": "day_type", "scale": { "type": "categorical" }, "displayName": "Day Type" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 3, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_daily_table",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_daily",
+                "fields": [
+                  { "name": "activity_date", "expression": "`activity_date`" },
+                  { "name": "total_arrivals", "expression": "`total_arrivals`" },
+                  { "name": "total_discharges", "expression": "`total_discharges`" },
+                  { "name": "unique_patients", "expression": "`unique_patients`" },
+                  { "name": "avg_los_minutes", "expression": "`avg_los_minutes`" },
+                  { "name": "median_los_minutes", "expression": "`median_los_minutes`" },
+                  { "name": "peak_arrival_hour", "expression": "`peak_arrival_hour`" },
+                  { "name": "unique_providers", "expression": "`unique_providers`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "activity_date", "displayAs": "string", "visible": true, "order": 0, "title": "Date", "displayName": "Date" },
+                  { "fieldName": "total_arrivals", "displayAs": "number", "visible": true, "order": 1, "title": "Arrivals", "displayName": "Arrivals" },
+                  { "fieldName": "total_discharges", "displayAs": "number", "visible": true, "order": 2, "title": "Discharges", "displayName": "Discharges" },
+                  { "fieldName": "unique_patients", "displayAs": "number", "visible": true, "order": 3, "title": "Patients", "displayName": "Patients" },
+                  { "fieldName": "avg_los_minutes", "displayAs": "number", "visible": true, "order": 4, "title": "Avg LOS (min)", "displayName": "Avg LOS (min)" },
+                  { "fieldName": "median_los_minutes", "displayAs": "number", "visible": true, "order": 5, "title": "Med LOS (min)", "displayName": "Med LOS (min)" },
+                  { "fieldName": "peak_arrival_hour", "displayAs": "number", "visible": true, "order": 6, "title": "Peak Hour", "displayName": "Peak Hour" },
+                  { "fieldName": "unique_providers", "displayAs": "number", "visible": true, "order": 7, "title": "Providers", "displayName": "Providers" }
+                ]
+              }
+            }
+          },
+          "position": { "x": 2, "y": 3, "width": 4, "height": 2 }
+        }
+      ]
+    },
+    {
+      "name": "pg_icu",
+      "displayName": "ICU Operations",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_icu_title",
+            "textbox_spec": "# ICU Operations\nHourly and daily ICU admission/discharge trends with bed utilization."
+          },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_hourly_line",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_hourly_trend",
+                "fields": [
+                  { "name": "event_hour", "expression": "`event_hour`" },
+                  { "name": "arrivals", "expression": "`arrivals`" },
+                  { "name": "discharges", "expression": "`discharges`" },
+                  { "name": "net_change", "expression": "`net_change`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "line",
+              "encodings": {
+                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Hour" },
+                "y": { "fieldName": "arrivals", "scale": { "type": "quantitative" }, "displayName": "Count" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 1, "width": 4, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_hour_pattern",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_by_hour_of_day",
+                "fields": [
+                  { "name": "hour_of_day", "expression": "`hour_of_day`" },
+                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
+                  { "name": "avg_discharges", "expression": "`avg_discharges`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "hour_of_day", "scale": { "type": "categorical" }, "displayName": "Hour of Day" },
+                "y": { "fieldName": "avg_arrivals", "scale": { "type": "quantitative" }, "displayName": "Avg Arrivals" }
+              }
+            }
+          },
+          "position": { "x": 4, "y": 1, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_weekday",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_weekday_vs_weekend",
+                "fields": [
+                  { "name": "day_type", "expression": "`day_type`" },
+                  { "name": "avg_arrivals", "expression": "`avg_arrivals`" },
+                  { "name": "total_arrivals", "expression": "`total_arrivals`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": { "fieldName": "total_arrivals", "scale": { "type": "quantitative" }, "displayName": "Total Arrivals" },
+                "color": { "fieldName": "day_type", "scale": { "type": "categorical" }, "displayName": "Day Type" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 3, "width": 2, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_daily_table",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_daily",
+                "fields": [
+                  { "name": "activity_date", "expression": "`activity_date`" },
+                  { "name": "total_arrivals", "expression": "`total_arrivals`" },
+                  { "name": "total_discharges", "expression": "`total_discharges`" },
+                  { "name": "unique_patients", "expression": "`unique_patients`" },
+                  { "name": "avg_los_hours", "expression": "`avg_los_hours`" },
+                  { "name": "median_los_hours", "expression": "`median_los_hours`" },
+                  { "name": "beds_used", "expression": "`beds_used`" },
+                  { "name": "unique_providers", "expression": "`unique_providers`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "activity_date", "displayAs": "string", "visible": true, "order": 0, "title": "Date", "displayName": "Date" },
+                  { "fieldName": "total_arrivals", "displayAs": "number", "visible": true, "order": 1, "title": "Arrivals", "displayName": "Arrivals" },
+                  { "fieldName": "total_discharges", "displayAs": "number", "visible": true, "order": 2, "title": "Discharges", "displayName": "Discharges" },
+                  { "fieldName": "unique_patients", "displayAs": "number", "visible": true, "order": 3, "title": "Patients", "displayName": "Patients" },
+                  { "fieldName": "avg_los_hours", "displayAs": "number", "visible": true, "order": 4, "title": "Avg LOS (hrs)", "displayName": "Avg LOS (hrs)" },
+                  { "fieldName": "beds_used", "displayAs": "number", "visible": true, "order": 5, "title": "Beds Used", "displayName": "Beds Used" },
+                  { "fieldName": "unique_providers", "displayAs": "number", "visible": true, "order": 6, "title": "Providers", "displayName": "Providers" }
+                ]
+              }
+            }
+          },
+          "position": { "x": 2, "y": 3, "width": 4, "height": 2 }
+        }
+      ]
+    },
+    {
+      "name": "pg_forecast",
+      "displayName": "Forecasting & Predictions",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_forecast_title",
+            "textbox_spec": "# Forecasting & Predictive Analytics\nTime-series features, rolling averages, and model prediction outputs for ED and ICU demand forecasting."
+          },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+        },
+        {
+          "widget": {
+            "name": "w_ed_rolling_avg",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_ed_forecast_features",
+                "fields": [
+                  { "name": "event_hour", "expression": "`event_hour`" },
+                  { "name": "arrivals", "expression": "`arrivals`" },
+                  { "name": "arrivals_rolling_6h", "expression": "`arrivals_rolling_6h`" },
+                  { "name": "arrivals_rolling_24h", "expression": "`arrivals_rolling_24h`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "line",
+              "encodings": {
+                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
+                "y": { "fieldName": "arrivals_rolling_24h", "scale": { "type": "quantitative" }, "displayName": "Rolling Sum" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 1, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_icu_rolling_avg",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_icu_forecast_features",
+                "fields": [
+                  { "name": "event_hour", "expression": "`event_hour`" },
+                  { "name": "arrivals", "expression": "`arrivals`" },
+                  { "name": "arrivals_rolling_6h", "expression": "`arrivals_rolling_6h`" },
+                  { "name": "arrivals_rolling_24h", "expression": "`arrivals_rolling_24h`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "line",
+              "encodings": {
+                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
+                "y": { "fieldName": "arrivals_rolling_24h", "scale": { "type": "quantitative" }, "displayName": "Rolling Sum" }
+              }
+            }
+          },
+          "position": { "x": 3, "y": 1, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_system_pressure",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_combined_features",
+                "fields": [
+                  { "name": "event_hour", "expression": "`event_hour`" },
+                  { "name": "net_system_pressure", "expression": "`net_system_pressure`" },
+                  { "name": "ed_arrivals", "expression": "`ed_arrivals`" },
+                  { "name": "icu_arrivals", "expression": "`icu_arrivals`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 2,
+              "widgetType": "area",
+              "encodings": {
+                "x": { "fieldName": "event_hour", "scale": { "type": "temporal" }, "displayName": "Time" },
+                "y": { "fieldName": "net_system_pressure", "scale": { "type": "quantitative" }, "displayName": "Net System Pressure" }
+              }
+            }
+          },
+          "position": { "x": 0, "y": 3, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_predictions_table",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_forecast_predictions",
+                "fields": [
+                  { "name": "department", "expression": "`department`" },
+                  { "name": "target_metric", "expression": "`target_metric`" },
+                  { "name": "target_hour", "expression": "`target_hour`" },
+                  { "name": "predicted_value", "expression": "`predicted_value`" },
+                  { "name": "prediction_lower_bound", "expression": "`prediction_lower_bound`" },
+                  { "name": "prediction_upper_bound", "expression": "`prediction_upper_bound`" },
+                  { "name": "forecast_horizon_hours", "expression": "`forecast_horizon_hours`" },
+                  { "name": "model_name", "expression": "`model_name`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "department", "displayAs": "string", "visible": true, "order": 0, "title": "Dept", "displayName": "Dept" },
+                  { "fieldName": "target_metric", "displayAs": "string", "visible": true, "order": 1, "title": "Metric", "displayName": "Metric" },
+                  { "fieldName": "target_hour", "displayAs": "string", "visible": true, "order": 2, "title": "Target Hour", "displayName": "Target Hour" },
+                  { "fieldName": "predicted_value", "displayAs": "number", "visible": true, "order": 3, "title": "Predicted", "displayName": "Predicted" },
+                  { "fieldName": "prediction_lower_bound", "displayAs": "number", "visible": true, "order": 4, "title": "Lower", "displayName": "Lower" },
+                  { "fieldName": "prediction_upper_bound", "displayAs": "number", "visible": true, "order": 5, "title": "Upper", "displayName": "Upper" },
+                  { "fieldName": "forecast_horizon_hours", "displayAs": "number", "visible": true, "order": 6, "title": "Horizon (h)", "displayName": "Horizon (h)" },
+                  { "fieldName": "model_name", "displayAs": "string", "visible": true, "order": 7, "title": "Model", "displayName": "Model" }
+                ]
+              }
+            }
+          },
+          "position": { "x": 3, "y": 3, "width": 3, "height": 2 }
+        },
+        {
+          "widget": {
+            "name": "w_accuracy_table",
+            "queries": [{
+              "name": "main_query",
+              "query": {
+                "datasetName": "ds_forecast_accuracy",
+                "fields": [
+                  { "name": "prediction_date", "expression": "`prediction_date`" },
+                  { "name": "model_name", "expression": "`model_name`" },
+                  { "name": "department", "expression": "`department`" },
+                  { "name": "target_metric", "expression": "`target_metric`" },
+                  { "name": "mae", "expression": "`mae`" },
+                  { "name": "mape", "expression": "`mape`" },
+                  { "name": "coverage_pct", "expression": "`coverage_pct`" }
+                ],
+                "disaggregated": true
+              }
+            }],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "prediction_date", "displayAs": "string", "visible": true, "order": 0, "title": "Date", "displayName": "Date" },
+                  { "fieldName": "model_name", "displayAs": "string", "visible": true, "order": 1, "title": "Model", "displayName": "Model" },
+                  { "fieldName": "department", "displayAs": "string", "visible": true, "order": 2, "title": "Dept", "displayName": "Dept" },
+                  { "fieldName": "target_metric", "displayAs": "string", "visible": true, "order": 3, "title": "Metric", "displayName": "Metric" },
+                  { "fieldName": "mae", "displayAs": "number", "visible": true, "order": 4, "title": "MAE", "displayName": "MAE" },
+                  { "fieldName": "mape", "displayAs": "number", "visible": true, "order": 5, "title": "MAPE %", "displayName": "MAPE %" },
+                  { "fieldName": "coverage_pct", "displayAs": "number", "visible": true, "order": 6, "title": "Coverage %", "displayName": "Coverage %" }
+                ]
+              }
+            }
+          },
+          "position": { "x": 0, "y": 5, "width": 6, "height": 2 }
+        }
+      ]
+    }
+  ]
+}
