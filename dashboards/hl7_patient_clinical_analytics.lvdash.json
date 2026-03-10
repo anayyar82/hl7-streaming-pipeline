@@ -3,92 +3,128 @@
     {
       "name": "ds_age_distribution",
       "displayName": "Patient Age Distribution",
-      "query": "SELECT CASE WHEN age < 18 THEN '0-17' WHEN age BETWEEN 18 AND 30 THEN '18-30' WHEN age BETWEEN 31 AND 45 THEN '31-45' WHEN age BETWEEN 46 AND 60 THEN '46-60' WHEN age BETWEEN 61 AND 75 THEN '61-75' ELSE '76+' END AS age_group, COUNT(*) AS patient_count FROM (SELECT *, FLOOR(DATEDIFF(CURRENT_DATE(), TO_DATE(date_of_birth, 'yyyyMMdd')) / 365.25) AS age FROM users.ankur_nayyar.gold_patient_dim WHERE date_of_birth IS NOT NULL) GROUP BY age_group ORDER BY age_group"
+      "queryLines": [
+        "SELECT CASE WHEN age < 18 THEN '0-17' WHEN age BETWEEN 18 AND 30 THEN '18-30' WHEN age BETWEEN 31 AND 45 THEN '31-45' WHEN age BETWEEN 46 AND 60 THEN '46-60' WHEN age BETWEEN 61 AND 75 THEN '61-75' ELSE '76+' END AS age_group, COUNT(*) AS patient_count FROM (SELECT *, FLOOR(DATEDIFF(CURRENT_DATE(), TO_DATE(date_of_birth, 'yyyyMMdd')) / 365.25) AS age FROM users.ankur_nayyar.gold_patient_dim WHERE date_of_birth IS NOT NULL) GROUP BY age_group ORDER BY age_group"
+      ]
     },
     {
       "name": "ds_patient_city",
       "displayName": "Patients by City",
-      "query": "SELECT address_city AS city, COUNT(*) AS patient_count FROM users.ankur_nayyar.gold_patient_dim WHERE address_city IS NOT NULL GROUP BY address_city ORDER BY patient_count DESC LIMIT 10"
+      "queryLines": [
+        "SELECT address_city AS city, COUNT(*) AS patient_count FROM users.ankur_nayyar.gold_patient_dim WHERE address_city IS NOT NULL GROUP BY address_city ORDER BY patient_count DESC LIMIT 10"
+      ]
     },
     {
       "name": "ds_patient_sex_encounters",
       "displayName": "Encounters by Patient Sex",
-      "query": "SELECT p.sex, e.patient_class_desc, COUNT(*) AS encounter_count FROM users.ankur_nayyar.gold_encounter_fact e JOIN users.ankur_nayyar.gold_patient_dim p ON e.patient_id = p.patient_id GROUP BY p.sex, e.patient_class_desc ORDER BY encounter_count DESC"
+      "queryLines": [
+        "SELECT p.sex, e.patient_class_desc, COUNT(*) AS encounter_count FROM users.ankur_nayyar.gold_encounter_fact e JOIN users.ankur_nayyar.gold_patient_dim p ON e.patient_id = p.patient_id GROUP BY p.sex, e.patient_class_desc ORDER BY encounter_count DESC"
+      ]
     },
     {
       "name": "ds_patients_over_time",
       "displayName": "New Patients Over Time",
-      "query": "SELECT TO_DATE(first_seen_at) AS first_seen_date, COUNT(*) AS new_patients FROM users.ankur_nayyar.gold_patient_dim GROUP BY first_seen_date ORDER BY first_seen_date"
+      "queryLines": [
+        "SELECT TO_DATE(first_seen_at) AS first_seen_date, COUNT(*) AS new_patients FROM users.ankur_nayyar.gold_patient_dim GROUP BY first_seen_date ORDER BY first_seen_date"
+      ]
     },
     {
       "name": "ds_patient_visit_freq",
       "displayName": "Visit Frequency per Patient",
-      "query": "SELECT visits, COUNT(*) AS patient_count FROM (SELECT patient_id, COUNT(*) AS visits FROM users.ankur_nayyar.gold_encounter_fact GROUP BY patient_id) GROUP BY visits ORDER BY visits"
+      "queryLines": [
+        "SELECT CAST(visits AS STRING) AS visits, COUNT(*) AS patient_count FROM (SELECT patient_id, COUNT(*) AS visits FROM users.ankur_nayyar.gold_encounter_fact GROUP BY patient_id) GROUP BY visits ORDER BY visits"
+      ]
     },
     {
       "name": "ds_provider_workload",
       "displayName": "Provider Encounter Volume",
-      "query": "SELECT attending_doctor_name AS provider, COUNT(*) AS total_encounters, COUNT(DISTINCT patient_id) AS unique_patients, COUNT(DISTINCT TO_DATE(created_at)) AS active_days, ROUND(COUNT(*) / COUNT(DISTINCT TO_DATE(created_at)), 1) AS avg_encounters_per_day FROM users.ankur_nayyar.gold_encounter_fact WHERE attending_doctor_name IS NOT NULL GROUP BY attending_doctor_name ORDER BY total_encounters DESC LIMIT 15"
+      "queryLines": [
+        "SELECT attending_doctor_name AS provider, COUNT(*) AS total_encounters, COUNT(DISTINCT patient_id) AS unique_patients, COUNT(DISTINCT TO_DATE(created_at)) AS active_days, ROUND(COUNT(*) / COUNT(DISTINCT TO_DATE(created_at)), 1) AS avg_encounters_per_day FROM users.ankur_nayyar.gold_encounter_fact WHERE attending_doctor_name IS NOT NULL GROUP BY attending_doctor_name ORDER BY total_encounters DESC LIMIT 15"
+      ]
     },
     {
       "name": "ds_provider_dept",
       "displayName": "Provider by Department",
-      "query": "SELECT attending_doctor_name AS provider, CASE WHEN patient_class = 'E' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department, COUNT(*) AS encounters FROM users.ankur_nayyar.gold_encounter_fact WHERE attending_doctor_name IS NOT NULL GROUP BY provider, department ORDER BY encounters DESC LIMIT 30"
+      "queryLines": [
+        "SELECT attending_doctor_name AS provider, CASE WHEN patient_class = 'E' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department, COUNT(*) AS encounters FROM users.ankur_nayyar.gold_encounter_fact WHERE attending_doctor_name IS NOT NULL GROUP BY provider, department ORDER BY encounters DESC LIMIT 30"
+      ]
     },
     {
       "name": "ds_heart_rate",
       "displayName": "Heart Rate Distribution",
-      "query": "SELECT CASE WHEN observation_value_numeric < 60 THEN 'Bradycardia (<60)' WHEN observation_value_numeric BETWEEN 60 AND 100 THEN 'Normal (60-100)' ELSE 'Tachycardia (>100)' END AS hr_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '8867-4' AND observation_value_numeric IS NOT NULL GROUP BY hr_range"
+      "queryLines": [
+        "SELECT CASE WHEN observation_value_numeric < 60 THEN 'Bradycardia (<60)' WHEN observation_value_numeric BETWEEN 60 AND 100 THEN 'Normal (60-100)' ELSE 'Tachycardia (>100)' END AS hr_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '8867-4' AND observation_value_numeric IS NOT NULL GROUP BY hr_range"
+      ]
     },
     {
       "name": "ds_bp_systolic",
       "displayName": "Systolic BP Distribution",
-      "query": "SELECT CASE WHEN observation_value_numeric < 90 THEN 'Hypotension (<90)' WHEN observation_value_numeric BETWEEN 90 AND 120 THEN 'Normal (90-120)' WHEN observation_value_numeric BETWEEN 121 AND 140 THEN 'Elevated (121-140)' ELSE 'Hypertension (>140)' END AS bp_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '8480-6' AND observation_value_numeric IS NOT NULL GROUP BY bp_range"
+      "queryLines": [
+        "SELECT CASE WHEN observation_value_numeric < 90 THEN 'Hypotension (<90)' WHEN observation_value_numeric BETWEEN 90 AND 120 THEN 'Normal (90-120)' WHEN observation_value_numeric BETWEEN 121 AND 140 THEN 'Elevated (121-140)' ELSE 'Hypertension (>140)' END AS bp_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '8480-6' AND observation_value_numeric IS NOT NULL GROUP BY bp_range"
+      ]
     },
     {
       "name": "ds_spo2",
       "displayName": "SpO2 Distribution",
-      "query": "SELECT CASE WHEN observation_value_numeric < 90 THEN 'Critical (<90%)' WHEN observation_value_numeric BETWEEN 90 AND 94 THEN 'Low (90-94%)' ELSE 'Normal (>=95%)' END AS spo2_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '59408-5' AND observation_value_numeric IS NOT NULL GROUP BY spo2_range"
+      "queryLines": [
+        "SELECT CASE WHEN observation_value_numeric < 90 THEN 'Critical (<90%)' WHEN observation_value_numeric BETWEEN 90 AND 94 THEN 'Low (90-94%)' ELSE 'Normal (>=95%)' END AS spo2_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '59408-5' AND observation_value_numeric IS NOT NULL GROUP BY spo2_range"
+      ]
     },
     {
       "name": "ds_temp_distribution",
       "displayName": "Temperature Distribution",
-      "query": "SELECT CASE WHEN observation_value_numeric < 97.0 THEN 'Hypothermia (<97)' WHEN observation_value_numeric BETWEEN 97.0 AND 99.0 THEN 'Normal (97-99)' WHEN observation_value_numeric BETWEEN 99.1 AND 100.4 THEN 'Low Fever (99-100.4)' ELSE 'Fever (>100.4)' END AS temp_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '8310-5' AND observation_value_numeric IS NOT NULL GROUP BY temp_range"
+      "queryLines": [
+        "SELECT CASE WHEN observation_value_numeric < 97.0 THEN 'Hypothermia (<97)' WHEN observation_value_numeric BETWEEN 97.0 AND 99.0 THEN 'Normal (97-99)' WHEN observation_value_numeric BETWEEN 99.1 AND 100.4 THEN 'Low Fever (99-100.4)' ELSE 'Fever (>100.4)' END AS temp_range, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id = '8310-5' AND observation_value_numeric IS NOT NULL GROUP BY temp_range"
+      ]
     },
     {
       "name": "ds_vital_trends",
       "displayName": "Vital Signs Over Time",
-      "query": "SELECT TO_DATE(TO_TIMESTAMP(observation_datetime, 'yyyyMMddHHmmss')) AS obs_date, observation_text AS vital, ROUND(AVG(observation_value_numeric), 1) AS avg_value, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE value_type = 'NM' AND observation_value_numeric IS NOT NULL AND observation_text IN ('HEART RATE', 'SYSTOLIC BP', 'RESPIRATORY RATE', 'SPO2') GROUP BY obs_date, vital ORDER BY obs_date"
+      "queryLines": [
+        "SELECT TO_DATE(TO_TIMESTAMP(observation_datetime, 'yyyyMMddHHmmss')) AS obs_date, observation_text AS vital, ROUND(AVG(observation_value_numeric), 1) AS avg_value, COUNT(*) AS readings FROM users.ankur_nayyar.gold_observation_fact WHERE value_type = 'NM' AND observation_value_numeric IS NOT NULL AND observation_text IN ('HEART RATE', 'SYSTOLIC BP', 'RESPIRATORY RATE', 'SPO2') GROUP BY obs_date, vital ORDER BY obs_date"
+      ]
     },
     {
       "name": "ds_lab_results",
       "displayName": "Lab Result Ranges",
-      "query": "SELECT observation_text AS lab_test, ROUND(AVG(observation_value_numeric), 2) AS avg_value, ROUND(STDDEV(observation_value_numeric), 2) AS std_dev, ROUND(MIN(observation_value_numeric), 2) AS min_val, ROUND(PERCENTILE_APPROX(observation_value_numeric, 0.25), 2) AS p25, ROUND(PERCENTILE_APPROX(observation_value_numeric, 0.5), 2) AS median, ROUND(PERCENTILE_APPROX(observation_value_numeric, 0.75), 2) AS p75, ROUND(MAX(observation_value_numeric), 2) AS max_val, COUNT(*) AS total_results FROM users.ankur_nayyar.gold_observation_fact WHERE value_type = 'NM' AND observation_value_numeric IS NOT NULL GROUP BY observation_text ORDER BY total_results DESC"
+      "queryLines": [
+        "SELECT observation_text AS lab_test, ROUND(AVG(observation_value_numeric), 2) AS avg_value, ROUND(STDDEV(observation_value_numeric), 2) AS std_dev, ROUND(MIN(observation_value_numeric), 2) AS min_val, ROUND(PERCENTILE_APPROX(observation_value_numeric, 0.25), 2) AS p25, ROUND(PERCENTILE_APPROX(observation_value_numeric, 0.5), 2) AS median, ROUND(PERCENTILE_APPROX(observation_value_numeric, 0.75), 2) AS p75, ROUND(MAX(observation_value_numeric), 2) AS max_val, COUNT(*) AS total_results FROM users.ankur_nayyar.gold_observation_fact WHERE value_type = 'NM' AND observation_value_numeric IS NOT NULL GROUP BY observation_text ORDER BY total_results DESC"
+      ]
     },
     {
       "name": "ds_diagnosis_by_dept",
       "displayName": "Top Diagnoses by Department",
-      "query": "SELECT d.diagnosis_description, CASE WHEN e.patient_class = 'E' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department, COUNT(*) AS dx_count FROM users.ankur_nayyar.gold_diagnosis_fact d JOIN users.ankur_nayyar.gold_encounter_fact e ON d.message_id = e.message_id GROUP BY d.diagnosis_description, department ORDER BY dx_count DESC LIMIT 20"
+      "queryLines": [
+        "SELECT d.diagnosis_description, CASE WHEN e.patient_class = 'E' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%ED%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%ER%' THEN 'ED' WHEN UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%ICU%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%MICU%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%SICU%' OR UPPER(COALESCE(e.location_point_of_care,'')) LIKE '%CCU%' THEN 'ICU' ELSE 'Other' END AS department, COUNT(*) AS dx_count FROM users.ankur_nayyar.gold_diagnosis_fact d JOIN users.ankur_nayyar.gold_encounter_fact e ON d.message_id = e.message_id GROUP BY d.diagnosis_description, department ORDER BY dx_count DESC LIMIT 20"
+      ]
     },
     {
       "name": "ds_allergy_by_patient_class",
       "displayName": "Allergies by Patient Class",
-      "query": "SELECT a.allergen_description, e.patient_class_desc, COUNT(*) AS cnt FROM users.ankur_nayyar.gold_allergy_fact a JOIN users.ankur_nayyar.gold_encounter_fact e ON a.message_id = e.message_id GROUP BY a.allergen_description, e.patient_class_desc ORDER BY cnt DESC"
+      "queryLines": [
+        "SELECT a.allergen_description, e.patient_class_desc, COUNT(*) AS cnt FROM users.ankur_nayyar.gold_allergy_fact a JOIN users.ankur_nayyar.gold_encounter_fact e ON a.message_id = e.message_id GROUP BY a.allergen_description, e.patient_class_desc ORDER BY cnt DESC"
+      ]
     },
     {
       "name": "ds_pipeline_funnel",
       "displayName": "Pipeline Data Funnel",
-      "query": "SELECT 'Raw Files' AS stage, 1 AS stage_order, COUNT(*) AS record_count FROM users.ankur_nayyar.bronze_hl7_raw UNION ALL SELECT 'Split Messages', 2, COUNT(*) FROM users.ankur_nayyar.bronze_hl7_split UNION ALL SELECT 'Parsed Messages', 3, COUNT(*) FROM users.ankur_nayyar.bronze_hl7_parsed UNION ALL SELECT 'MSH Segments', 4, COUNT(*) FROM users.ankur_nayyar.silver_msh UNION ALL SELECT 'PV1 Encounters', 5, COUNT(*) FROM users.ankur_nayyar.silver_pv1 UNION ALL SELECT 'Gold Encounters', 6, COUNT(*) FROM users.ankur_nayyar.gold_encounter_fact ORDER BY stage_order"
+      "queryLines": [
+        "SELECT 'Raw Files' AS stage, 1 AS stage_order, COUNT(*) AS record_count FROM users.ankur_nayyar.bronze_hl7_raw UNION ALL SELECT 'Split Messages', 2, COUNT(*) FROM users.ankur_nayyar.bronze_hl7_split UNION ALL SELECT 'Parsed Messages', 3, COUNT(*) FROM users.ankur_nayyar.bronze_hl7_parsed UNION ALL SELECT 'MSH Segments', 4, COUNT(*) FROM users.ankur_nayyar.silver_msh UNION ALL SELECT 'PV1 Encounters', 5, COUNT(*) FROM users.ankur_nayyar.silver_pv1 UNION ALL SELECT 'Gold Encounters', 6, COUNT(*) FROM users.ankur_nayyar.gold_encounter_fact ORDER BY stage_order"
+      ]
     },
     {
       "name": "ds_observation_per_encounter",
       "displayName": "Observations per Encounter",
-      "query": "SELECT obs_count_group, COUNT(*) AS encounter_count FROM (SELECT e.encounter_key, CASE WHEN COUNT(o.observation_key) = 0 THEN '0' WHEN COUNT(o.observation_key) BETWEEN 1 AND 3 THEN '1-3' WHEN COUNT(o.observation_key) BETWEEN 4 AND 6 THEN '4-6' ELSE '7+' END AS obs_count_group FROM users.ankur_nayyar.gold_encounter_fact e LEFT JOIN users.ankur_nayyar.gold_observation_fact o ON e.message_id = o.message_id GROUP BY e.encounter_key) GROUP BY obs_count_group ORDER BY obs_count_group"
+      "queryLines": [
+        "SELECT obs_count_group, COUNT(*) AS encounter_count FROM (SELECT e.encounter_key, CASE WHEN COUNT(o.observation_key) = 0 THEN '0' WHEN COUNT(o.observation_key) BETWEEN 1 AND 3 THEN '1-3' WHEN COUNT(o.observation_key) BETWEEN 4 AND 6 THEN '4-6' ELSE '7+' END AS obs_count_group FROM users.ankur_nayyar.gold_encounter_fact e LEFT JOIN users.ankur_nayyar.gold_observation_fact o ON e.message_id = o.message_id GROUP BY e.encounter_key) GROUP BY obs_count_group ORDER BY obs_count_group"
+      ]
     },
     {
       "name": "ds_location_heatmap",
       "displayName": "Encounters by Location",
-      "query": "SELECT location_point_of_care AS unit, source_system AS facility, COUNT(*) AS encounters FROM users.ankur_nayyar.gold_encounter_fact GROUP BY unit, facility ORDER BY encounters DESC"
+      "queryLines": [
+        "SELECT location_point_of_care AS unit, source_system AS facility, COUNT(*) AS encounters FROM users.ankur_nayyar.gold_encounter_fact GROUP BY unit, facility ORDER BY encounters DESC"
+      ]
     }
   ],
   "pages": [
@@ -99,7 +135,12 @@
         {
           "widget": {
             "name": "w_patient_title",
-            "textbox_spec": "# Patient Demographics & Visit Patterns\nAge distribution, geographic spread, visit frequency, and patient flow from HL7 ADT messages."
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Patient Demographics & Visit Patterns\n",
+                "Age distribution, geographic spread, visit frequency, and patient flow from HL7 ADT messages."
+              ]
+            }
           },
           "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
         },
@@ -107,7 +148,16 @@
           "widget": {
             "name": "w_age_dist",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_age_distribution", "fields": [{ "name": "age_group", "expression": "`age_group`" }, { "name": "patient_count", "expression": "`patient_count`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "age_group", "scale": { "type": "categorical" }, "displayName": "Age Group" }, "y": { "fieldName": "patient_count", "scale": { "type": "quantitative" }, "displayName": "Patients" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Patient Age Distribution", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "age_group", "displayName": "Age Group", "scale": { "type": "categorical" } },
+                "y": { "fieldName": "patient_count", "displayName": "Patients", "scale": { "type": "quantitative" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 0, "y": 1, "width": 3, "height": 2 }
         },
@@ -115,7 +165,17 @@
           "widget": {
             "name": "w_patient_city",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_patient_city", "fields": [{ "name": "city", "expression": "`city`" }, { "name": "patient_count", "expression": "`patient_count`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "patient_count", "scale": { "type": "quantitative" }, "displayName": "Patients" }, "y": { "fieldName": "city", "scale": { "type": "categorical" }, "displayName": "City" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Top Patient Cities", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "patient_count", "displayName": "Patients", "scale": { "type": "quantitative" } },
+                "y": { "fieldName": "city", "displayName": "City", "scale": { "type": "categorical" } },
+                "color": { "fieldName": "city", "displayName": "City", "scale": { "type": "categorical" }, "legend": { "hide": true } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 3, "y": 1, "width": 3, "height": 2 }
         },
@@ -123,7 +183,17 @@
           "widget": {
             "name": "w_sex_encounters",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_patient_sex_encounters", "fields": [{ "name": "sex", "expression": "`sex`" }, { "name": "patient_class_desc", "expression": "`patient_class_desc`" }, { "name": "encounter_count", "expression": "`encounter_count`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "sex", "scale": { "type": "categorical" }, "displayName": "Sex" }, "y": { "fieldName": "encounter_count", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "color": { "fieldName": "patient_class_desc", "scale": { "type": "categorical" }, "displayName": "Patient Class" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Encounters by Sex & Patient Class", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "sex", "displayName": "Sex", "scale": { "type": "categorical" } },
+                "y": { "fieldName": "encounter_count", "displayName": "Encounters", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "patient_class_desc", "displayName": "Patient Class", "scale": { "type": "categorical" }, "legend": { "position": "top" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 0, "y": 3, "width": 2, "height": 2 }
         },
@@ -131,7 +201,16 @@
           "widget": {
             "name": "w_new_patients",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_patients_over_time", "fields": [{ "name": "first_seen_date", "expression": "`first_seen_date`" }, { "name": "new_patients", "expression": "`new_patients`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "first_seen_date", "scale": { "type": "temporal" }, "displayName": "Date" }, "y": { "fieldName": "new_patients", "scale": { "type": "quantitative" }, "displayName": "New Patients" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "New Patients Over Time", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "first_seen_date", "displayName": "Date", "scale": { "type": "temporal" } },
+                "y": { "fieldName": "new_patients", "displayName": "New Patients", "scale": { "type": "quantitative" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 2, "y": 3, "width": 2, "height": 2 }
         },
@@ -139,11 +218,21 @@
           "widget": {
             "name": "w_visit_freq",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_patient_visit_freq", "fields": [{ "name": "visits", "expression": "`visits`" }, { "name": "patient_count", "expression": "`patient_count`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "visits", "scale": { "type": "categorical" }, "displayName": "Visit Count" }, "y": { "fieldName": "patient_count", "scale": { "type": "quantitative" }, "displayName": "Patients" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Visit Frequency per Patient", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "visits", "displayName": "Visit Count", "scale": { "type": "categorical" } },
+                "y": { "fieldName": "patient_count", "displayName": "Patients", "scale": { "type": "quantitative" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 4, "y": 3, "width": 2, "height": 2 }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     },
     {
       "name": "pg_providers",
@@ -152,35 +241,70 @@
         {
           "widget": {
             "name": "w_provider_title",
-            "textbox_spec": "# Provider Workload & Department Coverage\nEncounter volume, patient load, and department distribution per attending provider."
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Provider Workload & Department Coverage\n",
+                "Encounter volume, patient load, and department distribution per attending provider."
+              ]
+            }
           },
           "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
         },
         {
           "widget": {
             "name": "w_provider_workload",
-            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_provider_workload", "fields": [{ "name": "provider", "expression": "`provider`" }, { "name": "total_encounters", "expression": "`total_encounters`" }, { "name": "unique_patients", "expression": "`unique_patients`" }, { "name": "active_days", "expression": "`active_days`" }, { "name": "avg_encounters_per_day", "expression": "`avg_encounters_per_day`" }], "disaggregated": true } }],
-            "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "provider", "displayAs": "string", "visible": true, "order": 0, "title": "Provider", "displayName": "Provider" }, { "fieldName": "total_encounters", "displayAs": "number", "visible": true, "order": 1, "title": "Total Encounters", "displayName": "Total Encounters" }, { "fieldName": "unique_patients", "displayAs": "number", "visible": true, "order": 2, "title": "Unique Patients", "displayName": "Unique Patients" }, { "fieldName": "active_days", "displayAs": "number", "visible": true, "order": 3, "title": "Active Days", "displayName": "Active Days" }, { "fieldName": "avg_encounters_per_day", "displayAs": "number", "visible": true, "order": 4, "title": "Avg/Day", "displayName": "Avg/Day" } ] } }
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_provider_workload", "fields": [{ "name": "provider", "expression": "`provider`" }, { "name": "unique_patients", "expression": "`unique_patients`" }], "disaggregated": true } }],
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Unique Patient Counts by Provider", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "unique_patients", "displayName": "Unique Patients", "scale": { "type": "quantitative" } },
+                "y": { "fieldName": "provider", "displayName": "Provider", "scale": { "type": "categorical" } },
+                "color": { "fieldName": "provider", "displayName": "Provider", "scale": { "type": "categorical" }, "legend": { "hide": true } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 0, "y": 1, "width": 6, "height": 3 }
         },
         {
           "widget": {
             "name": "w_provider_dept",
-            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_provider_dept", "fields": [{ "name": "provider", "expression": "`provider`" }, { "name": "department", "expression": "`department`" }, { "name": "encounters", "expression": "`encounters`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "encounters", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "y": { "fieldName": "provider", "scale": { "type": "categorical" }, "displayName": "Provider" }, "color": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" } } }
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_diagnosis_by_dept", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "diagnosis_description", "expression": "`diagnosis_description`" }, { "name": "dx_count", "expression": "`dx_count`" }], "filters": [{ "expression": "`department` IN ('ED', 'ICU')" }], "disaggregated": true } }],
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Diagnosis Counts: ED vs ICU", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "diagnosis_description", "displayName": "Diagnosis", "scale": { "type": "categorical", "sort": { "by": "y-reversed" } }, "axis": { "hideTitle": true } },
+                "y": { "fieldName": "dx_count", "displayName": "Count", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "department", "displayName": "Department", "scale": { "type": "categorical" }, "legend": { "position": "top" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 0, "y": 4, "width": 3, "height": 3 }
         },
         {
           "widget": {
             "name": "w_location_heatmap",
-            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_location_heatmap", "fields": [{ "name": "unit", "expression": "`unit`" }, { "name": "facility", "expression": "`facility`" }, { "name": "encounters", "expression": "`encounters`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "unit", "scale": { "type": "categorical" }, "displayName": "Unit / Location" }, "y": { "fieldName": "encounters", "scale": { "type": "quantitative" }, "displayName": "Encounters" }, "color": { "fieldName": "facility", "scale": { "type": "categorical" }, "displayName": "Facility" } } }
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_allergy_by_patient_class", "fields": [{ "name": "cnt", "expression": "`cnt`" }, { "name": "allergen_description", "expression": "`allergen_description`" }], "disaggregated": true } }],
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Top Allergens by Patient Class", "showTitle": true },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": { "fieldName": "cnt", "displayName": "Count", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "allergen_description", "displayName": "Allergen", "scale": { "type": "categorical" }, "legend": { "position": "right" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 3, "y": 4, "width": 3, "height": 3 }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     },
     {
       "name": "pg_vitals_labs",
@@ -189,7 +313,12 @@
         {
           "widget": {
             "name": "w_vitals_title",
-            "textbox_spec": "# Vital Signs & Lab Results Analysis\nClinical ranges, distributions, and trends for key vital signs and lab tests extracted from HL7 OBX segments."
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Vital Signs & Lab Results Analysis\n",
+                "Clinical ranges, distributions, and trends for key vital signs and lab tests extracted from HL7 OBX segments."
+              ]
+            }
           },
           "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
         },
@@ -197,7 +326,16 @@
           "widget": {
             "name": "w_hr_dist",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_heart_rate", "fields": [{ "name": "hr_range", "expression": "`hr_range`" }, { "name": "readings", "expression": "`readings`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "readings", "scale": { "type": "quantitative" }, "displayName": "Readings" }, "color": { "fieldName": "hr_range", "scale": { "type": "categorical" }, "displayName": "Heart Rate Range" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Heart Rate Distribution", "showTitle": true },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": { "fieldName": "readings", "displayName": "Readings", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "hr_range", "displayName": "Heart Rate Range", "scale": { "type": "categorical" }, "legend": { "position": "right" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 0, "y": 1, "width": 2, "height": 2 }
         },
@@ -205,7 +343,16 @@
           "widget": {
             "name": "w_bp_dist",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_bp_systolic", "fields": [{ "name": "bp_range", "expression": "`bp_range`" }, { "name": "readings", "expression": "`readings`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "readings", "scale": { "type": "quantitative" }, "displayName": "Readings" }, "color": { "fieldName": "bp_range", "scale": { "type": "categorical" }, "displayName": "Systolic BP Range" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Systolic BP Distribution", "showTitle": true },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": { "fieldName": "readings", "displayName": "Readings", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "bp_range", "displayName": "Systolic BP Range", "scale": { "type": "categorical" }, "legend": { "position": "right" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 2, "y": 1, "width": 2, "height": 2 }
         },
@@ -213,7 +360,16 @@
           "widget": {
             "name": "w_spo2_dist",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_spo2", "fields": [{ "name": "spo2_range", "expression": "`spo2_range`" }, { "name": "readings", "expression": "`readings`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "pie", "encodings": { "angle": { "fieldName": "readings", "scale": { "type": "quantitative" }, "displayName": "Readings" }, "color": { "fieldName": "spo2_range", "scale": { "type": "categorical" }, "displayName": "SpO2 Range" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "SpO2 Distribution", "showTitle": true },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": { "fieldName": "readings", "displayName": "Readings", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "spo2_range", "displayName": "SpO2 Range", "scale": { "type": "categorical" }, "legend": { "position": "right" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 4, "y": 1, "width": 2, "height": 2 }
         },
@@ -221,7 +377,16 @@
           "widget": {
             "name": "w_temp_dist",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_temp_distribution", "fields": [{ "name": "temp_range", "expression": "`temp_range`" }, { "name": "readings", "expression": "`readings`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "temp_range", "scale": { "type": "categorical" }, "displayName": "Temperature Range" }, "y": { "fieldName": "readings", "scale": { "type": "quantitative" }, "displayName": "Readings" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Body Temperature Distribution", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "temp_range", "displayName": "Temperature Range", "scale": { "type": "categorical" } },
+                "y": { "fieldName": "readings", "displayName": "Readings", "scale": { "type": "quantitative" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 0, "y": 3, "width": 3, "height": 2 }
         },
@@ -229,7 +394,16 @@
           "widget": {
             "name": "w_vital_trends",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_vital_trends", "fields": [{ "name": "obs_date", "expression": "`obs_date`" }, { "name": "vital", "expression": "`vital`" }, { "name": "avg_value", "expression": "`avg_value`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "line", "encodings": { "x": { "fieldName": "obs_date", "scale": { "type": "temporal" }, "displayName": "Date" }, "y": { "fieldName": "avg_value", "scale": { "type": "quantitative" }, "displayName": "Avg Value" }, "color": { "fieldName": "vital", "scale": { "type": "categorical" }, "displayName": "Vital Sign" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Vital Sign Trends Over Time", "showTitle": true },
+              "widgetType": "line",
+              "encodings": {
+                "x": { "fieldName": "obs_date", "displayName": "Date", "scale": { "type": "temporal" } },
+                "y": { "fieldName": "avg_value", "displayName": "Avg Value", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "vital", "displayName": "Vital Sign", "scale": { "type": "categorical" }, "legend": { "position": "top" } }
+              }
+            }
           },
           "position": { "x": 3, "y": 3, "width": 3, "height": 2 }
         },
@@ -237,11 +411,28 @@
           "widget": {
             "name": "w_lab_results_table",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_lab_results", "fields": [{ "name": "lab_test", "expression": "`lab_test`" }, { "name": "avg_value", "expression": "`avg_value`" }, { "name": "std_dev", "expression": "`std_dev`" }, { "name": "min_val", "expression": "`min_val`" }, { "name": "p25", "expression": "`p25`" }, { "name": "median", "expression": "`median`" }, { "name": "p75", "expression": "`p75`" }, { "name": "max_val", "expression": "`max_val`" }, { "name": "total_results", "expression": "`total_results`" }], "disaggregated": true } }],
-            "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "lab_test", "displayAs": "string", "visible": true, "order": 0, "title": "Test / Vital", "displayName": "Test / Vital" }, { "fieldName": "avg_value", "displayAs": "number", "visible": true, "order": 1, "title": "Mean", "displayName": "Mean" }, { "fieldName": "std_dev", "displayAs": "number", "visible": true, "order": 2, "title": "Std Dev", "displayName": "Std Dev" }, { "fieldName": "min_val", "displayAs": "number", "visible": true, "order": 3, "title": "Min", "displayName": "Min" }, { "fieldName": "p25", "displayAs": "number", "visible": true, "order": 4, "title": "P25", "displayName": "P25" }, { "fieldName": "median", "displayAs": "number", "visible": true, "order": 5, "title": "Median", "displayName": "Median" }, { "fieldName": "p75", "displayAs": "number", "visible": true, "order": 6, "title": "P75", "displayName": "P75" }, { "fieldName": "max_val", "displayAs": "number", "visible": true, "order": 7, "title": "Max", "displayName": "Max" }, { "fieldName": "total_results", "displayAs": "number", "visible": true, "order": 8, "title": "N", "displayName": "N" } ] } }
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  { "fieldName": "lab_test", "displayAs": "string", "visible": true, "order": 0, "title": "Test / Vital", "displayName": "Test / Vital" },
+                  { "fieldName": "avg_value", "displayAs": "number", "visible": true, "order": 1, "title": "Mean", "displayName": "Mean" },
+                  { "fieldName": "std_dev", "displayAs": "number", "visible": true, "order": 2, "title": "Std Dev", "displayName": "Std Dev" },
+                  { "fieldName": "min_val", "displayAs": "number", "visible": true, "order": 3, "title": "Min", "displayName": "Min" },
+                  { "fieldName": "p25", "displayAs": "number", "visible": true, "order": 4, "title": "P25", "displayName": "P25" },
+                  { "fieldName": "median", "displayAs": "number", "visible": true, "order": 5, "title": "Median", "displayName": "Median" },
+                  { "fieldName": "p75", "displayAs": "number", "visible": true, "order": 6, "title": "P75", "displayName": "P75" },
+                  { "fieldName": "max_val", "displayAs": "number", "visible": true, "order": 7, "title": "Max", "displayName": "Max" },
+                  { "fieldName": "total_results", "displayAs": "number", "visible": true, "order": 8, "title": "N", "displayName": "N" }
+                ]
+              }
+            }
           },
           "position": { "x": 0, "y": 5, "width": 6, "height": 2 }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     },
     {
       "name": "pg_quality",
@@ -250,7 +441,12 @@
         {
           "widget": {
             "name": "w_quality_title",
-            "textbox_spec": "# Pipeline Quality & Diagnosis Patterns\nData pipeline throughput from raw files to gold tables, diagnosis distribution by department, and allergy cross-analysis."
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Pipeline Quality & Diagnosis Patterns\n",
+                "Data pipeline throughput from raw files to gold tables, diagnosis distribution by department, and allergy cross-analysis."
+              ]
+            }
           },
           "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
         },
@@ -258,7 +454,16 @@
           "widget": {
             "name": "w_pipeline_funnel",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_pipeline_funnel", "fields": [{ "name": "stage", "expression": "`stage`" }, { "name": "record_count", "expression": "`record_count`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "stage", "scale": { "type": "categorical" }, "displayName": "Pipeline Stage" }, "y": { "fieldName": "record_count", "scale": { "type": "quantitative" }, "displayName": "Records" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Pipeline Data Funnel", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "stage", "displayName": "Pipeline Stage", "scale": { "type": "categorical" } },
+                "y": { "fieldName": "record_count", "displayName": "Records", "scale": { "type": "quantitative" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 0, "y": 1, "width": 3, "height": 2 }
         },
@@ -266,15 +471,34 @@
           "widget": {
             "name": "w_obs_per_encounter",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_observation_per_encounter", "fields": [{ "name": "obs_count_group", "expression": "`obs_count_group`" }, { "name": "encounter_count", "expression": "`encounter_count`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "obs_count_group", "scale": { "type": "categorical" }, "displayName": "Observations per Encounter" }, "y": { "fieldName": "encounter_count", "scale": { "type": "quantitative" }, "displayName": "Encounters" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Observations per Encounter", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "obs_count_group", "displayName": "Observations per Encounter", "scale": { "type": "categorical" } },
+                "y": { "fieldName": "encounter_count", "displayName": "Encounters", "scale": { "type": "quantitative" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 3, "y": 1, "width": 3, "height": 2 }
         },
         {
           "widget": {
             "name": "w_dx_by_dept",
-            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_diagnosis_by_dept", "fields": [{ "name": "diagnosis_description", "expression": "`diagnosis_description`" }, { "name": "department", "expression": "`department`" }, { "name": "dx_count", "expression": "`dx_count`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "dx_count", "scale": { "type": "quantitative" }, "displayName": "Count" }, "y": { "fieldName": "diagnosis_description", "scale": { "type": "categorical" }, "displayName": "Diagnosis" }, "color": { "fieldName": "department", "scale": { "type": "categorical" }, "displayName": "Department" } } }
+            "queries": [{ "name": "main_query", "query": { "datasetName": "ds_provider_workload", "fields": [{ "name": "provider", "expression": "`provider`" }, { "name": "avg_encounters_per_day", "expression": "`avg_encounters_per_day`" }, { "name": "total_encounters", "expression": "`total_encounters`" }, { "name": "unique_patients", "expression": "`unique_patients`" }], "disaggregated": true } }],
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Provider: Unique Patients vs Total Encounters", "showTitle": true },
+              "widgetType": "scatter",
+              "encodings": {
+                "x": { "fieldName": "total_encounters", "displayName": "Total Encounters", "scale": { "type": "quantitative" } },
+                "y": { "fieldName": "unique_patients", "displayName": "Unique Patients", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "provider", "displayName": "Provider", "scale": { "type": "categorical" }, "legend": { "hide": true } },
+                "extra": [{ "fieldName": "avg_encounters_per_day", "displayName": "Avg Encounters/Day" }]
+              }
+            }
           },
           "position": { "x": 0, "y": 3, "width": 3, "height": 3 }
         },
@@ -282,11 +506,22 @@
           "widget": {
             "name": "w_allergy_class",
             "queries": [{ "name": "main_query", "query": { "datasetName": "ds_allergy_by_patient_class", "fields": [{ "name": "allergen_description", "expression": "`allergen_description`" }, { "name": "patient_class_desc", "expression": "`patient_class_desc`" }, { "name": "cnt", "expression": "`cnt`" }], "disaggregated": true } }],
-            "spec": { "version": 2, "widgetType": "bar", "encodings": { "x": { "fieldName": "allergen_description", "scale": { "type": "categorical" }, "displayName": "Allergen" }, "y": { "fieldName": "cnt", "scale": { "type": "quantitative" }, "displayName": "Count" }, "color": { "fieldName": "patient_class_desc", "scale": { "type": "categorical" }, "displayName": "Patient Class" } } }
+            "spec": {
+              "version": 3,
+              "frame": { "title": "Allergies by Patient Class", "showTitle": true },
+              "widgetType": "bar",
+              "encodings": {
+                "x": { "fieldName": "allergen_description", "displayName": "Allergen", "scale": { "type": "categorical" } },
+                "y": { "fieldName": "cnt", "displayName": "Count", "scale": { "type": "quantitative" } },
+                "color": { "fieldName": "patient_class_desc", "displayName": "Patient Class", "scale": { "type": "categorical" }, "legend": { "position": "top" } },
+                "label": { "show": true }
+              }
+            }
           },
           "position": { "x": 3, "y": 3, "width": 3, "height": 3 }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ]
 }
