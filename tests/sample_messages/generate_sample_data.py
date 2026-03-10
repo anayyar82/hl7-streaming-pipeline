@@ -1,6 +1,15 @@
-"""Generate realistic HL7 v2.5.1 ADT messages for ED & ICU dashboard testing."""
+"""Generate realistic HL7 v2.5.1 ADT messages for ED & ICU dashboard testing.
+
+Usage:
+  python generate_sample_data.py                          # generate locally only
+  python generate_sample_data.py --upload                 # generate and upload to landing volume
+  python generate_sample_data.py --upload --catalog users --schema ankur_nayyar --volume landing
+"""
+import argparse
 import random
 import os
+import subprocess
+import shutil
 from datetime import datetime, timedelta
 
 random.seed(42)
@@ -265,7 +274,41 @@ def main():
         file_num += 1
 
     print(f"Generated {msg_id - 1} messages in {file_num - 1} files under {out_dir}")
+    return out_dir, file_num - 1
+
+
+def upload_to_volume(local_dir: str, catalog: str, schema: str, volume: str):
+    volume_path = f"/Volumes/{catalog}/{schema}/{volume}"
+    cli = shutil.which("databricks") or "/usr/local/bin/databricks"
+
+    print(f"\nUploading files from {local_dir} to {volume_path} ...")
+    result = subprocess.run(
+        [cli, "fs", "cp", "--recursive", "--overwrite", local_dir, f"dbfs:{volume_path}"],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"Upload failed: {result.stderr}")
+        raise SystemExit(1)
+
+    print(f"Upload complete. Files available at {volume_path}")
+
+    result = subprocess.run(
+        [cli, "fs", "ls", f"dbfs:{volume_path}", "--output", "text"],
+        capture_output=True, text=True
+    )
+    file_count = len([l for l in result.stdout.strip().split("\n") if l.strip() and l.strip().endswith(".hl7")])
+    print(f"Verified: {file_count} .hl7 files in {volume_path}")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Generate and optionally upload HL7 sample data")
+    parser.add_argument("--upload", action="store_true", help="Upload generated files to Databricks landing volume")
+    parser.add_argument("--catalog", default="users", help="Unity Catalog name (default: users)")
+    parser.add_argument("--schema", default="ankur_nayyar", help="Schema name (default: ankur_nayyar)")
+    parser.add_argument("--volume", default="landing", help="Volume name (default: landing)")
+    args = parser.parse_args()
+
+    out_dir, num_files = main()
+
+    if args.upload:
+        upload_to_volume(out_dir, args.catalog, args.schema, args.volume)
