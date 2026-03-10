@@ -17,6 +17,10 @@
 # MAGIC ## Monitoring Tables
 # MAGIC - `gold_message_metrics` - Hourly message processing metrics
 # MAGIC - `gold_patient_activity` - Daily patient activity summary
+# MAGIC 
+# MAGIC ## Related Notebooks
+# MAGIC - `04_reports.py` - Real-time ED & ICU census, arrivals, discharges
+# MAGIC - `05_forecasting.py` - Predictive feature tables & forecast outputs
 
 # COMMAND ----------
 

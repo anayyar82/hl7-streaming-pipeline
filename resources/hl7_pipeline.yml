@@ -50,6 +50,10 @@ resources:
             path: ../notebooks/02_silver.py
         - notebook:
             path: ../notebooks/03_gold.py
+        - notebook:
+            path: ../notebooks/04_reports.py
+        - notebook:
+            path: ../notebooks/05_forecasting.py
       clusters:
         - label: default
           autoscale:
