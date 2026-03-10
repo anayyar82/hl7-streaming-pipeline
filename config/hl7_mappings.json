@@ -1,0 +1,289 @@
+{
+  "version": "2.5.1",
+  "segments": {
+    "MSH": {
+      "name": "Message Header",
+      "fields": {
+        "1": "field_separator",
+        "2": "encoding_characters",
+        "3": "sending_application",
+        "4": "sending_facility",
+        "5": "receiving_application",
+        "6": "receiving_facility",
+        "7": "date_time_of_message",
+        "8": "security",
+        "9": "message_type",
+        "10": "message_control_id",
+        "11": "processing_id",
+        "12": "version_id"
+      }
+    },
+    "EVN": {
+      "name": "Event Type",
+      "fields": {
+        "1": "event_type_code",
+        "2": "recorded_date_time",
+        "3": "date_time_planned_event",
+        "4": "event_reason_code",
+        "5": "operator_id",
+        "6": "event_occurred"
+      }
+    },
+    "PID": {
+      "name": "Patient Identification",
+      "fields": {
+        "1": "set_id",
+        "2": "patient_id_external",
+        "3": "patient_id_internal",
+        "4": "alternate_patient_id",
+        "5": "patient_name",
+        "6": "mother_maiden_name",
+        "7": "date_of_birth",
+        "8": "administrative_sex",
+        "9": "patient_alias",
+        "10": "race",
+        "11": "patient_address",
+        "12": "county_code",
+        "13": "phone_number_home",
+        "14": "phone_number_business",
+        "15": "primary_language",
+        "16": "marital_status",
+        "17": "religion",
+        "18": "patient_account_number",
+        "19": "ssn_number",
+        "20": "drivers_license_number",
+        "21": "mothers_identifier",
+        "22": "ethnic_group",
+        "23": "birth_place",
+        "24": "multiple_birth_indicator",
+        "25": "birth_order",
+        "26": "citizenship",
+        "27": "veterans_military_status",
+        "28": "nationality",
+        "29": "patient_death_date_time",
+        "30": "patient_death_indicator"
+      }
+    },
+    "PV1": {
+      "name": "Patient Visit",
+      "fields": {
+        "1": "set_id",
+        "2": "patient_class",
+        "3": "assigned_patient_location",
+        "4": "admission_type",
+        "5": "preadmit_number",
+        "6": "prior_patient_location",
+        "7": "attending_doctor",
+        "8": "referring_doctor",
+        "9": "consulting_doctor",
+        "10": "hospital_service",
+        "11": "temporary_location",
+        "12": "preadmit_test_indicator",
+        "13": "readmission_indicator",
+        "14": "admit_source",
+        "15": "ambulatory_status",
+        "16": "vip_indicator",
+        "17": "admitting_doctor",
+        "18": "patient_type",
+        "19": "visit_number",
+        "20": "financial_class",
+        "36": "discharge_disposition",
+        "44": "admit_date_time",
+        "45": "discharge_date_time"
+      }
+    },
+    "OBR": {
+      "name": "Observation Request",
+      "fields": {
+        "1": "set_id",
+        "2": "placer_order_number",
+        "3": "filler_order_number",
+        "4": "universal_service_identifier",
+        "5": "priority",
+        "6": "requested_date_time",
+        "7": "observation_date_time",
+        "8": "observation_end_date_time",
+        "9": "collection_volume",
+        "10": "collector_identifier",
+        "11": "specimen_action_code",
+        "13": "relevant_clinical_info",
+        "14": "specimen_received_date_time",
+        "16": "ordering_provider",
+        "22": "results_report_status_change",
+        "25": "result_status",
+        "27": "quantity_timing",
+        "31": "reason_for_study"
+      }
+    },
+    "OBX": {
+      "name": "Observation/Result",
+      "fields": {
+        "1": "set_id",
+        "2": "value_type",
+        "3": "observation_identifier",
+        "4": "observation_sub_id",
+        "5": "observation_value",
+        "6": "units",
+        "7": "reference_range",
+        "8": "abnormal_flags",
+        "9": "probability",
+        "10": "nature_of_abnormal_test",
+        "11": "observation_result_status",
+        "14": "date_time_of_observation",
+        "15": "producer_id",
+        "16": "responsible_observer",
+        "17": "observation_method"
+      }
+    },
+    "DG1": {
+      "name": "Diagnosis",
+      "fields": {
+        "1": "set_id",
+        "2": "diagnosis_coding_method",
+        "3": "diagnosis_code",
+        "4": "diagnosis_description",
+        "5": "diagnosis_date_time",
+        "6": "diagnosis_type",
+        "7": "major_diagnostic_category",
+        "8": "diagnostic_related_group",
+        "9": "drg_approval_indicator",
+        "10": "drg_grouper_review_code",
+        "15": "diagnosis_priority",
+        "16": "diagnosing_clinician"
+      }
+    },
+    "IN1": {
+      "name": "Insurance",
+      "fields": {
+        "1": "set_id",
+        "2": "insurance_plan_id",
+        "3": "insurance_company_id",
+        "4": "insurance_company_name",
+        "5": "insurance_company_address",
+        "6": "insurance_company_contact_person",
+        "7": "insurance_company_phone",
+        "8": "group_number",
+        "9": "group_name",
+        "10": "insureds_group_emp_id",
+        "11": "insureds_group_emp_name",
+        "12": "plan_effective_date",
+        "13": "plan_expiration_date",
+        "14": "authorization_information",
+        "15": "plan_type",
+        "16": "name_of_insured",
+        "17": "insureds_relationship_to_patient",
+        "18": "insureds_date_of_birth",
+        "36": "policy_number"
+      }
+    },
+    "NK1": {
+      "name": "Next of Kin",
+      "fields": {
+        "1": "set_id",
+        "2": "nk_name",
+        "3": "relationship",
+        "4": "address",
+        "5": "phone_number",
+        "6": "business_phone_number",
+        "7": "contact_role"
+      }
+    },
+    "ORC": {
+      "name": "Common Order",
+      "fields": {
+        "1": "order_control",
+        "2": "placer_order_number",
+        "3": "filler_order_number",
+        "4": "placer_group_number",
+        "5": "order_status",
+        "6": "response_flag",
+        "7": "quantity_timing",
+        "8": "parent_order",
+        "9": "date_time_of_transaction",
+        "10": "entered_by",
+        "11": "verified_by",
+        "12": "ordering_provider",
+        "13": "enterers_location",
+        "15": "order_effective_date_time",
+        "16": "order_control_code_reason"
+      }
+    }
+  },
+  "message_types": {
+    "ADT": {
+      "A01": "Admit/Visit Notification",
+      "A02": "Transfer a Patient",
+      "A03": "Discharge/End Visit",
+      "A04": "Register a Patient",
+      "A05": "Pre-admit a Patient",
+      "A06": "Change Outpatient to Inpatient",
+      "A07": "Change Inpatient to Outpatient",
+      "A08": "Update Patient Information",
+      "A11": "Cancel Admit",
+      "A12": "Cancel Transfer",
+      "A13": "Cancel Discharge"
+    },
+    "ORU": {
+      "R01": "Unsolicited Observation Result"
+    },
+    "ORM": {
+      "O01": "Order Message"
+    },
+    "SIU": {
+      "S12": "Notification of New Appointment Booking",
+      "S14": "Notification of Appointment Modification",
+      "S15": "Notification of Appointment Cancellation"
+    }
+  },
+  "value_types": {
+    "NM": "Numeric",
+    "ST": "String Data",
+    "TX": "Text Data",
+    "CE": "Coded Element",
+    "DT": "Date",
+    "TM": "Time",
+    "TS": "Timestamp",
+    "FT": "Formatted Text",
+    "ED": "Encapsulated Data",
+    "SN": "Structured Numeric",
+    "CWE": "Coded with Exceptions"
+  },
+  "patient_class": {
+    "I": "Inpatient",
+    "O": "Outpatient",
+    "E": "Emergency",
+    "P": "Preadmit",
+    "R": "Recurring Patient",
+    "B": "Obstetrics",
+    "C": "Commercial Account",
+    "N": "Not Applicable",
+    "U": "Unknown"
+  },
+  "result_status": {
+    "C": "Correction",
+    "D": "Deleted",
+    "F": "Final",
+    "I": "In Process",
+    "N": "Not Asked",
+    "O": "Order Received",
+    "P": "Preliminary",
+    "R": "Results Entered",
+    "S": "Partial Results",
+    "U": "Status Changed to Final",
+    "W": "Original Posted as Wrong",
+    "X": "Cannot Obtain"
+  },
+  "abnormal_flags": {
+    "L": "Below Low Normal",
+    "H": "Above High Normal",
+    "LL": "Below Lower Panic Limit",
+    "HH": "Above Upper Panic Limit",
+    "N": "Normal",
+    "A": "Abnormal",
+    "AA": "Very Abnormal",
+    "U": "Significant Change Up",
+    "D": "Significant Change Down",
+    "B": "Better",
+    "W": "Worse"
+  }
+}

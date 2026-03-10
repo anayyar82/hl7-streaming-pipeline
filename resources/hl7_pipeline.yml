@@ -1,0 +1,57 @@
+variables:
+  catalog:
+    description: Unity Catalog name for HL7 pipeline
+    default: ankur_nayyar_hl7
+  schema:
+    description: Schema name for HL7 pipeline tables
+    default: hl7_streaming
+  source_volume:
+    description: Volume name for landing HL7 files
+    default: landing
+
+resources:
+  schemas:
+    hl7_schema:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: HL7 v2.x Streaming Pipeline - parsed with funke
+
+  volumes:
+    landing_volume:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: ${var.source_volume}
+      volume_type: MANAGED
+      comment: Landing zone for raw HL7 message files
+
+  pipelines:
+    hl7_streaming_dlt:
+      name: "[${bundle.target}] HL7 Streaming Pipeline"
+      catalog: ${var.catalog}
+      target: ${var.schema}
+      development: true
+      channel: CURRENT
+      photon: true
+      edition: ADVANCED
+      continuous: false
+      configuration:
+        hl7.source_path: /Volumes/${var.catalog}/dev_ankur_nayyar_${var.schema}/${var.source_volume}
+        hl7.checkpoint_path: /Volumes/${var.catalog}/dev_ankur_nayyar_${var.schema}/${var.source_volume}/_checkpoints
+      libraries:
+        - notebook:
+            path: ../notebooks/01_bronze.py
+        - notebook:
+            path: ../notebooks/02_silver.py
+        - notebook:
+            path: ../notebooks/03_gold.py
+      clusters:
+        - label: default
+          autoscale:
+            min_workers: 1
+            max_workers: 2
+          spark_conf:
+            spark.databricks.delta.optimizeWrite.enabled: "true"
+            spark.databricks.delta.autoCompact.enabled: "true"
+          custom_tags:
+            project: hl7-streaming
+            environment: dev

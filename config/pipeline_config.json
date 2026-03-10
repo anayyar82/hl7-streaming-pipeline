@@ -1,0 +1,82 @@
+{
+  "pipeline": {
+    "name": "hl7_streaming_pipeline",
+    "version": "1.0.0",
+    "description": "HL7 v2.x Streaming Pipeline using Delta Live Tables"
+  },
+  "source": {
+    "type": "cloudFiles",
+    "path": "/mnt/hl7/raw",
+    "format": "text",
+    "options": {
+      "wholetext": true,
+      "inferColumnTypes": false,
+      "cloudFiles.format": "text",
+      "cloudFiles.schemaLocation": "/mnt/hl7/schema",
+      "cloudFiles.useIncrementalListing": true
+    },
+    "kafka": {
+      "bootstrap.servers": "kafka-broker:9092",
+      "subscribe": "hl7-messages",
+      "startingOffsets": "latest",
+      "failOnDataLoss": false
+    },
+    "eventhubs": {
+      "eventhubs.connectionString": "${EVENT_HUB_CONNECTION_STRING}",
+      "eventhubs.consumerGroup": "hl7-consumer-group",
+      "eventhubs.startingPosition": "{\"offset\":\"-1\",\"seqNo\":-1,\"enqueuedTime\":null,\"isInclusive\":true}"
+    }
+  },
+  "target": {
+    "catalog": "healthcare",
+    "schema": "hl7_streaming",
+    "checkpoint_path": "/mnt/hl7/checkpoints"
+  },
+  "processing": {
+    "trigger_interval": "10 seconds",
+    "max_files_per_trigger": 1000,
+    "max_bytes_per_trigger": "10g"
+  },
+  "quality": {
+    "quarantine_path": "/mnt/hl7/quarantine",
+    "enable_quarantine": true,
+    "fail_on_error": false
+  },
+  "supported_message_types": [
+    {
+      "type": "ADT",
+      "description": "Admit/Discharge/Transfer",
+      "events": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A11", "A12", "A13"]
+    },
+    {
+      "type": "ORU",
+      "description": "Observation Result",
+      "events": ["R01"]
+    },
+    {
+      "type": "ORM",
+      "description": "Order Message",
+      "events": ["O01"]
+    },
+    {
+      "type": "SIU",
+      "description": "Scheduling Information",
+      "events": ["S12", "S14", "S15"]
+    },
+    {
+      "type": "MDM",
+      "description": "Medical Document Management",
+      "events": ["T02", "T04", "T08"]
+    }
+  ],
+  "retention": {
+    "bronze_days": 90,
+    "silver_days": 365,
+    "gold_days": 730
+  },
+  "monitoring": {
+    "enable_metrics": true,
+    "metrics_table": "pipeline_metrics",
+    "alert_threshold_minutes": 30
+  }
+}

@@ -1,0 +1,33 @@
+# HL7 Streaming Pipeline Dependencies
+# For Databricks, most dependencies are pre-installed
+
+# HL7 Parsing - funke library from Databricks Field Engineering
+# Install options:
+# 1. From local wheel: pip install /path/to/funke-x.x.x-py3-none-any.whl
+# 2. From source: pip install /path/to/funke-main/
+# 3. Upload funke source to Databricks workspace and install as cluster library
+# 
+# In Databricks notebooks:
+# %pip install /Workspace/path/to/funke
+funke
+
+# Alternative HL7 parsing libraries (optional, for local testing)
+# hl7apy>=1.3.4
+# python-hl7>=0.4.5
+
+# Data Processing (included in Databricks Runtime)
+# pyspark>=3.4.0
+# delta-spark>=2.4.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Data Validation
+great-expectations>=0.17.0
+
+# Utilities
+python-dateutil>=2.8.2

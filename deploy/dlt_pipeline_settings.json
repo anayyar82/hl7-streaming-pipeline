@@ -1,0 +1,75 @@
+{
+  "name": "hl7_streaming_pipeline",
+  "storage": "/mnt/dlt/hl7_streaming",
+  "target": "hl7_streaming",
+  "catalog": "healthcare",
+  "configuration": {
+    "hl7.source_path": "/mnt/hl7/raw",
+    "hl7.checkpoint_path": "/mnt/hl7/checkpoints",
+    "hl7.source_format": "cloudFiles",
+    "spark.sql.shuffle.partitions": "auto",
+    "pipelines.enableTrackHistory": "true"
+  },
+  "clusters": [
+    {
+      "label": "default",
+      "autoscale": {
+        "min_workers": 1,
+        "max_workers": 5,
+        "mode": "ENHANCED"
+      },
+      "spark_conf": {
+        "spark.databricks.delta.optimizeWrite.enabled": "true",
+        "spark.databricks.delta.autoCompact.enabled": "true"
+      },
+      "custom_tags": {
+        "project": "hl7-streaming",
+        "environment": "production",
+        "cost-center": "healthcare-analytics"
+      }
+    }
+  ],
+  "libraries": [
+    {
+      "notebook": {
+        "path": "/Repos/hl7-streaming/notebooks/01_bronze"
+      }
+    },
+    {
+      "notebook": {
+        "path": "/Repos/hl7-streaming/notebooks/02_silver"
+      }
+    },
+    {
+      "notebook": {
+        "path": "/Repos/hl7-streaming/notebooks/03_gold"
+      }
+    },
+    {
+      "pypi": {
+        "package": "funke",
+        "repo": "https://github.com/databricks-field-eng/funke"
+      }
+    }
+  ],
+  "continuous": true,
+  "development": false,
+  "photon": true,
+  "edition": "ADVANCED",
+  "channel": "CURRENT",
+  "notifications": [
+    {
+      "email_recipients": [
+        "data-team@company.com"
+      ],
+      "alerts": [
+        "on-update-failure",
+        "on-update-fatal-failure",
+        "on-flow-failure"
+      ]
+    }
+  ],
+  "data_sampling": {
+    "enabled": true
+  }
+}
