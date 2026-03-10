@@ -3,107 +3,107 @@
     {
       "name": "ds_census_current",
       "displayName": "Current Census by Department",
-      "query": "SELECT department, location_facility, total_arrivals, total_discharges, estimated_census, snapshot_at FROM gold_department_census_current WHERE department IN ('ED', 'ICU') ORDER BY department"
+      "query": "SELECT department, location_facility, total_arrivals, total_discharges, estimated_census, snapshot_at FROM users.ankur_nayyar.gold_department_census_current WHERE department IN ('ED', 'ICU') ORDER BY department"
     },
     {
       "name": "ds_ed_total_arrivals",
       "displayName": "ED Total Arrivals Today",
-      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_ed_arrivals FROM gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
+      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_ed_arrivals FROM users.ankur_nayyar.gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
     },
     {
       "name": "ds_ed_total_discharges",
       "displayName": "ED Total Discharges Today",
-      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_ed_discharges FROM gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
+      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_ed_discharges FROM users.ankur_nayyar.gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE()"
     },
     {
       "name": "ds_icu_total_arrivals",
       "displayName": "ICU Total Arrivals Today",
-      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_icu_arrivals FROM gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
+      "query": "SELECT COALESCE(SUM(arrivals), 0) AS total_icu_arrivals FROM users.ankur_nayyar.gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
     },
     {
       "name": "ds_icu_total_discharges",
       "displayName": "ICU Total Discharges Today",
-      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_icu_discharges FROM gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
+      "query": "SELECT COALESCE(SUM(discharges), 0) AS total_icu_discharges FROM users.ankur_nayyar.gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE()"
     },
     {
       "name": "ds_ed_census_value",
       "displayName": "ED Current Census",
-      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS ed_census FROM gold_department_census_current WHERE department = 'ED'"
+      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS ed_census FROM users.ankur_nayyar.gold_department_census_current WHERE department = 'ED'"
     },
     {
       "name": "ds_icu_census_value",
       "displayName": "ICU Current Census",
-      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS icu_census FROM gold_department_census_current WHERE department = 'ICU'"
+      "query": "SELECT COALESCE(SUM(estimated_census), 0) AS icu_census FROM users.ankur_nayyar.gold_department_census_current WHERE department = 'ICU'"
     },
     {
       "name": "ds_ed_hourly_trend",
       "displayName": "ED Hourly Arrivals & Discharges",
-      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
+      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM users.ankur_nayyar.gold_ed_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
     },
     {
       "name": "ds_icu_hourly_trend",
       "displayName": "ICU Hourly Arrivals & Discharges",
-      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
+      "query": "SELECT event_hour, SUM(arrivals) AS arrivals, SUM(discharges) AS discharges, SUM(net_change) AS net_change FROM users.ankur_nayyar.gold_icu_hourly_census WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY event_hour ORDER BY event_hour"
     },
     {
       "name": "ds_ed_by_hour_of_day",
       "displayName": "ED Arrivals by Hour of Day",
-      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM gold_ed_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
+      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM users.ankur_nayyar.gold_ed_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
     },
     {
       "name": "ds_icu_by_hour_of_day",
       "displayName": "ICU Arrivals by Hour of Day",
-      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM gold_icu_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
+      "query": "SELECT hour_of_day, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges FROM users.ankur_nayyar.gold_icu_hourly_census GROUP BY hour_of_day ORDER BY hour_of_day"
     },
     {
       "name": "ds_ed_daily",
       "displayName": "ED Daily Summary",
-      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_minutes, median_los_minutes, peak_arrival_hour, unique_providers FROM gold_ed_daily_summary ORDER BY activity_date DESC LIMIT 30"
+      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_minutes, median_los_minutes, peak_arrival_hour, unique_providers FROM users.ankur_nayyar.gold_ed_daily_summary ORDER BY activity_date DESC LIMIT 30"
     },
     {
       "name": "ds_icu_daily",
       "displayName": "ICU Daily Summary",
-      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_hours, median_los_hours, peak_arrival_hour, unique_providers, beds_used FROM gold_icu_daily_summary ORDER BY activity_date DESC LIMIT 30"
+      "query": "SELECT activity_date, location_facility, total_encounters, total_arrivals, total_discharges, unique_patients, avg_los_hours, median_los_hours, peak_arrival_hour, unique_providers, beds_used FROM users.ankur_nayyar.gold_icu_daily_summary ORDER BY activity_date DESC LIMIT 30"
     },
     {
       "name": "ds_ed_weekday_vs_weekend",
       "displayName": "ED Weekday vs Weekend",
-      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM gold_ed_hourly_census GROUP BY day_type"
+      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM users.ankur_nayyar.gold_ed_hourly_census GROUP BY day_type"
     },
     {
       "name": "ds_icu_weekday_vs_weekend",
       "displayName": "ICU Weekday vs Weekend",
-      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM gold_icu_hourly_census GROUP BY day_type"
+      "query": "SELECT CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(AVG(arrivals), 1) AS avg_arrivals, ROUND(AVG(discharges), 1) AS avg_discharges, SUM(arrivals) AS total_arrivals FROM users.ankur_nayyar.gold_icu_hourly_census GROUP BY day_type"
     },
     {
       "name": "ds_ed_forecast_features",
       "displayName": "ED Forecast Feature Trends",
-      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM gold_ed_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
+      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM users.ankur_nayyar.gold_ed_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
     },
     {
       "name": "ds_icu_forecast_features",
       "displayName": "ICU Forecast Feature Trends",
-      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM gold_icu_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
+      "query": "SELECT event_hour, arrivals, discharges, arrivals_rolling_6h, arrivals_rolling_24h, arrivals_avg_24h, discharges_rolling_24h, cumulative_net_census FROM users.ankur_nayyar.gold_icu_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
     },
     {
       "name": "ds_combined_features",
       "displayName": "Combined ED + ICU Pressure",
-      "query": "SELECT event_hour, ed_arrivals, icu_arrivals, ed_discharges, icu_discharges, net_system_pressure, ed_arrivals_rolling_24h, icu_arrivals_rolling_24h FROM gold_combined_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
+      "query": "SELECT event_hour, ed_arrivals, icu_arrivals, ed_discharges, icu_discharges, net_system_pressure, ed_arrivals_rolling_24h, icu_arrivals_rolling_24h FROM users.ankur_nayyar.gold_combined_forecast_features WHERE event_hour >= CURRENT_DATE() - INTERVAL 7 DAYS ORDER BY event_hour"
     },
     {
       "name": "ds_forecast_predictions",
       "displayName": "Latest Forecast Predictions",
-      "query": "SELECT department, target_metric, target_hour, predicted_value, prediction_lower_bound, prediction_upper_bound, forecast_horizon_hours, model_name, confidence_level FROM gold_forecast_predictions WHERE forecast_generated_at >= CURRENT_DATE() - INTERVAL 2 DAYS ORDER BY target_hour"
+      "query": "SELECT department, target_metric, target_hour, predicted_value, prediction_lower_bound, prediction_upper_bound, forecast_horizon_hours, model_name, confidence_level FROM users.ankur_nayyar.gold_forecast_predictions WHERE forecast_generated_at >= CURRENT_DATE() - INTERVAL 2 DAYS ORDER BY target_hour"
     },
     {
       "name": "ds_forecast_accuracy",
       "displayName": "Forecast Accuracy",
-      "query": "SELECT prediction_date, model_name, department, target_metric, forecast_horizon_hours, prediction_count, mae, mape, coverage_pct FROM gold_forecast_accuracy ORDER BY prediction_date DESC LIMIT 60"
+      "query": "SELECT prediction_date, model_name, department, target_metric, forecast_horizon_hours, prediction_count, mae, mape, coverage_pct FROM users.ankur_nayyar.gold_forecast_accuracy ORDER BY prediction_date DESC LIMIT 60"
     },
     {
       "name": "ds_message_volume",
       "displayName": "HL7 Message Volume",
-      "query": "SELECT processing_hour, message_type, SUM(message_count) AS message_count FROM gold_message_metrics WHERE processing_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY processing_hour, message_type ORDER BY processing_hour"
+      "query": "SELECT processing_hour, message_type, SUM(message_count) AS message_count FROM users.ankur_nayyar.gold_message_metrics WHERE processing_hour >= CURRENT_DATE() - INTERVAL 7 DAYS GROUP BY processing_hour, message_type ORDER BY processing_hour"
     }
   ],
   "pages": [
