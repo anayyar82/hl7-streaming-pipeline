@@ -49,13 +49,11 @@ from funke.parsing.hl7 import HL7v2Schema
 # COMMAND ----------
 
 catalog = spark.conf.get("hl7.catalog")
-schema = spark.conf.get("hl7.schema")
 volume = spark.conf.get("hl7.source_volume", "landing")
 
-pipeline_target = spark.conf.get("pipelines.default.catalog.schema", f"{catalog}.{schema}")
-target_schema = pipeline_target.split(".")[-1] if "." in pipeline_target else pipeline_target
+schema = spark.conf.get("hl7.schema")
 
-SOURCE_PATH = f"/Volumes/{catalog}/{target_schema}/{volume}"
+SOURCE_PATH = f"/Volumes/{catalog}/{schema}/{volume}"
 CHECKPOINT_PATH = f"{SOURCE_PATH}/_checkpoints"
 
 hl7v2_schema = HL7v2Schema()

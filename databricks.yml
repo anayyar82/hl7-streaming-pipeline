@@ -12,22 +12,22 @@ targets:
     mode: development
     default: true
     variables:
-      catalog: ankur_nayyar_hl7
-      schema: hl7_streaming
+      catalog: users
+      schema: ankur_nayyar
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
 
   staging:
     variables:
-      catalog: ankur_nayyar_hl7
-      schema: hl7_streaming
+      catalog: users
+      schema: ankur_nayyar
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
 
   prod:
     mode: production
     variables:
-      catalog: ankur_nayyar_hl7
-      schema: hl7_streaming
+      catalog: users
+      schema: ankur_nayyar
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl

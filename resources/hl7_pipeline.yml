@@ -1,10 +1,10 @@
 variables:
   catalog:
     description: Unity Catalog name for HL7 pipeline
-    default: ankur_nayyar_hl7
+    default: users
   schema:
     description: Schema name for HL7 pipeline tables
-    default: hl7_streaming
+    default: ankur_nayyar
   source_volume:
     description: Volume name for landing HL7 files
     default: landing
@@ -13,24 +13,11 @@ variables:
     default: funke-0.1.0a1-py3-none-any.whl
 
 resources:
-  schemas:
-    hl7_schema:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: HL7 v2.x Streaming Pipeline - parsed with funke
-
-  volumes:
-    landing_volume:
-      catalog_name: ${var.catalog}
-      schema_name: ${var.schema}
-      name: ${var.source_volume}
-      volume_type: MANAGED
-      comment: Landing zone for raw HL7 message files
-
   dashboards:
     hl7_ed_icu_dashboard:
       display_name: "[${bundle.target}] HL7 ED & ICU Operations"
       file_path: ../dashboards/hl7_ed_icu_operations.lvdash.json
+      warehouse_id: e9b34f7a2e4b0561
       embed_credentials: true
 
   pipelines:
