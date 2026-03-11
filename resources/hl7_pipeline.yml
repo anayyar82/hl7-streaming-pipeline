@@ -13,6 +13,52 @@ variables:
     default: funke-0.1.0a1-py3-none-any.whl
 
 resources:
+  jobs:
+    hl7_automl_training:
+      name: "[${bundle.target}] HL7 AutoML Model Training"
+      tasks:
+        - task_key: train_models
+          notebook_task:
+            notebook_path: ../notebooks/07_automl_training.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              timeout_minutes: "15"
+          new_cluster:
+            spark_version: 15.4.x-ml-scala2.12
+            num_workers: 1
+            node_type_id: i3.xlarge
+            runtime_engine: STANDARD
+            custom_tags:
+              project: hl7-streaming
+              task: automl-training
+
+    hl7_model_inference:
+      name: "[${bundle.target}] HL7 Model Inference"
+      schedule:
+        quartz_cron_expression: "0 0 * * * ?"
+        timezone_id: America/Los_Angeles
+        pause_status: PAUSED
+      tasks:
+        - task_key: run_inference
+          notebook_task:
+            notebook_path: ../notebooks/08_model_inference.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          new_cluster:
+            spark_version: 15.4.x-ml-scala2.12
+            num_workers: 0
+            node_type_id: i3.xlarge
+            runtime_engine: STANDARD
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              project: hl7-streaming
+              task: model-inference
+              ResourceClass: SingleNode
+
   dashboards:
     hl7_ed_icu_dashboard:
       display_name: "[${bundle.target}] HL7 ED & ICU Operations"

@@ -30,7 +30,7 @@ class TestHL7Parser:
             "EVN|A01|20240115120000\r"
             "PID|1||PAT001^^^HOSPITAL^MR||DOE^JOHN^MICHAEL||19800515|M|||"
             "123 MAIN ST^^ANYTOWN^CA^90210||555-123-4567|||M\r"
-            "PV1|1|I|ICU^101^A^HOSPITAL||||1234^SMITH^JANE|||MED||||||||"
+            "PV1|1|I|ICU^101^A^HOSPITAL||||1234^SMITH^JANE|||MED|||||||||"
             "V00001|||||||||||||||||||||||||20240115100000"
         )
     

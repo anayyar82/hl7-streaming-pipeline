@@ -89,6 +89,26 @@
       "name": "ds_census_current",
       "displayName": "Current Department Census",
       "queryLines": ["SELECT department, location_facility, total_arrivals, total_discharges, estimated_census FROM users.ankur_nayyar.gold_department_census_current ORDER BY department"]
+    },
+    {
+      "name": "ds_forecast_latest",
+      "displayName": "Latest Forecasts",
+      "queryLines": ["SELECT model_name, department, target_metric, forecast_horizon_hours, target_hour, ROUND(predicted_value, 1) AS predicted, ROUND(prediction_lower_bound, 1) AS lower_bound, ROUND(prediction_upper_bound, 1) AS upper_bound, ROUND(confidence_level * 100, 0) AS confidence_pct, ROUND(actual_value, 1) AS actual, ROUND(absolute_error, 2) AS error FROM users.ankur_nayyar.gold_forecast_predictions WHERE forecast_generated_at = (SELECT MAX(forecast_generated_at) FROM users.ankur_nayyar.gold_forecast_predictions) ORDER BY department, target_metric, forecast_horizon_hours"]
+    },
+    {
+      "name": "ds_forecast_accuracy",
+      "displayName": "Model Accuracy Over Time",
+      "queryLines": ["SELECT prediction_date, model_name, department, target_metric, mae, mape, prediction_count FROM users.ankur_nayyar.gold_forecast_accuracy ORDER BY prediction_date DESC LIMIT 100"]
+    },
+    {
+      "name": "ds_forecast_vs_actual",
+      "displayName": "Predicted vs Actual",
+      "queryLines": ["SELECT target_hour, department, target_metric, predicted_value, actual_value, absolute_error, forecast_horizon_hours FROM users.ankur_nayyar.gold_forecast_predictions WHERE actual_value IS NOT NULL AND forecast_horizon_hours = 1 ORDER BY target_hour DESC LIMIT 200"]
+    },
+    {
+      "name": "ds_model_metadata",
+      "displayName": "Model Training Summary",
+      "queryLines": ["SELECT model_name, model_version, ROUND(rmse, 3) AS rmse, ROUND(r2_score, 3) AS r2_score, ROUND(mae, 3) AS mae, best_trial_description, training_timestamp FROM users.ankur_nayyar.gold_model_training_metadata ORDER BY model_name"]
     }
   ],
   "pages": [
@@ -212,6 +232,33 @@
         {
           "widget": { "name": "w_dept_arr_dis_bar", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_dept_arrivals_discharges", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "arrivals", "expression": "`arrivals`" }, { "name": "discharges", "expression": "`discharges`" }], "disaggregated": true } }], "spec": { "version": 3, "frame": { "title": "Arrivals vs Discharges by Department", "showTitle": true }, "widgetType": "bar", "encodings": { "x": { "fieldName": "department", "displayName": "Department", "scale": { "type": "categorical" } }, "y": { "fieldName": "arrivals", "displayName": "Count", "scale": { "type": "quantitative" } }, "label": { "show": true } } } },
           "position": { "x": 3, "y": 3, "width": 3, "height": 2 }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "pg_forecasting",
+      "displayName": "ML Forecasting",
+      "layout": [
+        {
+          "widget": { "name": "w_forecast_title", "multilineTextboxSpec": { "lines": ["# ML Forecasting: ED & ICU Predictions\n", "AutoML-trained models forecast arrivals and discharges at multiple horizons. Models tracked in MLflow and registered in Unity Catalog."] } },
+          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+        },
+        {
+          "widget": { "name": "w_model_metadata", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_model_metadata", "fields": [{ "name": "model_name", "expression": "`model_name`" }, { "name": "model_version", "expression": "`model_version`" }, { "name": "rmse", "expression": "`rmse`" }, { "name": "r2_score", "expression": "`r2_score`" }, { "name": "mae", "expression": "`mae`" }, { "name": "best_trial_description", "expression": "`best_trial_description`" }, { "name": "training_timestamp", "expression": "`training_timestamp`" }], "disaggregated": true } }], "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "model_name", "displayAs": "string", "visible": true, "order": 0, "title": "Model", "displayName": "Model" }, { "fieldName": "model_version", "displayAs": "string", "visible": true, "order": 1, "title": "Version", "displayName": "Version" }, { "fieldName": "rmse", "displayAs": "number", "visible": true, "order": 2, "title": "RMSE", "displayName": "RMSE" }, { "fieldName": "r2_score", "displayAs": "number", "visible": true, "order": 3, "title": "R²", "displayName": "R²" }, { "fieldName": "mae", "displayAs": "number", "visible": true, "order": 4, "title": "MAE", "displayName": "MAE" }, { "fieldName": "best_trial_description", "displayAs": "string", "visible": true, "order": 5, "title": "Best Algorithm", "displayName": "Best Algorithm" }, { "fieldName": "training_timestamp", "displayAs": "string", "visible": true, "order": 6, "title": "Trained At", "displayName": "Trained At" } ] } } },
+          "position": { "x": 0, "y": 1, "width": 6, "height": 2 }
+        },
+        {
+          "widget": { "name": "w_forecast_latest", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_forecast_latest", "fields": [{ "name": "department", "expression": "`department`" }, { "name": "target_metric", "expression": "`target_metric`" }, { "name": "forecast_horizon_hours", "expression": "`forecast_horizon_hours`" }, { "name": "predicted", "expression": "`predicted`" }, { "name": "lower_bound", "expression": "`lower_bound`" }, { "name": "upper_bound", "expression": "`upper_bound`" }, { "name": "confidence_pct", "expression": "`confidence_pct`" }, { "name": "actual", "expression": "`actual`" }, { "name": "error", "expression": "`error`" }], "disaggregated": true } }], "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "department", "displayAs": "string", "visible": true, "order": 0, "title": "Dept", "displayName": "Dept" }, { "fieldName": "target_metric", "displayAs": "string", "visible": true, "order": 1, "title": "Metric", "displayName": "Metric" }, { "fieldName": "forecast_horizon_hours", "displayAs": "number", "visible": true, "order": 2, "title": "Horizon (h)", "displayName": "Horizon (h)" }, { "fieldName": "predicted", "displayAs": "number", "visible": true, "order": 3, "title": "Predicted", "displayName": "Predicted" }, { "fieldName": "lower_bound", "displayAs": "number", "visible": true, "order": 4, "title": "Lower", "displayName": "Lower" }, { "fieldName": "upper_bound", "displayAs": "number", "visible": true, "order": 5, "title": "Upper", "displayName": "Upper" }, { "fieldName": "confidence_pct", "displayAs": "number", "visible": true, "order": 6, "title": "Conf %", "displayName": "Conf %" }, { "fieldName": "actual", "displayAs": "number", "visible": true, "order": 7, "title": "Actual", "displayName": "Actual" }, { "fieldName": "error", "displayAs": "number", "visible": true, "order": 8, "title": "Error", "displayName": "Error" } ] } } },
+          "position": { "x": 0, "y": 3, "width": 6, "height": 2 }
+        },
+        {
+          "widget": { "name": "w_pred_vs_actual", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_forecast_vs_actual", "fields": [{ "name": "target_hour", "expression": "`target_hour`" }, { "name": "predicted_value", "expression": "`predicted_value`" }, { "name": "actual_value", "expression": "`actual_value`" }, { "name": "department", "expression": "`department`" }], "disaggregated": true } }], "spec": { "version": 3, "frame": { "title": "Predicted vs Actual (1h Horizon)", "showTitle": true }, "widgetType": "scatter", "encodings": { "x": { "fieldName": "actual_value", "displayName": "Actual", "scale": { "type": "quantitative" } }, "y": { "fieldName": "predicted_value", "displayName": "Predicted", "scale": { "type": "quantitative" } }, "color": { "fieldName": "department", "displayName": "Department", "scale": { "type": "categorical" }, "legend": { "position": "top" } } } } },
+          "position": { "x": 0, "y": 5, "width": 3, "height": 2 }
+        },
+        {
+          "widget": { "name": "w_forecast_accuracy", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_forecast_accuracy", "fields": [{ "name": "prediction_date", "expression": "`prediction_date`" }, { "name": "model_name", "expression": "`model_name`" }, { "name": "mae", "expression": "`mae`" }], "disaggregated": true } }], "spec": { "version": 3, "frame": { "title": "Model Accuracy Over Time (MAE)", "showTitle": true }, "widgetType": "line", "encodings": { "x": { "fieldName": "prediction_date", "displayName": "Date", "scale": { "type": "temporal" } }, "y": { "fieldName": "mae", "displayName": "Mean Absolute Error", "scale": { "type": "quantitative" } }, "color": { "fieldName": "model_name", "displayName": "Model", "scale": { "type": "categorical" }, "legend": { "position": "top" } } } } },
+          "position": { "x": 3, "y": 5, "width": 3, "height": 2 }
         }
       ],
       "pageType": "PAGE_TYPE_CANVAS"
