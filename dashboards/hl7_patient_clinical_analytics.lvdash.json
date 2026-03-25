@@ -148,7 +148,7 @@
     {
       "name": "ds_obs_summary",
       "displayName": "Observation Summary",
-      "queryLines": ["SELECT observation_id, observation_text, value_type, COUNT(*) AS obs_count, SUM(CASE WHEN is_abnormal THEN 1 ELSE 0 END) AS abnormal_count, ROUND(AVG(observation_value_numeric), 2) AS avg_value, ROUND(MIN(observation_value_numeric), 2) AS min_value, ROUND(MAX(observation_value_numeric), 2) AS max_value FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id IS NOT NULL GROUP BY observation_id, observation_text, value_type ORDER BY obs_count DESC LIMIT 20"]
+      "queryLines": ["SELECT observation_id, observation_text, value_type, COUNT(*) AS obs_count, SUM(CASE WHEN CAST(is_abnormal AS BOOLEAN) THEN 1 ELSE 0 END) AS abnormal_count, ROUND(AVG(observation_value_numeric), 2) AS avg_value, ROUND(MIN(observation_value_numeric), 2) AS min_value, ROUND(MAX(observation_value_numeric), 2) AS max_value FROM users.ankur_nayyar.gold_observation_fact WHERE observation_id IS NOT NULL GROUP BY observation_id, observation_text, value_type ORDER BY obs_count DESC LIMIT 20"]
     },
     {
       "name": "ds_abnormal_flags",

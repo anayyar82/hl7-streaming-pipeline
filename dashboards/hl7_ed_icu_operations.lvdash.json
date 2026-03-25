@@ -23,17 +23,17 @@
     {
       "name": "ds_ed_hourly",
       "displayName": "ED Hourly Census",
-      "queryLines": ["SELECT event_hour, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_ed_hourly_census ORDER BY event_hour"]
+      "queryLines": ["SELECT event_hour, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_ed_hourly_census ORDER BY event_hour"]
     },
     {
       "name": "ds_icu_hourly",
       "displayName": "ICU Hourly Census",
-      "queryLines": ["SELECT event_hour, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_icu_hourly_census ORDER BY event_hour"]
+      "queryLines": ["SELECT event_hour, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_icu_hourly_census ORDER BY event_hour"]
     },
     {
       "name": "ds_hourly_all",
       "displayName": "All Hourly Census (ED+ICU)",
-      "queryLines": ["SELECT 'ED' AS department, event_hour, DATE(event_hour) AS event_date, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_ed_hourly_census UNION ALL SELECT 'ICU' AS department, event_hour, DATE(event_hour) AS event_date, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_icu_hourly_census ORDER BY event_hour"]
+      "queryLines": ["SELECT 'ED' AS department, event_hour, DATE(event_hour) AS event_date, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_ed_hourly_census UNION ALL SELECT 'ICU' AS department, event_hour, DATE(event_hour) AS event_date, location_facility, arrivals, discharges, net_change, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, CASE WHEN hour_of_day BETWEEN 7 AND 18 THEN 'Day Shift' ELSE 'Night Shift' END AS shift_type FROM users.ankur_nayyar.gold_icu_hourly_census ORDER BY event_hour"]
     },
     {
       "name": "ds_ed_cumulative",
@@ -58,7 +58,7 @@
     {
       "name": "ds_weekend_weekday",
       "displayName": "Weekend vs Weekday Arrivals",
-      "queryLines": ["SELECT department, day_type, ROUND(AVG(avg_arrivals), 2) AS avg_hourly_arrivals, SUM(total_arr) AS total_arrivals FROM (SELECT 'ED' AS department, CASE WHEN is_weekend THEN 'Weekend' ELSE 'Weekday' END AS day_type, AVG(arrivals) AS avg_arrivals, SUM(arrivals) AS total_arr FROM users.ankur_nayyar.gold_ed_hourly_census GROUP BY is_weekend UNION ALL SELECT 'ICU', CASE WHEN is_weekend THEN 'Weekend' ELSE 'Weekday' END, AVG(arrivals), SUM(arrivals) FROM users.ankur_nayyar.gold_icu_hourly_census GROUP BY is_weekend) GROUP BY department, day_type ORDER BY department, day_type"]
+      "queryLines": ["SELECT department, day_type, ROUND(AVG(avg_arrivals), 2) AS avg_hourly_arrivals, SUM(total_arr) AS total_arrivals FROM (SELECT 'ED' AS department, CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, AVG(arrivals) AS avg_arrivals, SUM(arrivals) AS total_arr FROM users.ankur_nayyar.gold_ed_hourly_census GROUP BY is_weekend UNION ALL SELECT 'ICU', CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END, AVG(arrivals), SUM(arrivals) FROM users.ankur_nayyar.gold_icu_hourly_census GROUP BY is_weekend) GROUP BY department, day_type ORDER BY department, day_type"]
     },
     {
       "name": "ds_hourly_avg_pattern",
@@ -103,7 +103,7 @@
     {
       "name": "ds_combined_features",
       "displayName": "Combined Forecast Features",
-      "queryLines": ["SELECT event_hour, DATE(event_hour) AS event_date, ed_arrivals, ed_discharges, ed_net_change, icu_arrivals, icu_discharges, icu_net_change, total_arrivals, total_discharges, ROUND(ed_to_icu_ratio, 2) AS ed_to_icu_ratio, net_system_pressure, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(ed_arrivals_rolling_24h, 1) AS ed_arrivals_rolling_24h, ROUND(icu_arrivals_rolling_24h, 1) AS icu_arrivals_rolling_24h, ROUND(ed_discharges_rolling_24h, 1) AS ed_discharges_rolling_24h, ROUND(icu_discharges_rolling_24h, 1) AS icu_discharges_rolling_24h FROM users.ankur_nayyar.gold_combined_forecast_features ORDER BY event_hour"]
+      "queryLines": ["SELECT event_hour, DATE(event_hour) AS event_date, ed_arrivals, ed_discharges, ed_net_change, icu_arrivals, icu_discharges, icu_net_change, total_arrivals, total_discharges, ROUND(ed_to_icu_ratio, 2) AS ed_to_icu_ratio, net_system_pressure, hour_of_day, day_of_week, is_weekend, CASE WHEN is_weekend = 1 THEN 'Weekend' ELSE 'Weekday' END AS day_type, ROUND(ed_arrivals_rolling_24h, 1) AS ed_arrivals_rolling_24h, ROUND(icu_arrivals_rolling_24h, 1) AS icu_arrivals_rolling_24h, ROUND(ed_discharges_rolling_24h, 1) AS ed_discharges_rolling_24h, ROUND(icu_discharges_rolling_24h, 1) AS icu_discharges_rolling_24h FROM users.ankur_nayyar.gold_combined_forecast_features ORDER BY event_hour"]
     },
     {
       "name": "ds_combined_kpis",
