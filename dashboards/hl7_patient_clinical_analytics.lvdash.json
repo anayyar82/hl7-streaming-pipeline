@@ -268,6 +268,14 @@
           "position": { "x": 2, "y": 1, "width": 1, "height": 1 }
         },
         {
+          "widget": { "name": "f_fc_model", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_predictions_all", "fields": [{ "name": "model_name", "expression": "`model_name`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "model_name", "displayName": "Model" }] } } },
+          "position": { "x": 3, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": { "name": "f_fc_date", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_predictions_all", "fields": [{ "name": "forecast_generated_at", "expression": "`forecast_generated_at`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "forecast_generated_at", "displayName": "Forecast Date" }] } } },
+          "position": { "x": 4, "y": 1, "width": 2, "height": 1 }
+        },
+        {
           "widget": { "name": "w_ed_pred", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_ed_predictions", "fields": [{ "name": "target_metric", "expression": "`target_metric`" }, { "name": "forecast_horizon_hours", "expression": "`forecast_horizon_hours`" }, { "name": "predicted_value", "expression": "`predicted_value`" }, { "name": "lower_bound", "expression": "`lower_bound`" }, { "name": "upper_bound", "expression": "`upper_bound`" }, { "name": "confidence_pct", "expression": "`confidence_pct`" }, { "name": "actual_value", "expression": "`actual_value`" }, { "name": "error", "expression": "`error`" }], "disaggregated": true } }], "spec": { "version": 1, "widgetType": "table", "encodings": { "columns": [ { "fieldName": "target_metric", "displayAs": "string", "visible": true, "order": 0, "title": "Metric" }, { "fieldName": "forecast_horizon_hours", "displayAs": "number", "visible": true, "order": 1, "title": "Horizon" }, { "fieldName": "predicted_value", "displayAs": "number", "visible": true, "order": 2, "title": "Predicted" }, { "fieldName": "lower_bound", "displayAs": "number", "visible": true, "order": 3, "title": "Lower" }, { "fieldName": "upper_bound", "displayAs": "number", "visible": true, "order": 4, "title": "Upper" }, { "fieldName": "confidence_pct", "displayAs": "number", "visible": true, "order": 5, "title": "Conf%" }, { "fieldName": "actual_value", "displayAs": "number", "visible": true, "order": 6, "title": "Actual" }, { "fieldName": "error", "displayAs": "number", "visible": true, "order": 7, "title": "Error" } ] } } },
           "position": { "x": 0, "y": 2, "width": 3, "height": 2 }
         },
@@ -366,8 +374,20 @@
       "displayName": "3. Patient & Clinical",
       "layout": [
         {
-          "widget": { "name": "w_cl_title", "multilineTextboxSpec": { "lines": ["# Patient & Clinical Analytics\n", "Demographics, diagnoses, vitals, labs, allergies, orders, and provider workload."] } },
-          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+          "widget": { "name": "w_cl_title", "multilineTextboxSpec": { "lines": ["# Patient & Clinical Analytics\n", "Demographics, diagnoses, vitals, allergies, orders. Use filters to drill down."] } },
+          "position": { "x": 0, "y": 0, "width": 3, "height": 1 }
+        },
+        {
+          "widget": { "name": "f_cl_sex", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_patient_sex", "fields": [{ "name": "sex", "expression": "`sex`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "sex", "displayName": "Sex" }] } } },
+          "position": { "x": 3, "y": 0, "width": 1, "height": 1 }
+        },
+        {
+          "widget": { "name": "f_cl_priority", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_order_priority", "fields": [{ "name": "priority", "expression": "`priority`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "priority", "displayName": "Order Priority" }] } } },
+          "position": { "x": 4, "y": 0, "width": 1, "height": 1 }
+        },
+        {
+          "widget": { "name": "f_cl_severity", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_allergy_severity", "fields": [{ "name": "severity", "expression": "`severity`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "severity", "displayName": "Allergy Severity" }] } } },
+          "position": { "x": 5, "y": 0, "width": 1, "height": 1 }
         },
         {
           "widget": { "name": "w_pat_c", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_total_patients", "fields": [{ "name": "total_patients", "expression": "`total_patients`" }], "disaggregated": true } }], "spec": { "version": 3, "frame": { "title": "Patients", "showTitle": true }, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_patients" } } } },

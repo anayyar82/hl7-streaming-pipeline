@@ -242,6 +242,10 @@
           "position": { "x": 3, "y": 1, "width": 2, "height": 1 }
         },
         {
+          "widget": { "name": "f_rt_shift", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_hourly_all", "fields": [{ "name": "shift_type", "expression": "`shift_type`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "shift_type", "displayName": "Shift" }] } } },
+          "position": { "x": 5, "y": 1, "width": 1, "height": 1 }
+        },
+        {
           "widget": { "name": "w_total_census", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_census_total", "fields": [{ "name": "total_census", "expression": "`total_census`" }], "disaggregated": true } }], "spec": { "version": 3, "frame": { "title": "Total Census", "showTitle": true }, "widgetType": "counter", "encodings": { "value": { "fieldName": "total_census", "displayName": "Total Census" } } } },
           "position": { "x": 0, "y": 2, "width": 1, "height": 1 }
         },
@@ -473,6 +477,10 @@
         {
           "widget": { "name": "f_ops_fac", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_msg_metrics", "fields": [{ "name": "sending_facility", "expression": "`sending_facility`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "sending_facility", "displayName": "Facility" }] } } },
           "position": { "x": 3, "y": 1, "width": 1, "height": 1 }
+        },
+        {
+          "widget": { "name": "f_ops_class", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_patient_activity", "fields": [{ "name": "patient_class_desc", "expression": "`patient_class_desc`" }], "disaggregated": true } }], "spec": { "version": 3, "widgetType": "filter", "encodings": { "fields": [{ "fieldName": "patient_class_desc", "displayName": "Patient Class" }] } } },
+          "position": { "x": 4, "y": 1, "width": 1, "height": 1 }
         },
         {
           "widget": { "name": "w_ops_fresh", "queries": [{ "name": "main_query", "query": { "datasetName": "ds_data_freshness", "fields": [{ "name": "latest_message", "expression": "`latest_message`" }], "disaggregated": true } }], "spec": { "version": 3, "frame": { "title": "Latest Message", "showTitle": true }, "widgetType": "counter", "encodings": { "value": { "fieldName": "latest_message" } } } },
