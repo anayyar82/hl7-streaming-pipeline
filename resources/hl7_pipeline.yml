@@ -14,24 +14,42 @@ variables:
 
 resources:
   jobs:
+    hl7_lakebase_sync:
+      name: "[${bundle.target}] HL7 Lakebase Sync"
+      tasks:
+        - task_key: setup_and_validate
+          existing_cluster_id: 0311-163008-zyak1y4y
+          notebook_task:
+            notebook_path: ../notebooks/09_lakebase_sync.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              project_id: ankurhlsproject
+              sync_mode: SNAPSHOT
+
+    hl7_lakebase_load:
+      name: "[${bundle.target}] HL7 Lakebase Load"
+      tasks:
+        - task_key: load_gold_to_lakebase
+          existing_cluster_id: 0311-163008-zyak1y4y
+          notebook_task:
+            notebook_path: ../notebooks/10_lakebase_load.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              project_id: ankurhlsproject
+
     hl7_automl_training:
       name: "[${bundle.target}] HL7 AutoML Model Training"
       tasks:
         - task_key: train_models
+          existing_cluster_id: 0311-163008-zyak1y4y
           notebook_task:
             notebook_path: ../notebooks/07_automl_training.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
               timeout_minutes: "15"
-          new_cluster:
-            spark_version: 15.4.x-ml-scala2.12
-            num_workers: 1
-            node_type_id: i3.xlarge
-            runtime_engine: STANDARD
-            custom_tags:
-              project: hl7-streaming
-              task: automl-training
 
     hl7_model_inference:
       name: "[${bundle.target}] HL7 Model Inference"
@@ -41,23 +59,12 @@ resources:
         pause_status: PAUSED
       tasks:
         - task_key: run_inference
+          existing_cluster_id: 0311-163008-zyak1y4y
           notebook_task:
             notebook_path: ../notebooks/08_model_inference.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
-          new_cluster:
-            spark_version: 15.4.x-ml-scala2.12
-            num_workers: 0
-            node_type_id: i3.xlarge
-            runtime_engine: STANDARD
-            spark_conf:
-              spark.databricks.cluster.profile: singleNode
-              spark.master: "local[*]"
-            custom_tags:
-              project: hl7-streaming
-              task: model-inference
-              ResourceClass: SingleNode
 
   dashboards:
     hl7_ed_icu_dashboard:
@@ -71,6 +78,17 @@ resources:
       file_path: ../dashboards/hl7_patient_clinical_analytics.lvdash.json
       warehouse_id: e9b34f7a2e4b0561
       embed_credentials: true
+
+  apps:
+    hl7app:
+      name: hl7app
+      description: "HL7 ED/ICU real-time operations and forecasting dashboard"
+      source_code_path: ../hl7-forecasting-app
+      user_api_scopes:
+        - sql
+      permissions:
+        - level: CAN_USE
+          group_name: users
 
   pipelines:
     hl7_streaming_dlt:

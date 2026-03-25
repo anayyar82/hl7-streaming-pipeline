@@ -1,0 +1,7 @@
+streamlit>=1.30.0
+psycopg[binary,pool]
+plotly>=5.18.0
+pandas>=2.1.0
+numpy
+databricks-sdk>=0.89.0
+requests

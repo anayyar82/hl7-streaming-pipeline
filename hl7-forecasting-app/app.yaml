@@ -1,0 +1,16 @@
+# Databricks sets DATABRICKS_APP_PORT / STREAMLIT_SERVER_PORT. Do NOT hardcode --server.port 8501
+# or the proxy cannot reach your process (App Not Available).
+command: ['streamlit', 'run', 'app.py']
+env:
+  - name: STREAMLIT_GATHER_USAGE_STATS
+    value: 'false'
+  - name: PGHOST
+    value: 'ep-wandering-meadow-d1tdkigo.database.us-west-2.cloud.databricks.com'
+  - name: PGDATABASE
+    value: 'databricks_postgres'
+  - name: PGPORT
+    value: '5432'
+  - name: PGSSLMODE
+    value: 'require'
+  - name: ENDPOINT_NAME
+    value: 'projects/ankurhlsproject/branches/production/endpoints/primary'
