@@ -86,10 +86,11 @@ resources:
               num_patients: "150"
               clear_existing: "yes"
 
+    # Ephemeral DBR 17.x ML job cluster per run (same pattern as inference).
     hl7_automl_training:
       name: "[${bundle.target}] HL7 AutoML Model Training"
-      job_clusters:
-        - job_cluster_key: ml_cpu
+      tasks:
+        - task_key: train_models
           new_cluster:
             spark_version: ${var.ml_spark_version}
             driver_node_type_id: ${var.ml_node_type}
@@ -102,9 +103,9 @@ resources:
               first_on_demand: ${var.ml_first_on_demand}
               zone_id: ${var.ml_zone_id}
             data_security_mode: SINGLE_USER
-      tasks:
-        - task_key: train_models
-          job_cluster_key: ml_cpu
+            custom_tags:
+              hl7_job: automl_training
+              hl7_compute: dbr17-ml-ephemeral
           notebook_task:
             notebook_path: ../notebooks/07_automl_training.py
             base_parameters:
@@ -113,14 +114,15 @@ resources:
               experiment_prefix: hl7_forecasting
               timeout_minutes: "5"
 
+    # Ephemeral DBR 17.x ML job cluster per run (task-level new_cluster — not shared / not existing cluster).
     hl7_model_inference:
       name: "[${bundle.target}] HL7 Model Inference"
       schedule:
         quartz_cron_expression: "0 0 * * * ?"
         timezone_id: America/Los_Angeles
         pause_status: PAUSED
-      job_clusters:
-        - job_cluster_key: ml_cpu_inference
+      tasks:
+        - task_key: run_inference
           new_cluster:
             spark_version: ${var.ml_spark_version}
             driver_node_type_id: ${var.ml_node_type}
@@ -133,9 +135,9 @@ resources:
               first_on_demand: ${var.ml_first_on_demand}
               zone_id: ${var.ml_zone_id}
             data_security_mode: SINGLE_USER
-      tasks:
-        - task_key: run_inference
-          job_cluster_key: ml_cpu_inference
+            custom_tags:
+              hl7_job: model_inference
+              hl7_compute: dbr17-ml-ephemeral
           notebook_task:
             notebook_path: ../notebooks/08_model_inference.py
             base_parameters:
