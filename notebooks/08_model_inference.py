@@ -219,14 +219,22 @@ if all_predictions:
     pred_df = spark.createDataFrame(all_predictions, schema=pred_schema)
 
     try:
-        pred_df.write.format("delta").mode("append").saveAsTable(PREDICTIONS_TABLE)
+        if spark.catalog.tableExists(PREDICTIONS_TABLE):
+            pred_df.write.format("delta").mode("append").saveAsTable(PREDICTIONS_TABLE)
+        else:
+            pred_df.write.format("delta").mode("overwrite").saveAsTable(PREDICTIONS_TABLE)
     except AnalysisException as e:
         err = str(e)
         if "DELTA_NOT_A_DATABRICKS_DELTA_TABLE" in err or "NOT_A_DATABRICKS_DELTA_TABLE" in err:
             print(
-                f"WARN: {PREDICTIONS_TABLE} is not a managed Delta table (e.g. Lakebase foreign/sync). "
-                "Dropping the UC table entry and recreating as managed Delta."
+                f"WARN: {PREDICTIONS_TABLE} is not a managed Delta table (e.g. Lakebase foreign stub). "
+                "Dropping the UC entry and recreating as managed Delta."
             )
+            spark.sql(f"DROP TABLE IF EXISTS {PREDICTIONS_TABLE}")
+            pred_df.write.format("delta").mode("overwrite").saveAsTable(PREDICTIONS_TABLE)
+        elif "does not support append" in err or "UNSUPPORTED_FEATURE.TABLE_OPERATION" in err:
+            # Leftover DLT-managed table from older pipeline definitions; replace with normal Delta.
+            print(f"WARN: {PREDICTIONS_TABLE} does not allow batch append (e.g. DLT-owned). Recreating as managed Delta.")
             spark.sql(f"DROP TABLE IF EXISTS {PREDICTIONS_TABLE}")
             pred_df.write.format("delta").mode("overwrite").saveAsTable(PREDICTIONS_TABLE)
         else:
@@ -271,28 +279,58 @@ try:
             .withColumn("department", F.lit("ICU"))
         )
 
-        all_actuals = ed_actuals.union(icu_actuals)
+        # Combined model uses department ALL + total_arrivals; join must use summed ED+ICU hourly totals.
+        ed_h = ed_actuals.select(
+            "event_hour",
+            F.col("actual_arrivals").alias("_ed_arr"),
+            F.col("actual_discharges").alias("_ed_dis"),
+        )
+        icu_h = icu_actuals.select(
+            "event_hour",
+            F.col("actual_arrivals").alias("_icu_arr"),
+            F.col("actual_discharges").alias("_icu_dis"),
+        )
+        combined_actuals = (
+            ed_h.join(icu_h, "event_hour", "outer")
+            .withColumn(
+                "actual_arrivals",
+                F.coalesce(F.col("_ed_arr"), F.lit(0)) + F.coalesce(F.col("_icu_arr"), F.lit(0)),
+            )
+            .withColumn(
+                "actual_discharges",
+                F.coalesce(F.col("_ed_dis"), F.lit(0)) + F.coalesce(F.col("_icu_dis"), F.lit(0)),
+            )
+            .select("event_hour", "actual_arrivals", "actual_discharges")
+            .withColumn("department", F.lit("ALL"))
+        )
+
+        all_actuals = ed_actuals.unionByName(icu_actuals).unionByName(combined_actuals)
 
         updated = (
-            predictions
+            predictions.alias("p")
             .join(
-                all_actuals,
-                (predictions.target_hour == all_actuals.event_hour) &
-                (predictions.department == all_actuals.department),
-                "left"
+                all_actuals.alias("a"),
+                (
+                    F.date_trunc("hour", F.col("p.target_hour"))
+                    == F.date_trunc("hour", F.col("a.event_hour"))
+                )
+                & (F.col("p.department") == F.col("a.department")),
+                "left",
             )
             .withColumn(
                 "new_actual",
                 F.when(
-                    F.col("target_metric") == "arrivals",
-                    F.col("actual_arrivals")
-                ).when(
-                    F.col("target_metric") == "discharges",
-                    F.col("actual_discharges")
-                ).when(
-                    F.col("target_metric") == "total_arrivals",
-                    F.col("actual_arrivals")
+                    F.col("p.target_metric") == "arrivals",
+                    F.col("a.actual_arrivals"),
                 )
+                .when(
+                    F.col("p.target_metric") == "discharges",
+                    F.col("a.actual_discharges"),
+                )
+                .when(
+                    F.col("p.target_metric") == "total_arrivals",
+                    F.col("a.actual_arrivals"),
+                ),
             )
             .filter(F.col("new_actual").isNotNull())
         )
@@ -300,9 +338,9 @@ try:
         if updated.count() > 0:
             backfilled = (
                 updated.select(
-                    predictions["prediction_id"],
+                    F.col("p.prediction_id").alias("prediction_id"),
                     F.col("new_actual").alias("actual_value"),
-                    F.round(F.abs(predictions["predicted_value"] - F.col("new_actual")), 2).alias("absolute_error"),
+                    F.round(F.abs(F.col("p.predicted_value") - F.col("new_actual")), 2).alias("absolute_error"),
                 )
             )
 
@@ -319,7 +357,16 @@ try:
 
             print(f"Backfilled {backfilled.count()} predictions with actual values")
         else:
-            print("No predictions ready for backfill yet (horizons haven't elapsed)")
+            c_max = ed_census.agg(F.max("event_hour").alias("m")).collect()[0]["m"]
+            icu_max = icu_census.agg(F.max("event_hour").alias("m")).collect()[0]["m"]
+            _hi = [x for x in (c_max, icu_max) if x is not None]
+            census_hi = max(_hi) if _hi else None
+            p_hi = predictions.agg(F.max("target_hour").alias("m")).collect()[0]["m"]
+            print(
+                "No predictions matched census for backfill (check target_hour vs hourly census). "
+                f"max(target_hour)={p_hi}, max census event_hour≈{census_hi}. "
+                "Regenerate sample data if the window ends before your forecast targets."
+            )
     else:
         print("All predictions already have actual values")
 

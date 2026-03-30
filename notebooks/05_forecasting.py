@@ -28,7 +28,7 @@
 # MAGIC | `gold_ed_forecast_features` | Hourly feature vector for ED forecasting |
 # MAGIC | `gold_icu_forecast_features` | Hourly feature vector for ICU forecasting |
 # MAGIC | `gold_combined_forecast_features` | Cross-department feature vector for multi-metric models |
-# MAGIC | `gold_forecast_predictions` | Scored predictions (written by model inference) |
+# MAGIC | `gold_forecast_predictions` | Scored predictions (**UC Delta table** written by the inference job — not a DLT dataset, so batch append works) |
 # MAGIC
 # MAGIC > Count-like columns are materialized as **BIGINT** (Spark `long`). If **Lakebase/Postgres** still uses `INTEGER` for arrivals, lags, or `cumulative_net_census`, you will see **integer out of range** — alter those columns to `BIGINT` or recreate the tables (see `10_lakebase_load.py` DDL).
 
@@ -325,48 +325,11 @@ def gold_combined_forecast_features():
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## gold_forecast_predictions
+# MAGIC ## gold_forecast_predictions (external to DLT)
 # MAGIC 
-# MAGIC Output table where model inference writes scored predictions.
-# MAGIC 
-# MAGIC Workflow:
-# MAGIC 1. A scheduled Databricks job reads from `gold_ed_forecast_features`
-# MAGIC    and `gold_icu_forecast_features`
-# MAGIC 2. Runs inference against registered MLflow models
-# MAGIC 3. Appends predictions to this table
-# MAGIC 
-# MAGIC Schema is intentionally wide to support multiple model types and horizons.
-
-# COMMAND ----------
-
-@dlt.table(
-    name="gold_forecast_predictions",
-    comment="Model predictions for ED/ICU arrivals and discharges"
-)
-def gold_forecast_predictions():
-    """
-    Seed table with schema definition. Model inference jobs append rows.
-    Initial empty DataFrame ensures the table is created with correct schema.
-    """
-    return spark.createDataFrame([], schema="""
-        prediction_id STRING,
-        model_name STRING,
-        model_version STRING,
-        department STRING,
-        location_facility STRING,
-        forecast_generated_at TIMESTAMP,
-        target_metric STRING,
-        forecast_horizon_hours INT,
-        target_hour TIMESTAMP,
-        predicted_value DOUBLE,
-        prediction_lower_bound DOUBLE,
-        prediction_upper_bound DOUBLE,
-        confidence_level DOUBLE,
-        feature_snapshot_hour TIMESTAMP,
-        actual_value DOUBLE,
-        absolute_error DOUBLE,
-        created_at TIMESTAMP
-    """)
+# MAGIC Inference job `08_model_inference.py` creates and appends to UC Delta table
+# MAGIC `{catalog}.{schema}.gold_forecast_predictions`. It is **not** defined here as `@dlt.table`
+# MAGIC because DLT-managed tables do not allow batch append from jobs (`UNSUPPORTED_FEATURE.TABLE_OPERATION`).
 
 # COMMAND ----------
 
@@ -382,7 +345,11 @@ def gold_forecast_predictions():
     comment="Forecast accuracy tracking - actuals vs predictions"
 )
 def gold_forecast_accuracy():
-    predictions = dlt.read("gold_forecast_predictions").filter(F.col("actual_value").isNotNull())
+    catalog = spark.conf.get("hl7.catalog", "users")
+    schema = spark.conf.get("hl7.schema", "ankur_nayyar")
+    predictions = spark.table(f"`{catalog}`.`{schema}`.`gold_forecast_predictions`").filter(
+        F.col("actual_value").isNotNull()
+    )
 
     return (
         predictions

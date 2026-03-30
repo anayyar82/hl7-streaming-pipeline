@@ -19,7 +19,7 @@ dbutils.widgets.text("schema", "ankur_nayyar", "Schema")
 dbutils.widgets.text("volume", "landing", "Volume")
 dbutils.widgets.text("num_days", "60", "Days of Data")
 dbutils.widgets.text("num_patients", "150", "Number of Patients")
-dbutils.widgets.text("start_date", "", "Start YYYY-MM-DD (empty = last N days ending yesterday UTC)")
+dbutils.widgets.text("start_date", "", "Start YYYY-MM-DD (empty = last N calendar days ending today UTC)")
 dbutils.widgets.dropdown("clear_existing", "yes", ["yes", "no"], "Clear Existing .hl7 Files")
 
 catalog = dbutils.widgets.get("catalog")
@@ -237,8 +237,11 @@ def generate_oru(msg_id, ts, mrn, last, first, dob, sex, facility):
 if start_date_raw:
     start_date = datetime.strptime(start_date_raw, "%Y-%m-%d")
 else:
+    # End the window on today's UTC date (not yesterday) so hourly census includes hours that
+    # inference uses as target_hour (latest feature hour + horizon). Old default stopped at
+    # yesterday, so every positive horizon pointed past max(event_hour) and accuracy never backfilled.
     today_utc = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    start_date = today_utc - timedelta(days=num_days)
+    start_date = today_utc - timedelta(days=num_days - 1)
 
 print(f"First simulated day (UTC midnight): {start_date.date()}")
 msg_id = 1

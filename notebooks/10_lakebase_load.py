@@ -389,19 +389,19 @@ GOLD_TABLES = {
                 net_change_lag_1h       BIGINT,
                 net_change_lag_6h       BIGINT,
                 net_change_lag_24h      BIGINT,
-                arrivals_rolling_6h     BIGINT,
-                arrivals_rolling_12h    BIGINT,
-                arrivals_rolling_24h    BIGINT,
-                arrivals_rolling_7d     BIGINT,
+                arrivals_rolling_6h     DOUBLE PRECISION,
+                arrivals_rolling_12h    DOUBLE PRECISION,
+                arrivals_rolling_24h    DOUBLE PRECISION,
+                arrivals_rolling_7d     DOUBLE PRECISION,
                 arrivals_avg_6h         DOUBLE PRECISION,
                 arrivals_avg_24h        DOUBLE PRECISION,
                 arrivals_std_24h        DOUBLE PRECISION,
-                discharges_rolling_6h   BIGINT,
-                discharges_rolling_12h  BIGINT,
-                discharges_rolling_24h  BIGINT,
-                discharges_rolling_7d   BIGINT,
+                discharges_rolling_6h   DOUBLE PRECISION,
+                discharges_rolling_12h  DOUBLE PRECISION,
+                discharges_rolling_24h  DOUBLE PRECISION,
+                discharges_rolling_7d   DOUBLE PRECISION,
                 discharges_avg_24h      DOUBLE PRECISION,
-                cumulative_net_census   BIGINT,
+                cumulative_net_census   DOUBLE PRECISION,
                 arrivals_wow_ratio      DOUBLE PRECISION,
                 PRIMARY KEY (event_hour, location_facility)
             )
@@ -440,19 +440,19 @@ GOLD_TABLES = {
                 net_change_lag_1h       BIGINT,
                 net_change_lag_6h       BIGINT,
                 net_change_lag_24h      BIGINT,
-                arrivals_rolling_6h     BIGINT,
-                arrivals_rolling_12h    BIGINT,
-                arrivals_rolling_24h    BIGINT,
-                arrivals_rolling_7d     BIGINT,
+                arrivals_rolling_6h     DOUBLE PRECISION,
+                arrivals_rolling_12h    DOUBLE PRECISION,
+                arrivals_rolling_24h    DOUBLE PRECISION,
+                arrivals_rolling_7d     DOUBLE PRECISION,
                 arrivals_avg_6h         DOUBLE PRECISION,
                 arrivals_avg_24h        DOUBLE PRECISION,
                 arrivals_std_24h        DOUBLE PRECISION,
-                discharges_rolling_6h   BIGINT,
-                discharges_rolling_12h  BIGINT,
-                discharges_rolling_24h  BIGINT,
-                discharges_rolling_7d   BIGINT,
+                discharges_rolling_6h   DOUBLE PRECISION,
+                discharges_rolling_12h  DOUBLE PRECISION,
+                discharges_rolling_24h  DOUBLE PRECISION,
+                discharges_rolling_7d   DOUBLE PRECISION,
                 discharges_avg_24h      DOUBLE PRECISION,
-                cumulative_net_census   BIGINT,
+                cumulative_net_census   DOUBLE PRECISION,
                 arrivals_wow_ratio      DOUBLE PRECISION,
                 PRIMARY KEY (event_hour, location_facility)
             )
@@ -478,12 +478,12 @@ GOLD_TABLES = {
                 ed_arrivals_lag_24h          BIGINT,
                 icu_arrivals_lag_1h          BIGINT,
                 icu_arrivals_lag_24h         BIGINT,
-                ed_arrivals_rolling_24h      BIGINT,
-                icu_arrivals_rolling_24h     BIGINT,
-                ed_discharges_rolling_24h    BIGINT,
-                icu_discharges_rolling_24h   BIGINT,
+                ed_arrivals_rolling_24h      DOUBLE PRECISION,
+                icu_arrivals_rolling_24h     DOUBLE PRECISION,
+                ed_discharges_rolling_24h    DOUBLE PRECISION,
+                icu_discharges_rolling_24h   DOUBLE PRECISION,
                 ed_to_icu_ratio              DOUBLE PRECISION,
-                net_system_pressure          BIGINT
+                net_system_pressure          DOUBLE PRECISION
             )
         """,
     },
@@ -496,10 +496,59 @@ GOLD_TABLES = {
 
 # COMMAND ----------
 
+import math
+import numpy as np
+import pandas as pd
 import psycopg2
 import psycopg2.extras
 
 BATCH_SIZE = 1000
+
+# Postgres BIGINT is signed 64-bit; Spark→pandas can yield NaN/Inf in numeric cols and break inserts.
+_PG_BIGINT_MIN = -9223372036854775808
+_PG_BIGINT_MAX = 9223372036854775807
+
+# Repopulated from Delta each run; DROP ensures DDL changes (e.g. DOUBLE vs BIGINT) apply — IF NOT EXISTS alone keeps stale types.
+_FORECAST_TABLES_RECREATE = frozenset({
+    "gold_ed_forecast_features",
+    "gold_icu_forecast_features",
+    "gold_combined_forecast_features",
+})
+
+
+def _sanitize_sql_value(v):
+    """None/NaN/Inf → None for safe Postgres binding."""
+    if v is None:
+        return None
+    if isinstance(v, (float, np.floating)):
+        if math.isnan(float(v)) or math.isinf(float(v)):
+            return None
+        return v
+    if isinstance(v, np.integer):
+        return int(v)
+    try:
+        if pd.isna(v):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return v
+
+
+def _sanitize_row_tuple(row: tuple) -> tuple:
+    out = []
+    for v in row:
+        v = _sanitize_sql_value(v)
+        if type(v) is bool:
+            out.append(v)
+            continue
+        if isinstance(v, (int, np.integer)):
+            iv = int(v)
+            if iv < _PG_BIGINT_MIN or iv > _PG_BIGINT_MAX:
+                out.append(None)
+                continue
+        out.append(v)
+    return tuple(out)
+
 
 def load_table(table_name: str, table_def: dict) -> dict:
     """Read a gold table via Spark, ensure PG table exists, truncate, and batch insert.
@@ -522,6 +571,9 @@ def load_table(table_name: str, table_def: dict) -> dict:
 
         cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{PG_SCHEMA}"')
         ddl = table_def["ddl"].format(schema=PG_SCHEMA)
+        if table_name in _FORECAST_TABLES_RECREATE:
+            print(f"  ↻  {table_name}: DROP+CREATE (forecast DDL / types refreshed for Lakebase)")
+            cur.execute(f'DROP TABLE IF EXISTS "{PG_SCHEMA}"."{table_name}" CASCADE')
         cur.execute(ddl)
 
         if not spark.catalog.tableExists(fqn):
@@ -553,7 +605,7 @@ def load_table(table_name: str, table_def: dict) -> dict:
         placeholders = ", ".join(["%s"] * len(columns))
         insert_sql = f'INSERT INTO "{PG_SCHEMA}"."{table_name}" ({col_list}) VALUES ({placeholders})'
 
-        rows_data = [tuple(row) for row in pdf.itertuples(index=False, name=None)]
+        rows_data = [_sanitize_row_tuple(tuple(row)) for row in pdf.itertuples(index=False, name=None)]
         for i in range(0, len(rows_data), BATCH_SIZE):
             batch = rows_data[i : i + BATCH_SIZE]
             psycopg2.extras.execute_batch(cur, insert_sql, batch)

@@ -20,9 +20,13 @@ try:
     summary = run_query(queries.ACCURACY_SUMMARY)
 
     if summary.empty:
-        st.warning(
-            "No accuracy data available. Predictions need actual values to compute accuracy. "
-            "Run the inference job after the forecast horizon passes."
+        st.info(
+            "**Why this is empty:** accuracy comes from **`gold_forecast_accuracy`** in Lakebase, which is built "
+            "only from predictions that already have **`actual_value`** filled (compare forecast to real census).\n\n"
+            "1. **`hl7_model_inference`** backfills `actual_value` when **`target_hour`** exists in **`gold_*_hourly_census`** "
+            "(re-run inference periodically after wall-clock time passes the predicted hours).\n"
+            "2. **DLT** must refresh so **`gold_forecast_accuracy`** recomputes from updated predictions.\n"
+            "3. **`hl7_lakebase_load`** copies that table into Postgres for this app."
         )
     else:
         col1, col2, col3 = st.columns(3)
@@ -152,7 +156,7 @@ try:
         else:
             st.info("No data for the selected model.")
     else:
-        st.info("No accuracy data available yet.")
+        st.info("No rows in **`gold_forecast_accuracy`** yet — same prerequisites as the summary above (backfill → DLT → lakebase load).")
 
 except Exception as e:
     st.error(f"Failed to load accuracy trends: {e}")
@@ -163,17 +167,24 @@ st.markdown("---")
 st.header("Model Comparison")
 
 try:
-    summary = run_query(queries.ACCURACY_SUMMARY)
+    comparison = run_query(queries.ACCURACY_SUMMARY)
 
-    if not summary.empty:
+    if not comparison.empty:
+        # Lakebase can return aggregates as object/Decimal; Plotly requires numeric `size`.
+        for col in ("avg_mae", "avg_mape_pct", "avg_coverage_pct", "total_predictions"):
+            if col in comparison.columns:
+                comparison[col] = pd.to_numeric(comparison[col], errors="coerce")
+        comparison = comparison.assign(
+            _bubble=comparison["total_predictions"].fillna(1).clip(lower=1).astype(float)
+        )
         fig = px.scatter(
-            summary,
+            comparison,
             x="avg_mae",
             y="avg_mape_pct",
-            size="total_predictions",
+            size="_bubble",
             color="model_name",
             symbol="department",
-            hover_data=["forecast_horizon_hours", "avg_coverage_pct"],
+            hover_data=["forecast_horizon_hours", "avg_coverage_pct", "total_predictions"],
             title="Model Comparison: MAE vs MAPE (bubble size = total predictions)",
         )
         fig.update_layout(
@@ -183,8 +194,12 @@ try:
             yaxis_title="Average MAPE (%)",
         )
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No comparison data until **`gold_forecast_accuracy`** has rows (see summary section).")
 
 except Exception as e:
     st.error(f"Failed to build model comparison: {e}")
 
-st.caption("Accuracy computed by comparing predictions to actuals after the forecast horizon passes.")
+st.caption(
+    "Accuracy = predictions with `actual_value` set vs census, rolled up in DLT to `gold_forecast_accuracy`, then loaded to Lakebase."
+)
