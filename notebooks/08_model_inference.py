@@ -57,6 +57,7 @@ print(f"Forecast horizons: {FORECAST_HORIZONS}")
 import mlflow
 import pyspark.sql.functions as F
 from pyspark.sql.types import *
+from pyspark.sql.utils import AnalysisException
 from datetime import datetime, timedelta
 import uuid
 import pandas as pd
@@ -64,23 +65,8 @@ import numpy as np
 
 mlflow.set_registry_uri("databricks-uc")
 print(f"MLflow version: {mlflow.__version__}")
-try:
-    mlflow.tracing.enable()
-    print("MLflow tracing enabled")
-except Exception as _te:
-    print(f"MLflow tracing not available: {_te}")
-
-
-def _pyfunc_predict_traced(model, pdf: pd.DataFrame, span_name: str):
-    """Run pyfunc.predict inside MLflow 3 start_span when available (Traces UI)."""
-    try:
-        with mlflow.start_span(name=span_name) as span:
-            if span is not None and hasattr(span, "set_attribute"):
-                span.set_attribute("feature_rows", len(pdf))
-                span.set_attribute("feature_cols", len(pdf.columns))
-            return model.predict(pdf)
-    except Exception:
-        return model.predict(pdf)
+# Do not wrap pyfunc.predict in mlflow.start_span here: on DBR 17 ML + MLflow 3 + sklearn
+# pyfunc, that path has been observed to SIGSEGV the driver. Tracing stays enabled in 07 (AutoML).
 
 # COMMAND ----------
 
@@ -163,18 +149,16 @@ for model_name, model_info in loaded_models.items():
         continue
 
     try:
-        predictions = _pyfunc_predict_traced(
-            model, pdf, span_name=f"hl7_forecast_{config['name']}"
-        )
+        predictions = model.predict(pdf)
 
-        pred_std = np.std(predictions) if len(predictions) > 1 else 0
+        pred_std = float(np.std(predictions)) if len(predictions) > 1 else 0.0
         latest_pred = float(predictions[-1]) if len(predictions) > 0 else 0.0
 
         for horizon in FORECAST_HORIZONS:
             target_hour = latest_hour + timedelta(hours=horizon)
 
             confidence = max(0.5, 1.0 - (horizon * 0.02))
-            margin = pred_std * (1 + horizon * 0.1) * 1.96
+            margin = float(pred_std * (1 + horizon * 0.1) * 1.96)
 
             all_predictions.append({
                 "prediction_id": str(uuid.uuid4()),
@@ -186,10 +170,10 @@ for model_name, model_info in loaded_models.items():
                 "target_metric": config["target_metric"],
                 "forecast_horizon_hours": horizon,
                 "target_hour": target_hour,
-                "predicted_value": round(max(0, latest_pred), 2),
-                "prediction_lower_bound": round(max(0, latest_pred - margin), 2),
-                "prediction_upper_bound": round(latest_pred + margin, 2),
-                "confidence_level": round(confidence, 3),
+                "predicted_value": float(round(max(0, latest_pred), 2)),
+                "prediction_lower_bound": float(round(max(0, latest_pred - margin), 2)),
+                "prediction_upper_bound": float(round(latest_pred + margin, 2)),
+                "confidence_level": float(round(confidence, 3)),
                 "feature_snapshot_hour": latest_hour,
                 "actual_value": None,
                 "absolute_error": None,
@@ -234,7 +218,20 @@ if all_predictions:
 
     pred_df = spark.createDataFrame(all_predictions, schema=pred_schema)
 
-    pred_df.write.mode("append").saveAsTable(PREDICTIONS_TABLE)
+    try:
+        pred_df.write.format("delta").mode("append").saveAsTable(PREDICTIONS_TABLE)
+    except AnalysisException as e:
+        err = str(e)
+        if "DELTA_NOT_A_DATABRICKS_DELTA_TABLE" in err or "NOT_A_DATABRICKS_DELTA_TABLE" in err:
+            print(
+                f"WARN: {PREDICTIONS_TABLE} is not a managed Delta table (e.g. Lakebase foreign/sync). "
+                "Dropping the UC table entry and recreating as managed Delta."
+            )
+            spark.sql(f"DROP TABLE IF EXISTS {PREDICTIONS_TABLE}")
+            pred_df.write.format("delta").mode("overwrite").saveAsTable(PREDICTIONS_TABLE)
+        else:
+            raise
+
     print(f"Wrote {len(all_predictions)} predictions to {PREDICTIONS_TABLE}")
 
     display(pred_df.orderBy("model_name", "forecast_horizon_hours"))

@@ -12,11 +12,23 @@ variables:
     description: Filename of the funke wheel package
     default: funke-0.1.0a1-py3-none-any.whl
   ml_spark_version:
-    description: DBR 17.x ML for AutoML, MLflow 3, pyfunc inference
-    default: 17.3.x-cpu-ml-scala2.12
+    description: DBR 17.x ML for AutoML training (MLflow 3)
+    default: 17.3.x-cpu-ml-scala2.13
+  ml_inference_spark_version:
+    description: DBR ML for pyfunc batch inference (15.x avoids sklearn driver SIGSEGV seen on some 17.x ML builds)
+    default: 15.4.x-cpu-ml-scala2.12
   ml_node_type:
     description: Worker node type for ML training/inference jobs
     default: i3.xlarge
+  app_git_url:
+    description: HTTPS clone URL for the repo that contains hl7-forecasting-app (Git-only Apps workspaces)
+    default: https://github.com/anayyar82/hl7-streaming-pipeline.git
+  app_git_branch:
+    description: Branch Databricks Apps should deploy from
+    default: main
+  app_git_provider:
+    description: Git provider (case-insensitive in API; use gitHub for github.com)
+    default: gitHub
 
 resources:
   jobs:
@@ -88,7 +100,7 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               experiment_prefix: hl7_forecasting
-              timeout_minutes: "15"
+              timeout_minutes: "5"
 
     hl7_model_inference:
       name: "[${bundle.target}] HL7 Model Inference"
@@ -97,9 +109,9 @@ resources:
         timezone_id: America/Los_Angeles
         pause_status: PAUSED
       job_clusters:
-        - job_cluster_key: ml_cpu
+        - job_cluster_key: ml_cpu_inference
           new_cluster:
-            spark_version: ${var.ml_spark_version}
+            spark_version: ${var.ml_inference_spark_version}
             node_type_id: ${var.ml_node_type}
             autoscale:
               min_workers: 1
@@ -107,7 +119,7 @@ resources:
             data_security_mode: SINGLE_USER
       tasks:
         - task_key: run_inference
-          job_cluster_key: ml_cpu
+          job_cluster_key: ml_cpu_inference
           notebook_task:
             notebook_path: ../notebooks/08_model_inference.py
             base_parameters:
@@ -137,7 +149,13 @@ resources:
     hl7app:
       name: hl7app
       description: "HL7 ED/ICU real-time operations and forecasting dashboard"
-      source_code_path: ../hl7-forecasting-app
+      # Git-only workspaces reject workspace path deploys; app code is pulled from this repo path.
+      git_repository:
+        provider: ${var.app_git_provider}
+        url: ${var.app_git_url}
+      git_source:
+        branch: ${var.app_git_branch}
+        source_code_path: hl7-forecasting-app
       user_api_scopes:
         - sql
       permissions:

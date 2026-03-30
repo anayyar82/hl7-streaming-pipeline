@@ -32,7 +32,7 @@ dbutils.widgets.text("schema", "ankur_nayyar", "Schema")
 # AutoML places experiments under: /Users/<user>/databricks_automl/<this_prefix>/<model_name>
 # Do NOT use leading / or "Shared/..." — that becomes .../databricks_automl/Shared/... (404).
 dbutils.widgets.text("experiment_prefix", "hl7_forecasting", "Relative folder under databricks_automl")
-dbutils.widgets.dropdown("timeout_minutes", "15", ["5", "10", "15", "30", "60"], "AutoML Timeout (min)")
+dbutils.widgets.dropdown("timeout_minutes", "5", ["5", "10", "15", "30", "60"], "AutoML Timeout (min)")
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
@@ -252,6 +252,7 @@ for config in MODEL_CONFIGS:
             "mae": best_run.metrics.get("test_mean_absolute_error"),
             "run_id": best_run.mlflow_run_id,
             "version": version,
+            "training_samples": len(pdf),
         })
 
     except Exception as e:
@@ -277,8 +278,18 @@ display(results_df)
 successful = [r for r in training_results if r["status"] == "SUCCESS"]
 print(f"\nTraining complete: {len(successful)}/{len(MODEL_CONFIGS)} models succeeded")
 
+
+def _fmt_m(v):
+    if v is None:
+        return "N/A"
+    try:
+        return f"{float(v):.4f}"
+    except (TypeError, ValueError):
+        return str(v)
+
+
 for r in successful:
-    print(f"  {r['model']}: RMSE={r.get('rmse', 'N/A'):.4f}, R2={r.get('r2', 'N/A'):.4f}")
+    print(f"  {r['model']}: RMSE={_fmt_m(r.get('rmse'))}, R2={_fmt_m(r.get('r2'))}")
 
 # COMMAND ----------
 
@@ -295,12 +306,12 @@ if successful:
             "model_name": r["model"],
             "model_version": str(r.get("version", "N/A")),
             "training_timestamp": datetime.utcnow().isoformat(),
-            "rmse": float(r.get("rmse", 0)),
-            "r2_score": float(r.get("r2", 0)),
-            "mae": float(r.get("mae", 0)),
+            "rmse": float(r.get("rmse") or 0),
+            "r2_score": float(r.get("r2") or 0),
+            "mae": float(r.get("mae") or 0),
             "best_trial_description": r.get("best_trial", ""),
             "mlflow_run_id": r.get("run_id", ""),
-            "training_samples": int(r.get("training_samples", 0)) if "training_samples" in r else 0,
+            "training_samples": int(r.get("training_samples") or 0),
         })
 
     metadata_df = spark.createDataFrame(metadata_rows)

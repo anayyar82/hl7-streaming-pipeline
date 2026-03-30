@@ -737,14 +737,15 @@ databricks bundle run hl7_model_inference -t dev
 | `schema` | Target schema name | `ankur_nayyar` |
 | `source_volume` | Landing volume for raw HL7 files | `landing` |
 | `funke_wheel_name` | Filename of the funke wheel | `funke-0.1.0a1-py3-none-any.whl` |
-| `ml_spark_version` | DBR ML image for AutoML + inference jobs | `17.3.x-cpu-ml-scala2.12` |
-| `ml_node_type` | Worker type for those jobs | `i3.xlarge` |
+| `ml_spark_version` | DBR ML for **AutoML** (`07`) | `17.3.x-cpu-ml-scala2.13` |
+| `ml_inference_spark_version` | DBR ML for **inference** (`08`); 15.4 LTS avoids pyfunc/sklearn driver SIGSEGV on some 17.x builds | `15.4.x-cpu-ml-scala2.12` |
+| `ml_node_type` | Worker type for ML job clusters | `i3.xlarge` |
 
 ### ML jobs: DBR 17 ML and MLflow 3
 
-`hl7_automl_training` and `hl7_model_inference` run on **Databricks Runtime 17.3.x ML** (see `ml_spark_version` in `databricks.yml` / `resources/hl7_pipeline.yml`). That runtime ships **MLflow 3** with tracing. The notebooks call `mlflow.tracing.enable()` and, during inference, wrap batch `pyfunc.predict` in `mlflow.start_span` so spans show up in the **Traces** experience for the active experiment. Avoid `pip install mlflow` on DBR ML clusters so you do not override the tested, managed build.
+**`hl7_automl_training`** uses **Databricks Runtime 17.3.x ML** (`ml_spark_version`) for AutoML and **MLflow 3** tracing. **`hl7_model_inference`** uses **`ml_inference_spark_version`** (default **15.4.x LTS ML**) because **UC pyfunc + sklearn** batch predict has triggered driver **SIGSEGV** on some **17.x ML** images; training stays on 17.x for latest AutoML/MLflow features. **`08`** uses plain `pyfunc.predict`. Avoid `pip install mlflow` on DBR ML clusters.
 
-The **DLT** pipeline uses its own cluster definition in the bundle and is unchanged by `ml_spark_version`.
+The **DLT** pipeline uses its own cluster definition and is unchanged by these variables.
 
 ### Deployed Resources (via DAB)
 

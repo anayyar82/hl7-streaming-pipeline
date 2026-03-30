@@ -29,6 +29,8 @@
 # MAGIC | `gold_icu_forecast_features` | Hourly feature vector for ICU forecasting |
 # MAGIC | `gold_combined_forecast_features` | Cross-department feature vector for multi-metric models |
 # MAGIC | `gold_forecast_predictions` | Scored predictions (written by model inference) |
+# MAGIC
+# MAGIC > Count-like columns are materialized as **BIGINT** (Spark `long`). If **Lakebase/Postgres** still uses `INTEGER` for arrivals, lags, or `cumulative_net_census`, you will see **integer out of range** — alter those columns to `BIGINT` or recreate the tables (see `10_lakebase_load.py` DDL).
 
 # COMMAND ----------
 
@@ -115,10 +117,10 @@ def build_forecast_features(census_df, department_label):
 
     df = (
         df
-        .withColumn("arrivals_rolling_6h", F.sum("arrivals").over(w_6h))
-        .withColumn("arrivals_rolling_12h", F.sum("arrivals").over(w_12h))
-        .withColumn("arrivals_rolling_24h", F.sum("arrivals").over(w_24h))
-        .withColumn("arrivals_rolling_7d", F.sum("arrivals").over(w_7d))
+        .withColumn("arrivals_rolling_6h", F.sum(F.col("arrivals").cast("long")).over(w_6h))
+        .withColumn("arrivals_rolling_12h", F.sum(F.col("arrivals").cast("long")).over(w_12h))
+        .withColumn("arrivals_rolling_24h", F.sum(F.col("arrivals").cast("long")).over(w_24h))
+        .withColumn("arrivals_rolling_7d", F.sum(F.col("arrivals").cast("long")).over(w_7d))
         .withColumn("arrivals_avg_6h", F.round(F.avg("arrivals").over(w_6h), 2))
         .withColumn("arrivals_avg_24h", F.round(F.avg("arrivals").over(w_24h), 2))
         .withColumn("arrivals_std_24h", F.round(F.stddev("arrivals").over(w_24h), 2))
@@ -127,17 +129,17 @@ def build_forecast_features(census_df, department_label):
     # --- Rolling window features (discharges) ---
     df = (
         df
-        .withColumn("discharges_rolling_6h", F.sum("discharges").over(w_6h))
-        .withColumn("discharges_rolling_12h", F.sum("discharges").over(w_12h))
-        .withColumn("discharges_rolling_24h", F.sum("discharges").over(w_24h))
-        .withColumn("discharges_rolling_7d", F.sum("discharges").over(w_7d))
+        .withColumn("discharges_rolling_6h", F.sum(F.col("discharges").cast("long")).over(w_6h))
+        .withColumn("discharges_rolling_12h", F.sum(F.col("discharges").cast("long")).over(w_12h))
+        .withColumn("discharges_rolling_24h", F.sum(F.col("discharges").cast("long")).over(w_24h))
+        .withColumn("discharges_rolling_7d", F.sum(F.col("discharges").cast("long")).over(w_7d))
         .withColumn("discharges_avg_24h", F.round(F.avg("discharges").over(w_24h), 2))
     )
 
-    # --- Cumulative census estimate ---
+    # --- Cumulative census estimate (bigint: unbounded sum can exceed INT32; Postgres/Lakebase INTEGER overflows) ---
     df = df.withColumn(
         "cumulative_net_census",
-        F.sum("net_change").over(
+        F.sum(F.col("net_change").cast("long")).over(
             Window.partitionBy("location_facility")
             .orderBy("event_hour")
             .rowsBetween(Window.unboundedPreceding, Window.currentRow)
@@ -152,6 +154,41 @@ def build_forecast_features(census_df, department_label):
             F.round(F.col("arrivals") / F.col("arrivals_lag_168h"), 2)
         )
     )
+
+    # Force BIGINT for any count / lag / rolling column so Delta and Lakebase never see INT32 overflow.
+    _bigint_cols = [
+        "arrivals",
+        "discharges",
+        "net_change",
+        "arrivals_lag_1h",
+        "arrivals_lag_2h",
+        "arrivals_lag_4h",
+        "arrivals_lag_6h",
+        "arrivals_lag_12h",
+        "arrivals_lag_24h",
+        "arrivals_lag_168h",
+        "discharges_lag_1h",
+        "discharges_lag_2h",
+        "discharges_lag_6h",
+        "discharges_lag_12h",
+        "discharges_lag_24h",
+        "discharges_lag_168h",
+        "net_change_lag_1h",
+        "net_change_lag_6h",
+        "net_change_lag_24h",
+        "arrivals_rolling_6h",
+        "arrivals_rolling_12h",
+        "arrivals_rolling_24h",
+        "arrivals_rolling_7d",
+        "discharges_rolling_6h",
+        "discharges_rolling_12h",
+        "discharges_rolling_24h",
+        "discharges_rolling_7d",
+        "cumulative_net_census",
+    ]
+    for c in _bigint_cols:
+        if c in df.columns:
+            df = df.withColumn(c, F.col(c).cast("long"))
 
     return df
 
@@ -245,10 +282,10 @@ def gold_combined_forecast_features():
         .withColumn("ed_arrivals_lag_24h", F.lag("ed_arrivals", 24).over(w_time))
         .withColumn("icu_arrivals_lag_1h", F.lag("icu_arrivals", 1).over(w_time))
         .withColumn("icu_arrivals_lag_24h", F.lag("icu_arrivals", 24).over(w_time))
-        .withColumn("ed_arrivals_rolling_24h", F.sum("ed_arrivals").over(w_24h))
-        .withColumn("icu_arrivals_rolling_24h", F.sum("icu_arrivals").over(w_24h))
-        .withColumn("ed_discharges_rolling_24h", F.sum("ed_discharges").over(w_24h))
-        .withColumn("icu_discharges_rolling_24h", F.sum("icu_discharges").over(w_24h))
+        .withColumn("ed_arrivals_rolling_24h", F.sum(F.col("ed_arrivals").cast("long")).over(w_24h))
+        .withColumn("icu_arrivals_rolling_24h", F.sum(F.col("icu_arrivals").cast("long")).over(w_24h))
+        .withColumn("ed_discharges_rolling_24h", F.sum(F.col("ed_discharges").cast("long")).over(w_24h))
+        .withColumn("icu_discharges_rolling_24h", F.sum(F.col("icu_discharges").cast("long")).over(w_24h))
         .withColumn(
             "ed_to_icu_ratio",
             F.when(F.col("icu_arrivals") > 0,
@@ -259,6 +296,29 @@ def gold_combined_forecast_features():
             F.col("ed_net_change") + F.col("icu_net_change")
         )
     )
+
+    _combined_bigint = [
+        "ed_arrivals",
+        "ed_discharges",
+        "ed_net_change",
+        "icu_arrivals",
+        "icu_discharges",
+        "icu_net_change",
+        "total_arrivals",
+        "total_discharges",
+        "ed_arrivals_lag_1h",
+        "ed_arrivals_lag_24h",
+        "icu_arrivals_lag_1h",
+        "icu_arrivals_lag_24h",
+        "ed_arrivals_rolling_24h",
+        "icu_arrivals_rolling_24h",
+        "ed_discharges_rolling_24h",
+        "icu_discharges_rolling_24h",
+        "net_system_pressure",
+    ]
+    for c in _combined_bigint:
+        if c in combined.columns:
+            combined = combined.withColumn(c, F.col(c).cast("long"))
 
     return combined
 
