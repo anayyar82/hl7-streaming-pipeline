@@ -17,6 +17,8 @@ class TriggerResult:
     ok: bool
     message: str
     url: Optional[str] = None
+    run_id: Optional[int] = None
+    job_id: Optional[int] = None
 
 
 def _workspace_host() -> str:
@@ -67,10 +69,13 @@ def trigger_job(
         rid = getattr(resp, "run_id", None)
         if rid is None:
             return TriggerResult(False, "Job started but no run_id in API response.")
+        rid_int = int(rid)
         return TriggerResult(
             True,
-            f"Job **{job_id}** started — run id **{rid}**.",
-            job_run_url(job_id, int(rid)),
+            f"Job **{job_id}** started — run id **{rid_int}**.",
+            job_run_url(job_id, rid_int),
+            run_id=rid_int,
+            job_id=job_id,
         )
     except Exception as e:
         err = getattr(e, "message", None) or str(e)

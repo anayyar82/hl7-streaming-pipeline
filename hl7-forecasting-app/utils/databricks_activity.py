@@ -188,6 +188,7 @@ def configured_job_list() -> list[tuple[str, Optional[int]]]:
         return parse_job_id(os.environ.get(key))
 
     return [
+        ("DLT → Inference → Lakebase (bundle)", pid("HL7_JOB_REFRESH_WORKFLOW")),
         ("Sample → volume", pid("HL7_JOB_SAMPLE_DATA")),
         ("AutoML training", pid("HL7_JOB_AUTOML")),
         ("Model inference", pid("HL7_JOB_INFERENCE")),
