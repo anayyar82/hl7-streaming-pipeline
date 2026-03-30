@@ -28,6 +28,20 @@ def _hours_since(ts) -> float | None:
     return (pd.Timestamp.now() - t).total_seconds() / 3600.0
 
 
+def _lakebase_table_exists(table: str) -> bool:
+    df = run_query(
+        """
+        SELECT 1 AS one
+        FROM information_schema.tables
+        WHERE table_schema = %s AND table_name = %s
+        LIMIT 1
+        """,
+        (queries.SCHEMA, table),
+        quiet=True,
+    )
+    return not df.empty
+
+
 def _status_label(age_h: float | None, stale_after: float | None) -> str:
     if age_h is None:
         return "—"
@@ -75,6 +89,10 @@ st.caption(
     "**ok** = last activity within threshold · **stale** = up to 2× threshold · **critical** = older. "
     "Thresholds differ by table (stream vs dimensions vs ML)."
 )
+st.caption(
+    "**📭 not in Lakebase** = Postgres has no table yet (run **`hl7_lakebase_load`**). "
+    "**❓ no data** = query error. Forecast feature tables also need DLT **`05_forecasting`** to succeed in UC before load can copy rows."
+)
 
 rows_out = []
 
@@ -82,6 +100,7 @@ for spec in queries.STATUS_MONITOR_SPECS:
     df = run_query(spec["sql"], quiet=True)
     stale_h = spec.get("stale_after_hours")
     if df.empty:
+        chk = "missing in Lakebase" if not _lakebase_table_exists(spec["table"]) else "no data"
         rows_out.append(
             {
                 "Layer": spec["layer"],
@@ -90,7 +109,7 @@ for spec in queries.STATUS_MONITOR_SPECS:
                 "Rows": None,
                 "Last activity": None,
                 "Age (h)": None,
-                "Check": "no data",
+                "Check": chk,
             }
         )
         continue
@@ -138,6 +157,7 @@ if not summary.empty:
             "critical": "🔴 critical",
             "empty": "⬜ empty",
             "no data": "❓ no data",
+            "missing in Lakebase": "📭 not in Lakebase (run lakebase load)",
             "n/a": "➖ n/a",
             "—": "—",
         }.get(str(x), str(x))
@@ -152,8 +172,8 @@ st.markdown("---")
 with st.expander("Runbook — what to run in Databricks when something is stale", expanded=False):
     st.markdown(
         """
-1. **DLT** — Run or refresh **`hl7_streaming_pipeline`** (Bronze → Gold). Drives encounters, census, message metrics, and forecasting inputs.  
-2. **Lakebase load** — Job **`hl7_lakebase_load`**: `databricks bundle run hl7_lakebase_load -t dev` — refreshes this Postgres mirror.  
+1. **DLT** — Run or refresh **`hl7_streaming_pipeline`** (Bronze → Gold). The **`05_forecasting`** notebook must complete so `gold_*_forecast_features` exist in UC with data.  
+2. **Lakebase load** — Job **`hl7_lakebase_load`**: `databricks bundle run hl7_lakebase_load -t dev` — creates missing Postgres tables and copies gold; re-run after DLT or inference.  
 3. **ML inference** — Job **`hl7_model_inference`** after features exist — updates `gold_forecast_predictions` in Delta; re-run **lakebase load** so this app sees new rows.  
 4. **AutoML** — **`hl7_automl_training`** when you need new champion models.  
 

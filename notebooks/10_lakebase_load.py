@@ -502,26 +502,16 @@ import psycopg2.extras
 BATCH_SIZE = 1000
 
 def load_table(table_name: str, table_def: dict) -> dict:
-    """Read a gold table via Spark, create PG table, truncate, and batch insert."""
+    """Read a gold table via Spark, ensure PG table exists, truncate, and batch insert.
+
+    Always runs CREATE TABLE IF NOT EXISTS in Postgres so downstream apps (e.g. Streamlit status)
+    can query the table even when UC is missing or empty — otherwise relation does not exist
+    and clients see SQL errors.
+    """
     fqn = f"{catalog}.{schema}.{table_name}"
     result = {"table": table_name, "status": "SUCCESS", "rows": 0, "error": None}
 
     try:
-        if not spark.catalog.tableExists(fqn):
-            result["status"] = "SKIPPED_NOT_FOUND"
-            print(f"  ⏭  {table_name}: source table not found in Unity Catalog – skipping")
-            return result
-
-        df = spark.sql(f"SELECT * FROM {fqn}")
-        row_count = df.count()
-        if row_count == 0:
-            result["status"] = "SKIPPED_EMPTY"
-            print(f"  ⏭  {table_name}: 0 rows – skipping")
-            return result
-
-        pdf = df.toPandas()
-        columns = list(pdf.columns)
-
         conn = psycopg2.connect(
             host=PG_HOST, port=PG_PORT, dbname=PG_DBNAME,
             user=pg_user, password=pg_pass,
@@ -533,6 +523,30 @@ def load_table(table_name: str, table_def: dict) -> dict:
         cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{PG_SCHEMA}"')
         ddl = table_def["ddl"].format(schema=PG_SCHEMA)
         cur.execute(ddl)
+
+        if not spark.catalog.tableExists(fqn):
+            cur.execute(f'TRUNCATE TABLE "{PG_SCHEMA}"."{table_name}"')
+            conn.commit()
+            cur.close()
+            conn.close()
+            result["status"] = "SKIPPED_NOT_FOUND"
+            print(f"  ⏭  {table_name}: source table not found in Unity Catalog – PG table ensured empty")
+            return result
+
+        df = spark.sql(f"SELECT * FROM {fqn}")
+        row_count = df.count()
+        if row_count == 0:
+            cur.execute(f'TRUNCATE TABLE "{PG_SCHEMA}"."{table_name}"')
+            conn.commit()
+            cur.close()
+            conn.close()
+            result["status"] = "SKIPPED_EMPTY"
+            print(f"  ⏭  {table_name}: 0 rows in UC – PG truncated")
+            return result
+
+        pdf = df.toPandas()
+        columns = list(pdf.columns)
+
         cur.execute(f'TRUNCATE TABLE "{PG_SCHEMA}"."{table_name}"')
 
         col_list = ", ".join(f'"{c}"' for c in columns)

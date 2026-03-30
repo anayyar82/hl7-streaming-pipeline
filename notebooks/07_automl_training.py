@@ -27,23 +27,37 @@
 
 # COMMAND ----------
 
+from datetime import datetime
+
 dbutils.widgets.text("catalog", "users", "Catalog")
 dbutils.widgets.text("schema", "ankur_nayyar", "Schema")
-# AutoML places experiments under: /Users/<user>/databricks_automl/<this_prefix>/<model_name>
+# AutoML places experiments under: /Users/<user>/databricks_automl/<this_prefix>/...
 # Do NOT use leading / or "Shared/..." — that becomes .../databricks_automl/Shared/... (404).
 dbutils.widgets.text("experiment_prefix", "hl7_forecasting", "Relative folder under databricks_automl")
 dbutils.widgets.dropdown("timeout_minutes", "5", ["5", "10", "15", "30", "60"], "AutoML Timeout (min)")
+# Reusing the same experiment_name on reruns causes RESOURCE_ALREADY_EXISTS ("Node named '...' already exists").
+dbutils.widgets.dropdown(
+    "experiment_naming",
+    "unique_per_run",
+    ["unique_per_run", "stable"],
+    "Experiment path: unique_per_run = timestamp suffix (recommended); stable = fixed path (rerun may fail)",
+)
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
 _raw_prefix = dbutils.widgets.get("experiment_prefix").strip().strip("/")
 experiment_rel_path = _raw_prefix or "hl7_forecasting"
 timeout_minutes = int(dbutils.widgets.get("timeout_minutes"))
+experiment_naming = dbutils.widgets.get("experiment_naming")
+
+# One timestamp per notebook/job execution so all five models group under the same run folder.
+AUTOML_RUN_SESSION = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
 
 MODEL_REGISTRY_PREFIX = f"{catalog}.{schema}"
 print(f"Catalog: {catalog}, Schema: {schema}")
 print(f"Model registry: {MODEL_REGISTRY_PREFIX}.*")
 print(f"AutoML experiment path (relative): {experiment_rel_path}")
+print(f"AutoML run session: {AUTOML_RUN_SESSION} (used when experiment_naming=unique_per_run)")
 print(f"AutoML timeout: {timeout_minutes} min per model")
 
 # COMMAND ----------
@@ -57,7 +71,6 @@ import mlflow
 import databricks.automl as automl
 import pyspark.sql.functions as F
 from pyspark.sql.types import *
-from datetime import datetime
 from databricks.sdk import WorkspaceClient
 
 mlflow.set_registry_uri("databricks-uc")
@@ -203,7 +216,13 @@ for config in MODEL_CONFIGS:
         })
         continue
 
-    experiment_name = f"{experiment_rel_path}/{model_name}"
+    if experiment_naming == "stable":
+        experiment_name = f"{experiment_rel_path}/{model_name}"
+        print(f"  AutoML experiment_name (stable): {experiment_name} — may fail on rerun if node exists")
+    else:
+        # Fresh MLflow/AutoML experiment path each job run avoids RESOURCE_ALREADY_EXISTS on graph nodes.
+        experiment_name = f"{experiment_rel_path}/run_{AUTOML_RUN_SESSION}/{model_name}"
+        print(f"  AutoML experiment_name: {experiment_name}")
 
     try:
         summary = automl.regress(
