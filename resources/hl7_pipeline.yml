@@ -12,14 +12,20 @@ variables:
     description: Filename of the funke wheel package
     default: funke-0.1.0a1-py3-none-any.whl
   ml_spark_version:
-    description: DBR 17.x ML for AutoML training (MLflow 3)
+    description: DBR 17.x ML for AutoML (07) and batch inference (08); bundled MLflow 3
     default: 17.3.x-cpu-ml-scala2.13
-  ml_inference_spark_version:
-    description: DBR ML for pyfunc batch inference (15.x avoids sklearn driver SIGSEGV seen on some 17.x ML builds)
-    default: 15.4.x-cpu-ml-scala2.12
   ml_node_type:
-    description: Worker node type for ML training/inference jobs
+    description: Driver and worker node type for ML training/inference job clusters
     default: i3.xlarge
+  ml_aws_availability:
+    description: AWS worker availability after first_on_demand nodes (SPOT_WITH_FALLBACK = spot with on-demand fallback)
+    default: SPOT_WITH_FALLBACK
+  ml_first_on_demand:
+    description: First N nodes (including driver) on on-demand; remaining workers use ml_aws_availability
+    default: 1
+  ml_zone_id:
+    description: AWS AZ for cluster placement (same region as workspace)
+    default: us-west-2a
   app_git_url:
     description: HTTPS clone URL for the repo that contains hl7-forecasting-app (Git-only Apps workspaces)
     default: https://github.com/anayyar82/hl7-streaming-pipeline.git
@@ -86,10 +92,15 @@ resources:
         - job_cluster_key: ml_cpu
           new_cluster:
             spark_version: ${var.ml_spark_version}
+            driver_node_type_id: ${var.ml_node_type}
             node_type_id: ${var.ml_node_type}
             autoscale:
               min_workers: 1
               max_workers: 2
+            aws_attributes:
+              availability: ${var.ml_aws_availability}
+              first_on_demand: ${var.ml_first_on_demand}
+              zone_id: ${var.ml_zone_id}
             data_security_mode: SINGLE_USER
       tasks:
         - task_key: train_models
@@ -111,11 +122,16 @@ resources:
       job_clusters:
         - job_cluster_key: ml_cpu_inference
           new_cluster:
-            spark_version: ${var.ml_inference_spark_version}
+            spark_version: ${var.ml_spark_version}
+            driver_node_type_id: ${var.ml_node_type}
             node_type_id: ${var.ml_node_type}
             autoscale:
               min_workers: 1
               max_workers: 2
+            aws_attributes:
+              availability: ${var.ml_aws_availability}
+              first_on_demand: ${var.ml_first_on_demand}
+              zone_id: ${var.ml_zone_id}
             data_security_mode: SINGLE_USER
       tasks:
         - task_key: run_inference

@@ -6,10 +6,9 @@ service principal (DATABRICKS_CLIENT_ID / DATABRICKS_CLIENT_SECRET).
 
 Resolve the space id (first match): ``GENIE_SPACE_ID``, then ``DATABRICKS_GENIE_SPACE_ID``.
 
-Typical wiring: in ``app.yaml``, ``GENIE_SPACE_ID`` with ``valueFrom: genie-space`` where
-``genie-space`` is the **resource key** from Apps → hl7app → Resources (not the Genie space
-display title). Or set ``GENIE_SPACE_ID`` in the app environment to the UUID from the Genie URL
-(``.../rooms/<SPACE_ID>``).
+Typical wiring: in ``app.yaml``, set ``GENIE_SPACE_ID`` to the UUID from the Genie URL
+(``.../genie/rooms/<SPACE_ID>``), or use ``valueFrom: <resource-key>`` if the space is attached
+under Apps → Resources.
 """
 
 from __future__ import annotations

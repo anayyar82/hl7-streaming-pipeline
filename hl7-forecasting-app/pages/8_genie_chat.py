@@ -57,17 +57,12 @@ if not SPACE_ID:
         """
 **Fix (pick one)**
 
-1. **Resource + `app.yaml` (recommended)**  
-   - **Apps → hl7app → Resources**: add your Genie space, permission **Can run**.  
-   - When adding the resource, set the **resource key** to **`genie-space`** *or* change `valueFrom` in
-     `hl7-forecasting-app/app.yaml` to match whatever key you used.  
-   - The space **title** (e.g. “Healthcare Operations and Patient Analytics”) does **not** need to match;
-     only the **resource key** must match `valueFrom`.  
-   - **Redeploy** the app (`databricks bundle deploy`) and **restart** hl7app so env vars refresh.
+1. **`app.yaml` (default in repo)**  
+   Set **`GENIE_SPACE_ID`** to the UUID from the Genie URL (`.../genie/rooms/<SPACE_ID>`), then **redeploy**
+   the app from Git / bundle so the runtime receives the env var.
 
-2. **Plain environment variable**  
-   In **Apps → hl7app → Environment variables**, set **`GENIE_SPACE_ID`** to the UUID from the Genie URL
-   (`.../rooms/<SPACE_ID>`).
+2. **Apps → Environment variables**  
+   Set **`GENIE_SPACE_ID`** there if you prefer not to bake it into `app.yaml`.
 
 3. **Unity Catalog + warehouse**  
    Grant the app service principal `USE CATALOG` / `USE SCHEMA` / `SELECT` on the schema Genie uses, and

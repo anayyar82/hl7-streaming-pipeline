@@ -16,9 +16,8 @@ targets:
       schema: ankur_nayyar
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
-      # DBR 17 ML: AutoML + MLflow 3 (07). Inference (08) uses ml_inference_spark_version (15.4 ML) for stable pyfunc.
+      # DBR 17.3 ML + bundled MLflow 3 for AutoML (07) and inference (08). Spot workers + on-demand driver via bundle vars.
       ml_spark_version: 17.3.x-cpu-ml-scala2.13
-      ml_inference_spark_version: 15.4.x-cpu-ml-scala2.12
       ml_node_type: i3.xlarge
 
   staging:
@@ -28,7 +27,6 @@ targets:
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
       ml_spark_version: 17.3.x-cpu-ml-scala2.13
-      ml_inference_spark_version: 15.4.x-cpu-ml-scala2.12
       ml_node_type: i3.xlarge
 
   prod:
@@ -39,5 +37,4 @@ targets:
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
       ml_spark_version: 17.3.x-cpu-ml-scala2.13
-      ml_inference_spark_version: 15.4.x-cpu-ml-scala2.12
       ml_node_type: i3.xlarge

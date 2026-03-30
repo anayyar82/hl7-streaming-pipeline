@@ -65,8 +65,8 @@ import numpy as np
 
 mlflow.set_registry_uri("databricks-uc")
 print(f"MLflow version: {mlflow.__version__}")
-# Do not wrap pyfunc.predict in mlflow.start_span here: on DBR 17 ML + MLflow 3 + sklearn
-# pyfunc, that path has been observed to SIGSEGV the driver. Tracing stays enabled in 07 (AutoML).
+# DBR 17.3 ML ships MLflow 3 with the image; avoid pip-upgrading mlflow on the cluster.
+# Use plain pyfunc.predict (no start_span around predict) for stable batch inference.
 
 # COMMAND ----------
 

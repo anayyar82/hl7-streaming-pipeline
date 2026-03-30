@@ -14,7 +14,8 @@ env:
     value: 'require'
   - name: ENDPOINT_NAME
     value: 'projects/ankurhlsproject/branches/production/endpoints/primary'
-  # Genie: add Genie space in Databricks Apps → hl7app → Resources (key: genie-space, Can run).
-  # Run notebooks/12_genie_uc_grants.py as a metastore admin to grant SELECT + warehouse CAN USE to the app SP.
+  # Genie space UUID from URL .../genie/rooms/<SPACE_ID> (e2-demo-field-eng).
+  # Optional: also attach the same space under Apps → hl7app → Resources (Can run) for parity.
+  # Grants: notebooks/12_genie_uc_grants.py — UC SELECT + warehouse CAN USE for the app SP.
   - name: GENIE_SPACE_ID
-    valueFrom: genie-space
+    value: '01f1286ab1d611dd92b5807d9280541b'

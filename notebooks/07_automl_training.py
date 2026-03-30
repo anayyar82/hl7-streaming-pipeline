@@ -102,6 +102,11 @@ try:
     automl_parent = f"/Users/{user_name}/databricks_automl/{experiment_rel_path}"
     w.workspace.mkdirs(automl_parent)
     print(f"Ensured AutoML workspace parent exists: {automl_parent}")
+    # unique_per_run uses experiment_name .../run_<session>/<model>; that folder must exist or AutoML 404s.
+    if experiment_naming != "stable":
+        run_parent = f"{automl_parent}/run_{AUTOML_RUN_SESSION}"
+        w.workspace.mkdirs(run_parent)
+        print(f"Ensured AutoML run session directory exists: {run_parent}")
 except Exception as _e:
     print(f"Could not mkdir AutoML parent (training may 404): {_e}")
 

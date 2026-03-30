@@ -290,17 +290,17 @@ The **8 — Ask your data** page (`pages/8_genie_chat.py`) is a chat UI on top o
 | Piece | Role |
 |--------|------|
 | `utils/genie_client.py` | Resolves `GENIE_SPACE_ID`, starts/continues conversations, parses attachments, fetches SQL result previews via Statement Execution. |
-| `hl7-forecasting-app/app.yaml` | Maps `GENIE_SPACE_ID` → `valueFrom: genie-space` (must match the **resource key** in Apps, not the Genie space display name). |
+| `hl7-forecasting-app/app.yaml` | Sets `GENIE_SPACE_ID` to the Genie space UUID (from `.../genie/rooms/<id>`); optional Apps **Resources** attach for the same space. |
 | `notebooks/12_genie_uc_grants.py` | Optional one-shot UC + warehouse grants for the app SP; also available as job **`hl7_genie_uc_grants`**. |
 | `app.py` | Sidebar and home **`st.page_link`** to `pages/8_genie_chat.py` so Genie is easy to find. |
 
 **Setup checklist (working configuration)**
 
 1. **Genie space** — In **AI/BI → Genie**, create or use a space scoped to your HL7 gold tables in Unity Catalog (`users.ankur_nayyar` or your catalog). Add instructions, sample questions, and benchmarks ([best practices](https://docs.databricks.com/aws/en/genie/best-practices)).
-2. **Attach to the app** — **Compute → Apps → hl7app → Resources → Add resource → Genie space**, permission **Can run**. When prompted for a **resource key**, use **`genie-space`** so it matches this repo’s `app.yaml`, *or* change `valueFrom` in `app.yaml` to your custom key and redeploy.
-3. **Important:** The Genie space **title** (e.g. “Healthcare Operations and Patient Analytics”) is only a label. What must match `valueFrom` is the **resource key** in the Apps UI. If they differ, `GENIE_SPACE_ID` stays empty and the chat page shows setup instructions.
-4. **Deploy + restart** — After changing `app.yaml` or resources, run **`databricks bundle deploy -t <target>`** and **restart** hl7app so the runtime picks up `GENIE_SPACE_ID`.
-5. **Fallback env var** — You can instead set **`GENIE_SPACE_ID`** directly under the app’s **Environment variables** to the UUID from the Genie URL (`.../rooms/<SPACE_ID>`). Optional: `GENIE_SPACE_ID` in `.streamlit/secrets.toml` is read by `8_genie_chat.py` if present.
+2. **Space id** — This repo’s `app.yaml` sets **`GENIE_SPACE_ID`** to the UUID from your Genie URL (`.../genie/rooms/<SPACE_ID>`). Change it if you use a different space.
+3. **Optional: Resources** — **Apps → hl7app → Resources → Genie space**, **Can run**, helps Databricks track the attachment; the Streamlit page reads **`GENIE_SPACE_ID`** from the environment.
+4. **Deploy + redeploy app** — After changing `app.yaml`, **`databricks bundle deploy`** and redeploy **hl7app** from Git (or your workspace flow) so the runtime picks up the new env.
+5. **Secrets fallback** — `GENIE_SPACE_ID` in `.streamlit/secrets.toml` is read by `8_genie_chat.py` if the env var is unset locally.
 6. **Grants** — The app SP needs `USE CATALOG`, `USE SCHEMA`, and `SELECT` on the schema Genie queries, plus **`CAN USE`** on the SQL warehouse the Genie space uses. Run **`12_genie_uc_grants.py`** (set the **warehouse name** widget) or **`databricks bundle run hl7_genie_uc_grants -t dev`**. Confirm the SP with `databricks apps get hl7app -o json | jq -r .service_principal_client_id`.
 
 **Lakeview dashboards vs this app**
@@ -347,9 +347,9 @@ env:
     value: 'require'
   - name: ENDPOINT_NAME
     value: 'projects/ankurhlsproject/branches/production/endpoints/primary'
-  # Genie: resource key in Apps UI must match valueFrom (default genie-space).
+  # Genie: UUID from .../genie/rooms/<SPACE_ID>
   - name: GENIE_SPACE_ID
-    valueFrom: genie-space
+    value: '01f1286ab1d611dd92b5807d9280541b'
 ```
 
 > **Do NOT** add `--server.port 8501` or `--server.address` to the command. The runtime sets `DATABRICKS_APP_PORT` / `STREAMLIT_SERVER_PORT` automatically. A mismatched port causes "App Not Available" even though the API shows RUNNING.
@@ -737,13 +737,15 @@ databricks bundle run hl7_model_inference -t dev
 | `schema` | Target schema name | `ankur_nayyar` |
 | `source_volume` | Landing volume for raw HL7 files | `landing` |
 | `funke_wheel_name` | Filename of the funke wheel | `funke-0.1.0a1-py3-none-any.whl` |
-| `ml_spark_version` | DBR ML for **AutoML** (`07`) | `17.3.x-cpu-ml-scala2.13` |
-| `ml_inference_spark_version` | DBR ML for **inference** (`08`); 15.4 LTS avoids pyfunc/sklearn driver SIGSEGV on some 17.x builds | `15.4.x-cpu-ml-scala2.12` |
-| `ml_node_type` | Worker type for ML job clusters | `i3.xlarge` |
+| `ml_spark_version` | DBR ML for **AutoML** (`07`) and **inference** (`08`) | `17.3.x-cpu-ml-scala2.13` |
+| `ml_node_type` | Driver and worker node type for ML job clusters | `i3.xlarge` |
+| `ml_aws_availability` | Worker capacity after `first_on_demand` (`SPOT_WITH_FALLBACK`, `SPOT`, `ON_DEMAND`) | `SPOT_WITH_FALLBACK` |
+| `ml_first_on_demand` | First N nodes on on-demand (typically **1** = driver on-demand, workers spot/fallback) | `1` |
+| `ml_zone_id` | AWS availability zone (e.g. `us-west-2a`) | `us-west-2a` |
 
-### ML jobs: DBR 17 ML and MLflow 3
+### ML jobs: DBR 17.3 ML and bundled MLflow 3
 
-**`hl7_automl_training`** uses **Databricks Runtime 17.3.x ML** (`ml_spark_version`) for AutoML and **MLflow 3** tracing. **`hl7_model_inference`** uses **`ml_inference_spark_version`** (default **15.4.x LTS ML**) because **UC pyfunc + sklearn** batch predict has triggered driver **SIGSEGV** on some **17.x ML** images; training stays on 17.x for latest AutoML/MLflow features. **`08`** uses plain `pyfunc.predict`. Avoid `pip install mlflow` on DBR ML clusters.
+**`hl7_automl_training`** and **`hl7_model_inference`** share the same cluster shape: **17.3.x LTS ML** (`ml_spark_version`), **i3.xlarge** driver and workers, autoscale **1–2** workers, **`SPOT_WITH_FALLBACK`** with **`first_on_demand: 1`**, and **`ml_zone_id`** for AZ pinning. The runtime includes **MLflow 3**; do not **`pip install`** a different MLflow on the cluster. **`08`** uses plain **`pyfunc.predict`**.
 
 The **DLT** pipeline uses its own cluster definition and is unchanged by these variables.
 
