@@ -41,9 +41,9 @@ env:
     value: '280816865078318'
   - name: HL7_JOB_LAKEBASE_LOAD
     value: '931240195475649'
-  # Bundle job "HL7 DLT → Inference → Lakebase" — set after: databricks bundle deploy -t dev (Jobs UI → copy id)
+  # Bundle job "HL7 DLT → Inference → Lakebase" (hl7_refresh_workflow) — update if bundle target/workspace differs
   - name: HL7_JOB_REFRESH_WORKFLOW
-    value: ''
+    value: '179564813727985'
   # Optional: hl7_lakebase_sync job id if you use snapshot sync
   - name: HL7_JOB_LAKEBASE_SYNC
     value: ''
