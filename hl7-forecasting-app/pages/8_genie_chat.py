@@ -126,11 +126,27 @@ SUGGESTED = [
     "How many encounters do we have by patient class?",
     "What are the top 10 diagnosis codes by volume?",
     "Show ED vs ICU arrival trends by day.",
+    "Summarize message volume by facility for the last week.",
+    "Which departments have the highest discharge counts recently?",
+    "List any tables or metrics you recommend for ED overcrowding.",
 ]
 
-with st.expander("Suggested questions", expanded=False):
+st.markdown("**Try a starter prompt** — one tap fills the next send (edit before sending if you like).")
+r_a, r_b, r_c = st.columns(3)
+for col, q, i in zip((r_a, r_b, r_c), SUGGESTED[:3], range(3)):
+    with col:
+        if st.button(q, key=f"sq_top_{i}", use_container_width=True, type="secondary"):
+            st.session_state["_pending_prompt"] = q
+r_d, r_e, r_f = st.columns(3)
+for col, q, i in zip((r_d, r_e, r_f), SUGGESTED[3:6], range(3, 6)):
+    with col:
+        if st.button(q, key=f"sq_top_{i}", use_container_width=True, type="secondary"):
+            st.session_state["_pending_prompt"] = q
+
+with st.expander("More ideas", expanded=False):
+    st.caption("Same questions work; you can also type your own below.")
     for i, q in enumerate(SUGGESTED):
-        if st.button(q, key=f"sq_{i}", use_container_width=True):
+        if st.button(q, key=f"sq_more_{i}", use_container_width=True):
             st.session_state["_pending_prompt"] = q
 
 for role, content in st.session_state.genie_messages:

@@ -13,6 +13,7 @@ from utils.db import run_query, PGHOST, PGDATABASE, ENDPOINT_NAME
 from utils import queries
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav, render_home_navigation
+from utils.ui import home_focus_picker, home_quick_links
 
 st.set_page_config(
     page_title="HL7App - ED & ICU Operations",
@@ -67,6 +68,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+with st.container(border=True):
+    st.markdown('<p class="hl7-panel-eyebrow">Interactive</p>', unsafe_allow_html=True)
+    st.markdown("### Quick start")
+    st.caption("Choose what you’re here for — the three links below switch to match.")
+    focus = home_focus_picker()
+    home_quick_links(focus)
+
 with st.expander("What each page is for (quick map)", expanded=False):
     st.markdown(
         """
@@ -98,9 +106,15 @@ with st.expander("What each page is for (quick map)", expanded=False):
     )
 
 # ---- KPI row ----
-st.markdown("### Operational snapshot")
+hc1, hc2 = st.columns([4, 1], vertical_alignment="center")
+with hc1:
+    st.markdown("### Operational snapshot")
+    st.caption("Live counts from Lakebase gold (same path as your clinical pages).")
+with hc2:
+    if st.button("Refresh", help="Reload metrics and charts from the database", use_container_width=True):
+        st.rerun()
 
-k1, k2, k3, k4 = st.columns(4)
+k1, k2, k3, k4 = st.columns(4, gap="medium")
 
 def _safe_int(df, col, default=0):
     if df is None or df.empty or col not in df.columns:
@@ -112,13 +126,21 @@ def _safe_int(df, col, default=0):
 
 try:
     enc_df = run_query(queries.HOME_ENCOUNTER_COUNT_7D, quiet=True)
-    k1.metric("Encounters (7d)", f"{_safe_int(enc_df, 'n'):,}")
+    k1.metric(
+        "Encounters (7d)",
+        f"{_safe_int(enc_df, 'n'):,}",
+        help="Row count from gold encounter fact — last 7 days window in query.",
+    )
 except Exception:
     k1.metric("Encounters (7d)", "—")
 
 try:
     msg_df = run_query(queries.HOME_MESSAGE_VOLUME_24H, quiet=True)
-    k2.metric("HL7 messages (24h)", f"{_safe_int(msg_df, 'messages_24h'):,}")
+    k2.metric(
+        "HL7 messages (24h)",
+        f"{_safe_int(msg_df, 'messages_24h'):,}",
+        help="Aggregated HL7 message volume in the trailing 24 hours.",
+    )
 except Exception:
     k2.metric("HL7 messages (24h)", "—")
 
@@ -130,15 +152,22 @@ except Exception:
 
 try:
     pat_df = run_query(queries.PATIENT_COUNTS, quiet=True)
-    k4.metric("Patients", f"{_safe_int(pat_df, 'total_patients'):,}")
+    k4.metric(
+        "Patients",
+        f"{_safe_int(pat_df, 'total_patients'):,}",
+        help="Distinct patients represented in the patient dimension / fact pipeline.",
+    )
 except Exception:
     k4.metric("Patients", "—")
 
 # ---- Charts ----
-ch_left, ch_right = st.columns(2)
+st.markdown("### Charts")
+ch_left, ch_right = st.columns(2, gap="large")
+
+_PLOT_CONFIG = {"displayModeBar": True, "scrollZoom": True, "responsive": True}
 
 with ch_left:
-    st.markdown("### Pipeline throughput (72h)")
+    st.markdown("#### Pipeline throughput (72h)")
     st.caption("`gold_message_metrics` aggregated hourly — shows DLT-fed ingest cadence.")
     try:
         tp = run_query(queries.HOME_THROUGHPUT_RECENT, quiet=True)
@@ -162,14 +191,14 @@ with ch_left:
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(248,250,252,0.9)",
             )
-            st.plotly_chart(fig_tp, use_container_width=True)
+            st.plotly_chart(fig_tp, use_container_width=True, config=_PLOT_CONFIG)
         else:
             st.info("No throughput rows in the last 72 hours.")
     except Exception as e:
         st.warning(f"Throughput chart unavailable: {e}")
 
 with ch_right:
-    st.markdown("### Encounters (30d)")
+    st.markdown("#### Encounters (30d)")
     st.caption("`gold_encounter_fact` daily counts — clinical volume landing in UC gold.")
     try:
         tr = run_query(queries.HOME_ENCOUNTER_TREND_30D, quiet=True)
@@ -195,7 +224,7 @@ with ch_right:
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(248,250,252,0.9)",
             )
-            st.plotly_chart(fig_tr, use_container_width=True)
+            st.plotly_chart(fig_tr, use_container_width=True, config=_PLOT_CONFIG)
         else:
             st.info("No encounters in the last 30 days.")
     except Exception as e:

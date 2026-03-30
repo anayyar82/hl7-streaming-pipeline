@@ -378,6 +378,95 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   color: #92400e !important;
 }
 
+/* ---- Interactive polish ---- */
+div[data-testid="stMetric"] {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+div[data-testid="stMetric"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+}
+
+.hl7-arch-step {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.hl7-arch-step:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+  border-color: #93c5fd;
+}
+
+.hl7-nav-card-v2 {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease !important;
+}
+.hl7-nav-card-v2:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1) !important;
+}
+
+[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"] {
+  border-radius: 10px !important;
+  transition: background 0.15s ease, padding-left 0.15s ease;
+}
+[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"]:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+.stButton > button[kind="secondary"] {
+  border-radius: 10px !important;
+  font-weight: 500 !important;
+  border: 1px solid #e2e8f0 !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+.stButton > button[kind="secondary"]:hover {
+  border-color: #cbd5e1 !important;
+  background: #f8fafc !important;
+}
+
+[data-testid="stVerticalBlock"] > div:has([data-testid="stPlotlyChart"]) {
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 8px 8px 4px 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+textarea[data-testid="stChatInputTextArea"],
+div[data-testid="stChatInput"] {
+  border-radius: 14px !important;
+}
+textarea[data-testid="stChatInputTextArea"]:focus {
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+}
+
+div[data-testid="stSegmentedControl"] {
+  background: #f1f5f9 !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+}
+
+.hl7-panel-eyebrow {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: #6366f1 !important;
+  margin: 0 0 4px 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  div[data-testid="stMetric"],
+  .hl7-arch-step,
+  .hl7-nav-card-v2 {
+    transition: none !important;
+  }
+  div[data-testid="stMetric"]:hover,
+  .hl7-arch-step:hover,
+  .hl7-nav-card-v2:hover {
+    transform: none !important;
+  }
+}
+
 """
 
 
