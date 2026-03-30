@@ -13,6 +13,7 @@ from utils.db import run_query, PGHOST, PGDATABASE, ENDPOINT_NAME
 from utils import queries
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav, render_home_navigation
+from utils.plotly_selection import selection_state_from_chart, selected_row_indices
 from utils.ui import home_focus_picker, home_quick_links
 
 st.set_page_config(
@@ -168,7 +169,10 @@ _PLOT_CONFIG = {"displayModeBar": True, "scrollZoom": True, "responsive": True}
 
 with ch_left:
     st.markdown("#### Pipeline throughput (72h)")
-    st.caption("`gold_message_metrics` aggregated hourly — shows DLT-fed ingest cadence.")
+    st.caption(
+        "`gold_message_metrics` hourly — **click a bar**, **double-click** to isolate a trace, "
+        "or **box/lasso** select multiple bars; details appear below."
+    )
     try:
         tp = run_query(queries.HOME_THROUGHPUT_RECENT, quiet=True)
         if not tp.empty:
@@ -190,8 +194,37 @@ with ch_left:
                 showlegend=False,
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(248,250,252,0.9)",
+                dragmode="select",
+                selectdirection="h",
             )
-            st.plotly_chart(fig_tp, use_container_width=True, config=_PLOT_CONFIG)
+            ev_tp = st.plotly_chart(
+                fig_tp,
+                use_container_width=True,
+                config=_PLOT_CONFIG,
+                on_select="rerun",
+                key="home_throughput_chart",
+                selection_mode=["points", "box", "lasso"],
+            )
+            sel_tp = selection_state_from_chart(ev_tp, "home_throughput_chart", st.session_state)
+            idx_tp = selected_row_indices(tp, sel_tp, "processing_hour")
+            if idx_tp:
+                sub = tp.iloc[idx_tp].sort_values("processing_hour")
+                tot = int(sub["total_messages"].sum())
+                st.markdown("##### Selection — throughput")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Hours selected", len(idx_tp))
+                m2.metric("Messages in selection", f"{tot:,}")
+                m3.metric(
+                    "Avg / hour",
+                    f"{tot // len(idx_tp):,}" if idx_tp else "—",
+                )
+                show = sub.copy()
+                show["processing_hour"] = show["processing_hour"].dt.strftime("%Y-%m-%d %H:%M")
+                st.dataframe(
+                    show.rename(columns={"processing_hour": "Hour", "total_messages": "Messages"}),
+                    use_container_width=True,
+                    hide_index=True,
+                )
         else:
             st.info("No throughput rows in the last 72 hours.")
     except Exception as e:
@@ -199,7 +232,10 @@ with ch_left:
 
 with ch_right:
     st.markdown("#### Encounters (30d)")
-    st.caption("`gold_encounter_fact` daily counts — clinical volume landing in UC gold.")
+    st.caption(
+        "`gold_encounter_fact` daily — **click points** on the line or **box-select** a date range; "
+        "summary appears below."
+    )
     try:
         tr = run_query(queries.HOME_ENCOUNTER_TREND_30D, quiet=True)
         if not tr.empty:
@@ -209,10 +245,11 @@ with ch_right:
                 go.Scatter(
                     x=tr["d"],
                     y=tr["encounter_count"],
-                    mode="lines",
+                    mode="lines+markers",
                     line=dict(color="#059669", width=2),
                     fill="tozeroy",
                     fillcolor="rgba(5, 150, 105, 0.1)",
+                    marker=dict(size=8, color="#059669", line=dict(width=1, color="#ffffff")),
                 )
             )
             fig_tr.update_layout(
@@ -223,8 +260,37 @@ with ch_right:
                 yaxis_title="Encounters",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(248,250,252,0.9)",
+                dragmode="select",
+                selectdirection="h",
             )
-            st.plotly_chart(fig_tr, use_container_width=True, config=_PLOT_CONFIG)
+            ev_tr = st.plotly_chart(
+                fig_tr,
+                use_container_width=True,
+                config=_PLOT_CONFIG,
+                on_select="rerun",
+                key="home_encounters_chart",
+                selection_mode=["points", "box", "lasso"],
+            )
+            sel_tr = selection_state_from_chart(ev_tr, "home_encounters_chart", st.session_state)
+            idx_tr = selected_row_indices(tr, sel_tr, "d")
+            if idx_tr:
+                sub = tr.iloc[idx_tr].sort_values("d")
+                tot_e = int(sub["encounter_count"].sum())
+                st.markdown("##### Selection — encounters")
+                e1, e2, e3 = st.columns(3)
+                e1.metric("Days selected", len(idx_tr))
+                e2.metric("Encounters in selection", f"{tot_e:,}")
+                e3.metric(
+                    "Avg / day",
+                    f"{tot_e // len(idx_tr):,}" if idx_tr else "—",
+                )
+                show_e = sub.copy()
+                show_e["d"] = show_e["d"].dt.strftime("%Y-%m-%d")
+                st.dataframe(
+                    show_e.rename(columns={"d": "Date", "encounter_count": "Encounters"}),
+                    use_container_width=True,
+                    hide_index=True,
+                )
         else:
             st.info("No encounters in the last 30 days.")
     except Exception as e:
