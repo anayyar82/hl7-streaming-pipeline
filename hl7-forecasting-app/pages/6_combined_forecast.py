@@ -39,6 +39,34 @@ Charts below use **observed** combined features from the lake; forecast cards us
 
 sidebar_section("Combined Filters")
 
+# DataFrame shared by sections below; defined before try so ratio/rolling blocks never hit NameError.
+combined_df = pd.DataFrame()
+# Heatmaps reuse the same date window as combined features when that block ran successfully.
+dr_start, dr_end = None, None
+
+
+def _ed_icu_ratio_series(df: pd.DataFrame) -> pd.Series:
+    """
+    ED arrivals / ICU arrivals for charts and KPIs.
+    DLT leaves ed_to_icu_ratio NULL when ICU arrivals are 0; dividing here yields NaN and we treat that as
+    'no ratio' in the UI (—) instead of showing 'nan'.
+    """
+    ed = pd.to_numeric(df.get("ed_arrivals"), errors="coerce").fillna(0.0)
+    icu = pd.to_numeric(df.get("icu_arrivals"), errors="coerce").fillna(0.0)
+    return ed / icu.replace(0, np.nan)
+
+
+def _format_ratio_for_metric(x) -> str:
+    """Streamlit metric text: finite ratio to 2 decimals, else em dash."""
+    try:
+        v = float(x)
+        if pd.isna(v) or np.isinf(v):
+            return "—"
+        return f"{v:.2f}"
+    except (TypeError, ValueError):
+        return "—"
+
+
 # ---- System Pressure ----
 st.header("System Pressure (ED + ICU)")
 
@@ -62,9 +90,12 @@ try:
             st.info("No data for selected filters.")
         else:
             last_row = combined_df.iloc[-1]
+            ratio_series = _ed_icu_ratio_series(combined_df)
+            last_ratio = float(ratio_series.iloc[-1]) if len(ratio_series) else float("nan")
+
             c1, c2, c3, c4, c5 = st.columns(5)
             c1.metric("Net System Pressure", int(last_row.get("net_system_pressure", 0)))
-            c2.metric("ED:ICU Ratio", f"{last_row.get('ed_to_icu_ratio', 0):.2f}")
+            c2.metric("ED:ICU Ratio", _format_ratio_for_metric(last_ratio))
             c3.metric("Total Arrivals (last hr)", int(last_row.get("total_arrivals", 0)))
             c4.metric("Total Discharges (last hr)", int(last_row.get("total_discharges", 0)))
             c5.metric("Data Points", f"{len(combined_df):,}")
@@ -118,15 +149,28 @@ st.header("ED-to-ICU Arrival Ratio Over Time")
 try:
     if not combined_df.empty:
         fig_ratio = go.Figure()
-        ratio = combined_df["ed_to_icu_ratio"].astype(float)
+        ratio = _ed_icu_ratio_series(combined_df)
         fig_ratio.add_trace(
-            go.Scatter(x=combined_df["event_hour"], y=ratio,
-                       name="ED:ICU Ratio", line=dict(color="#2196F3", width=2),
-                       fill="tozeroy", fillcolor="rgba(33,150,243,0.1)")
+            go.Scatter(
+                x=combined_df["event_hour"],
+                y=ratio,
+                name="ED:ICU Ratio",
+                line=dict(color="#2196F3", width=2),
+                fill="tozeroy",
+                fillcolor="rgba(33,150,243,0.1)",
+                connectgaps=False,
+            )
         )
-        avg_ratio = ratio.mean()
-        fig_ratio.add_hline(y=avg_ratio, line_dash="dash", line_color="red",
-                            annotation_text=f"Avg: {avg_ratio:.2f}")
+        finite = ratio.dropna()
+        finite = finite[np.isfinite(finite)]
+        if not finite.empty:
+            avg_ratio = float(finite.mean())
+            fig_ratio.add_hline(
+                y=avg_ratio,
+                line_dash="dash",
+                line_color="red",
+                annotation_text=f"Avg: {avg_ratio:.2f}",
+            )
         fig_ratio.update_layout(height=350, margin=dict(t=30), yaxis_title="Ratio")
         st.plotly_chart(fig_ratio, use_container_width=True)
     else:
@@ -179,7 +223,9 @@ with tab_ed_feat:
             st.info("No ED feature data available.")
         else:
             ed_feat["event_hour"] = pd.to_datetime(ed_feat["event_hour"])
-            ed_feat = apply_date_range(ed_feat, dr_start, dr_end, col="event_hour")
+            # Align heatmap window with combined KPIs only when that section set dr_* (avoids None compare).
+            if dr_start is not None and dr_end is not None:
+                ed_feat = apply_date_range(ed_feat, dr_start, dr_end, col="event_hour")
             ed_feat["date"] = ed_feat["event_hour"].dt.date
             ed_feat["hour"] = ed_feat["event_hour"].dt.hour
 
@@ -211,7 +257,8 @@ with tab_icu_feat:
             st.info("No ICU feature data available.")
         else:
             icu_feat["event_hour"] = pd.to_datetime(icu_feat["event_hour"])
-            icu_feat = apply_date_range(icu_feat, dr_start, dr_end, col="event_hour")
+            if dr_start is not None and dr_end is not None:
+                icu_feat = apply_date_range(icu_feat, dr_start, dr_end, col="event_hour")  # same window as ED tab
             icu_feat["date"] = icu_feat["event_hour"].dt.date
             icu_feat["hour"] = icu_feat["event_hour"].dt.hour
 
