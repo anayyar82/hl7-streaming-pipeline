@@ -197,6 +197,8 @@ with st.expander("Runbook — what to run in Databricks when something is stale"
 
 **Order (typical):** DLT → (optional AutoML) → inference → lakebase load → refresh this page.
 
+**From this app:** **0a · Sample → volume** writes HL7 to the landing volume (parameterized). **0b · Live activity** shows live DLT/job runs. **Run Databricks jobs** starts DLT and other workflows (set IDs in app environment variables).
+
 **Git app deploy:** If the workspace requires Git, push to the repo configured on **hl7app** and deploy from **Compute → Apps**.
         """
     )

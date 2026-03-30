@@ -19,3 +19,28 @@ env:
   # Grants: notebooks/12_genie_uc_grants.py — UC SELECT + warehouse CAN USE for the app SP.
   - name: GENIE_SPACE_ID
     value: '01f1286ab1d611dd92b5807d9280541b'
+  # Workspace org id from browser URL (?o=...) — makes job/pipeline links open in the right context.
+  - name: DATABRICKS_ORG_ID
+    value: '1444828305810485'
+  # DLT pipeline + Workflows job IDs for page "Run Databricks jobs" (z_run_jobs). Update per workspace in Apps → Environment.
+  # Defaults for 0a_sample_to_volume (Unity Catalog volume path)
+  - name: HL7_UC_CATALOG
+    value: 'users'
+  - name: HL7_UC_SCHEMA
+    value: 'ankur_nayyar'
+  - name: HL7_LANDING_VOLUME
+    value: 'landing'
+  - name: HL7_PIPELINE_ID
+    value: '84427bd5-c3b2-4f00-8bc1-387d94130eec'
+  - name: HL7_JOB_SAMPLE_DATA
+    value: '544648305465960'
+  # Set after deploy: Workflows → hl7_automl_training → URL contains /job/<id>/
+  - name: HL7_JOB_AUTOML
+    value: ''
+  - name: HL7_JOB_INFERENCE
+    value: '280816865078318'
+  - name: HL7_JOB_LAKEBASE_LOAD
+    value: '931240195475649'
+  # Optional: hl7_lakebase_sync job id if you use snapshot sync
+  - name: HL7_JOB_LAKEBASE_SYNC
+    value: ''

@@ -31,6 +31,9 @@ st.sidebar.markdown(
 )
 st.sidebar.markdown("---")
 st.sidebar.page_link("pages/0_status.py", label="System status", icon="📡")
+st.sidebar.page_link("pages/0b_live_activity.py", label="Live activity", icon="📡")
+st.sidebar.page_link("pages/0a_sample_to_volume.py", label="Sample data → volume", icon="📤")
+st.sidebar.page_link("pages/z_run_jobs.py", label="Run Databricks jobs", icon="🚀")
 st.sidebar.page_link("pages/9_platform_pulse.py", label="Platform pulse", icon="⚡")
 st.sidebar.page_link("pages/8_genie_chat.py", label="Ask your data (Genie)", icon="💬")
 sidebar_product_context()
@@ -43,8 +46,8 @@ st.markdown(
   <p>
     Operational census, clinical analytics, and ML forecasts on top of a Databricks medallion pipeline:
     ingest → <strong>Delta Live Tables</strong> gold → <strong>Unity Catalog</strong> → <strong>Lakebase</strong> → this app.
-    Use <strong>Platform pulse</strong> for a live cross-stack snapshot, <strong>System status</strong> for table health,
-    and <strong>Genie</strong> for natural-language questions over your UC space.
+    Use <strong>0a · Sample → volume</strong> to land HL7 files, <strong>0b · Live activity</strong> to watch DLT and jobs run,
+    <strong>Platform pulse</strong> for Lakebase KPIs, <strong>System status</strong> for table health, and <strong>Genie</strong> for NL queries.
   </p>
   <div class="hl7-badge-row">
     <span class="hl7-badge">DLT</span>
@@ -86,6 +89,9 @@ with st.expander("What each page is for (quick map)", expanded=False):
 |------|----------------|
 | **Home** | Connection, KPIs, throughput sparkline, navigation. |
 | **0 · System status** | Per-table freshness matrix and job runbook. |
+| **0a · Sample → volume** | Generate HL7 files into the UC landing volume (parameterized job run). |
+| **0b · Live activity** | Near–real-time DLT + Workflows run status (auto-refresh). |
+| **Run Databricks jobs** (`z_run_jobs`) | Start DLT + Workflows (inference, Lakebase load, etc.) from the app. |
 | **9 · Platform pulse** | Cross-stack KPIs, encounter trend, HL7 treemap, ML feature snapshot. |
 | **1 · Real-time ops** | Current ED/ICU census and hourly strips. |
 | **2 · Trends** | Daily rollups, heatmaps, ED vs ICU. |
@@ -255,6 +261,9 @@ st.markdown("---")
 st.markdown("### Dashboard pages")
 
 st.page_link("pages/0_status.py", label="0. System status — freshness & runbook", icon="📡")
+st.page_link("pages/0b_live_activity.py", label="Live activity — DLT & jobs", icon="📡")
+st.page_link("pages/0a_sample_to_volume.py", label="Sample data → UC volume", icon="📤")
+st.page_link("pages/z_run_jobs.py", label="Run jobs — DLT & Workflows", icon="🚀")
 st.page_link("pages/9_platform_pulse.py", label="9. Platform pulse — Databricks stack snapshot", icon="⚡")
 st.page_link("pages/8_genie_chat.py", label="8. Ask your data (Genie)", icon="💬")
 
