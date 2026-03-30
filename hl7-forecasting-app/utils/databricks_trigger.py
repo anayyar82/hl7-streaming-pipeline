@@ -94,21 +94,23 @@ def trigger_pipeline_update(
         from databricks.sdk import WorkspaceClient
 
         w = WorkspaceClient()
-        # Some SDK versions accept cause=; full_refresh only when True.
+        # Newer SDKs expect StartUpdateCause enum for cause=; passing "API_CALL" as str
+        # breaks serialization ('str' object has no attribute 'value').
+        kwargs: dict = {"pipeline_id": pipeline_id}
         if full_refresh:
-            try:
-                resp = w.pipelines.start_update(
-                    pipeline_id=pipeline_id,
-                    full_refresh=True,
-                    cause="API_CALL",
-                )
-            except TypeError:
-                resp = w.pipelines.start_update(pipeline_id=pipeline_id, full_refresh=True)
-        else:
-            try:
-                resp = w.pipelines.start_update(pipeline_id=pipeline_id, cause="API_CALL")
-            except TypeError:
-                resp = w.pipelines.start_update(pipeline_id=pipeline_id)
+            kwargs["full_refresh"] = True
+        try:
+            from databricks.sdk.service.pipelines import StartUpdateCause
+
+            kwargs["cause"] = StartUpdateCause.API_CALL
+        except (ImportError, AttributeError):
+            pass
+
+        try:
+            resp = w.pipelines.start_update(**kwargs)
+        except TypeError:
+            kwargs.pop("cause", None)
+            resp = w.pipelines.start_update(**kwargs)
         uid = getattr(resp, "update_id", None)
         if not uid:
             return TriggerResult(False, "Pipeline update started but no update_id returned.")
