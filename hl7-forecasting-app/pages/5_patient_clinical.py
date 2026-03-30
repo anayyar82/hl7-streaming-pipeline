@@ -14,6 +14,26 @@ from utils.filters import sidebar_section
 st.set_page_config(page_title="Patient & Clinical", page_icon="🏥", layout="wide")
 st.title("Patient & Clinical Analytics")
 
+with st.expander("What this page does", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+**Who** is represented in the HL7-derived gold data—not operational census charts. Use it for population mix, coding, and clinical activity summaries.
+
+**What you will see**  
+- **Demographics** (counts, sex distribution) and high-level patient dimension stats.  
+- **Diagnoses** (top codes/descriptions by volume).  
+- **Labs / observations** (common tests, abnormal rates where available).  
+- **Allergies** and **orders** (medication or other order activity by type or provider).
+
+**Filters**  
+Sidebar **Clinical filters** narrow coding system, severity, priority, provider search, etc., depending on the chart.
+
+**Data note**  
+All figures come from **de-identified or demo** pipeline data in Lakebase; treat as analytic aggregates, not a source of truth for individual patient care.
+        """
+    )
+
 sidebar_section("Clinical Filters")
 
 # ---- Patient Demographics ----

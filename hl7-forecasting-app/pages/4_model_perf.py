@@ -13,8 +13,40 @@ from utils import queries
 st.set_page_config(page_title="Model Performance", page_icon="📉", layout="wide")
 st.title("Model Performance Tracking")
 
+with st.expander("What this page does — and what the metrics mean", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+After predictions exist and **actual** counts are backfilled from hourly census, this page answers: **“How good were the models?”**
+
+**What this page is for**  
+We forecast ED/ICU arrivals and discharges. After the **target hour** has happened, we compare the forecast to real hourly census. This page shows how accurate those comparisons were.
+
+| Term | Plain-language meaning |
+|------|-------------------------|
+| **MAE** (mean absolute error) | Average size of the mistake **in the same units as the thing you count** (e.g. patients per hour). **Lower is better.** Example: MAE 2.5 means we were off by about 2.5 on average. |
+| **MAPE** (mean absolute percent error) | Error expressed as a **percent of the actual value**. **Lower is better.** Helps compare when volumes differ a lot. Omitted when actuals are zero. |
+| **Forecast horizon (1h / 4h / 8h / 24h)** | How many hours **ahead** the model was trying to see. Longer horizons are usually harder. |
+| **Coverage %** | Share of times the **real value fell between** the model’s lower and upper bound. If the model was built for ~90% confidence, you want coverage **near 90%**. Much lower = bands too tight; much higher = bands too wide. |
+| **Model name** (e.g. `ed_arrivals_forecast`) | One model per **department** (ED, ICU, or ALL) and **target** (arrivals, discharges, or total arrivals for combined). |
+
+**How to read the charts**  
+- **Summary table** — Averages over time for each model, department, metric, and horizon.  
+- **MAE bars** — Compare models; color shows the horizon.  
+- **Coverage bars** — Whether uncertainty bands behaved as intended (~90% target line).  
+- **Trends over time** — See if accuracy is stable, improving, or drifting.  
+- **Model comparison scatter** — Each bubble is one bucket (model + department + metric + horizon). **Left** on the chart = lower MAE; **down** = lower MAPE; **bigger bubble** = more scored predictions. Ideal is **toward the lower-left** (if both errors matter equally for you).
+
+**Where the numbers come from**  
+Aggregated in Delta as **`gold_forecast_accuracy`**, then copied to Lakebase for this app. Empty sections usually mean **`actual_value`** is not filled yet (inference backfill + DLT + lakebase load).
+        """
+    )
+
 # ---- Summary Metrics ----
 st.header("Model Accuracy Summary")
+st.caption(
+    "MAE / MAPE / coverage are computed only for predictions that already have a real **actual** from census."
+)
 
 try:
     summary = run_query(queries.ACCURACY_SUMMARY)
@@ -63,6 +95,9 @@ try:
 
         # ---- MAE by Model & Horizon ----
         st.subheader("Mean Absolute Error by Model & Horizon")
+        st.caption(
+            "MAE is in **count units** (e.g. patients per hour for arrivals). Smaller bars = smaller typical error."
+        )
 
         fig = px.bar(
             summary,
@@ -83,6 +118,9 @@ try:
 
         # ---- Coverage Chart ----
         st.subheader("Prediction Interval Coverage")
+        st.caption(
+            "Shows how often **actual** fell inside the predicted lower–upper band. The dashed line is a **~90%** reference if models were trained with that confidence goal."
+        )
 
         fig_cov = px.bar(
             summary,
@@ -107,6 +145,9 @@ st.markdown("---")
 
 # ---- Accuracy Over Time ----
 st.header("Accuracy Trends Over Time")
+st.caption(
+    "Each line is a **forecast horizon**. Use this to spot drift (accuracy getting worse over calendar time)."
+)
 
 try:
     accuracy = run_query(queries.FORECAST_ACCURACY)
@@ -165,6 +206,9 @@ st.markdown("---")
 
 # ---- Model Comparison ----
 st.header("Model Comparison")
+st.caption(
+    "One bubble per row in the summary table: trade-off between average MAE (horizontal) and average MAPE (vertical)."
+)
 
 try:
     comparison = run_query(queries.ACCURACY_SUMMARY)

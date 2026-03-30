@@ -13,8 +13,41 @@ from utils import queries
 st.set_page_config(page_title="ML Forecasting", page_icon="🔮", layout="wide")
 st.title("ML Forecasting Predictions")
 
-# ---- Latest Predictions Table ----
+with st.expander("What this page does — and how to read it", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+Shows **ML model outputs**: what the trained forecasts say for upcoming hours, and (when backfilled) how those numbers compared to what actually happened.
+
+---
+
+**What you are looking at**  
+Databricks **AutoML** trained separate models on historical features (lags, rolling averages, calendar effects, etc.). A scheduled **inference job** scores the latest features and writes **predictions** into Delta; this app reads them from Lakebase.
+
+**Columns in the tables**  
+| Column | Meaning |
+|--------|---------|
+| **Target metric** | What we try to predict: arrivals, discharges, or (combined) total arrivals. |
+| **Horizon** | How far ahead: **1h**, **4h**, **8h**, or **24h** after the feature snapshot. |
+| **Predicted value** | The model’s best guess for that target hour. |
+| **Lower / upper bound** | An uncertainty range; the model is calibrated so reality often falls **between** these (often ~90% of the time when trained that way). |
+| **Confidence %** | Related to how wide that band is (higher often means a narrower, more aggressive band—depends on training). |
+| **Actual** | Real count from hourly census **after** that hour happened (filled by a backfill step). |
+| **Error** | How far off we were once actual is known. |
+
+**Forecast timeline chart**  
+- **Blue line** — Predicted values over **target hour**.  
+- **Shaded band** — Lower–upper uncertainty.  
+- **Green diamonds** — **Actual** values (only where backfill has run).
+
+**Predicted vs actual scatter**  
+Each point is one scored prediction. The **dashed diagonal** is “perfect” (predicted = actual). Points **above** the line = we predicted **too high**; **below** = too low.
+        """
+    )
+
+# ---- Latest Forecast Predictions ----
 st.header("Latest Forecast Predictions")
+st.caption("Most recent **forecast_generated_at** batch; ED and ICU side by side.")
 
 try:
     preds = run_query(queries.LATEST_PREDICTIONS)
@@ -67,6 +100,7 @@ st.markdown("---")
 
 # ---- Forecast Timeline with Confidence Bands ----
 st.header("Forecast Timeline")
+st.caption("Pick department, metric, and horizon; compare predicted path to actuals when available.")
 
 try:
     preds_7d = run_query(queries.PREDICTIONS_LAST_7D)
@@ -150,6 +184,7 @@ st.markdown("---")
 
 # ---- Predicted vs Actual Scatter ----
 st.header("Predicted vs Actual")
+st.caption("Only points with both predicted and **actual** values. Closer to the diagonal = better calibration.")
 
 try:
     pva = run_query(queries.PREDICTIONS_VS_ACTUALS)

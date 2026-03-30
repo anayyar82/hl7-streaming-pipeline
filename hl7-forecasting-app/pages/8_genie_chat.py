@@ -28,6 +28,25 @@ st.markdown(
 st.title("Ask your data")
 st.caption("Powered by Databricks AI/BI Genie — ask questions in plain English about tables in your Genie space.")
 
+with st.expander("What this page does", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+A **natural-language** layer on top of the tables and metrics curated in a **Databricks Genie space** (AI/BI). You type a question; Genie proposes SQL and explanations against that space—not against arbitrary Postgres tables unless they are exposed there.
+
+**What you will see**  
+- A simple **chat** UI when `GENIE_SPACE_ID` (or app secrets) is configured.  
+- **Setup instructions** if the space id is missing or the iframe cannot load.
+
+**What it is not**  
+- Not a replacement for the other pages: those read **Lakebase** directly with fixed queries.  
+- Not guaranteed to match raw HL7; answers depend on **which UC tables** were added to the Genie space and their permissions.
+
+**Requirements**  
+Workspace auth, Genie space UUID, and UC/SQL warehouse grants for the app’s service principal (see `notebooks/12_genie_uc_grants.py` in the repo).
+        """
+    )
+
 
 def _resolve_space_id():
     sid = get_genie_space_id()

@@ -17,6 +17,22 @@ from utils.filters import (
 st.set_page_config(page_title="Real-Time Operations", page_icon="📊", layout="wide")
 st.title("Real-Time ED & ICU Operations")
 
+with st.expander("What this page does", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+Answer: **“What does the ED/ICU picture look like right now?”** using the latest snapshot in Lakebase.
+
+**What you will see**  
+- **Current census-style metrics** (estimated in-department counts, arrivals) by facility and department.  
+- **Hourly** arrivals/discharges trends for the recent window.  
+- **Filters** narrow to one facility, ED vs ICU, and weekday/weekend patterns.
+
+**Data note**  
+Figures reflect what has landed in **gold** tables after DLT processing; refresh timing follows your pipeline and Lakebase load schedule—not true sub-second streaming unless upstream is near real time.
+        """
+    )
+
 sidebar_section("Real-Time Filters")
 
 # ---- Current Census ----

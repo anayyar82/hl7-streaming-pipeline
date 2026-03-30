@@ -18,6 +18,22 @@ from utils.filters import (
 st.set_page_config(page_title="Trends & Analytics", page_icon="📈", layout="wide")
 st.title("Trends & Analytics")
 
+with st.expander("What this page does", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+**Historical and same-day patterns**—how busy ED and ICU were over days and hours, not a single “right now” snapshot.
+
+**What you will see**  
+- **Daily summaries** (ED tab / ICU tab): visits, arrivals, discharges, length-of-stay style rollups by day.  
+- **Hour-of-day** and **day-of-week** views: when peaks happen.  
+- **ED vs ICU** comparisons on shared charts where data allows.
+
+**Filters**  
+Facility, **date range**, and optional **weekend-only** slice so you can compare like with like.
+        """
+    )
+
 sidebar_section("Trend Filters")
 
 # ---- Load data once ----

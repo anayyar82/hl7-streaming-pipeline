@@ -19,6 +19,22 @@ from utils.filters import (
 st.set_page_config(page_title="Combined Forecasting", page_icon="📈", layout="wide")
 st.title("Combined ED + ICU Forecasting")
 
+with st.expander("What this page does", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+Rolls **ED and ICU** signals into one view so you can see **system-wide** load and how models that use **combined features** relate to each department.
+
+| Idea | Meaning |
+|------|---------|
+| **Combined features** | Hourly metrics built from **both** ED and ICU census (totals, ratios, rolling sums). Used by the **combined** arrivals forecast model (`department = ALL`). |
+| **Net system pressure** | A derived signal from the combined feature table (net flow / load proxy—see DLT `gold_combined_forecast_features`). Higher usually means more strain across ED+ICU together. |
+| **ED:ICU ratio** | Relative intensity between departments in the same hour window. |
+
+Charts below use **observed** combined features from the lake; forecast cards use **predictions** where the combined model exists.
+        """
+    )
+
 sidebar_section("Combined Filters")
 
 # ---- System Pressure ----

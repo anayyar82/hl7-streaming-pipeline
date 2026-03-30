@@ -17,6 +17,22 @@ st.caption(
     "Use this page to see whether loads and ML outputs look current."
 )
 
+with st.expander("What this page does", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+A **health check** for the Lakebase copy of your gold tables—not the full Databricks UI.
+
+**What you will see**  
+- Whether Postgres can be reached and which **schema** is queried.  
+- A **matrix of tables**: approximate row counts, latest timestamp columns where available, and **ok / stale / critical** based on configurable thresholds.  
+- Short **runbook** text: which Databricks jobs to run (DLT, inference, Lakebase load) when something looks old or empty.
+
+**When to use it**  
+Before demos or after deployments; when charts elsewhere look empty or out of date.
+        """
+    )
+
 
 def _hours_since(ts) -> float | None:
     if ts is None:

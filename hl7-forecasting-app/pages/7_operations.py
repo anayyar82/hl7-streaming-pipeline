@@ -18,6 +18,26 @@ from utils.filters import (
 st.set_page_config(page_title="Operations", page_icon="⚙️", layout="wide")
 st.title("Pipeline Operations & Data Monitor")
 
+with st.expander("What this page does", expanded=False):
+    st.markdown(
+        """
+**Purpose**  
+**Ingestion and pipeline health**: are HL7 messages flowing, and how does activity break down—separate from bedside ED/ICU census views.
+
+**What you will see**  
+- **Data freshness**: latest raw/processed message timestamps and metric row counts.  
+- **Throughput over time**: message volume trends.  
+- **Pipeline / message-type** views: what kinds of traffic the stream carries.  
+- **Patient activity by class** and related operational breakdowns (where implemented in queries).
+
+**Filters**  
+Date range, message type, facility, patient class—so you can focus on a slice of traffic.
+
+**When to use it**  
+Suspected ingest delays, empty downstream tables, or demos of “how much HL7 we process.”
+        """
+    )
+
 sidebar_section("Operations Filters")
 
 # ---- Data Freshness ----

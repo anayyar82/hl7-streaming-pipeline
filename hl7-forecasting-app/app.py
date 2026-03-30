@@ -84,6 +84,26 @@ st.markdown(
     "real-time operations, trends, forecasts, clinical analytics, and pipeline health."
 )
 
+with st.expander("What each page is for (quick map)", expanded=False):
+    st.markdown(
+        """
+| Page | What it does |
+|------|----------------|
+| **Home** (this page) | Connection check, table list, and shortcuts to every section. |
+| **0 · System status** | Row counts, freshness/staleness flags, and runbook steps for jobs (DLT, inference, Lakebase load). |
+| **1 · Real-time ops** | Right-now ED/ICU census, arrivals/discharges, hourly strip charts. |
+| **2 · Trends** | Daily rollups, hour-of-day patterns, ED vs ICU comparisons over a date range. |
+| **3 · ML forecasting** | Latest model outputs: predicted values, confidence bands, timelines, predicted vs actual. |
+| **4 · Model performance** | After actuals exist: MAE, MAPE, coverage, and which models behave best. |
+| **5 · Patient & clinical** | Who is in the data: demographics, diagnoses, labs, allergies, orders. |
+| **6 · Combined forecast** | ED+ICU together: system pressure, ratios, combined feature trends. |
+| **7 · Operations** | Pipeline view: message volume, freshness, throughput, patient class activity. |
+| **8 · Ask your data (Genie)** | Plain-English questions answered with SQL against your Genie space (when configured). |
+
+**Data path:** HL7 → Databricks DLT (Delta gold) → **Lakebase Postgres** → this app. ML adds AutoML + inference jobs on top of the same gold tables.
+        """
+    )
+
 # ---- Lakebase Connection & Data Summary ----
 st.markdown("### Lakebase Connection")
 
