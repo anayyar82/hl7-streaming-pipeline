@@ -170,8 +170,8 @@ _PLOT_CONFIG = {"displayModeBar": True, "scrollZoom": True, "responsive": True}
 with ch_left:
     st.markdown("#### Pipeline throughput (72h)")
     st.caption(
-        "`gold_message_metrics` hourly — **click a bar**, **double-click** to isolate a trace, "
-        "or **box/lasso** select multiple bars; details appear below."
+        "`gold_message_metrics` hourly — **click a bar** or use **box / lasso** (chart toolbar) "
+        "to select multiple hours; totals and rows appear below."
     )
     try:
         tp = run_query(queries.HOME_THROUGHPUT_RECENT, quiet=True)
