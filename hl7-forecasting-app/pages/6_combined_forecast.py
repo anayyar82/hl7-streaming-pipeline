@@ -16,9 +16,11 @@ from utils.filters import (
     apply_date_range, apply_weekend,
 )
 from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav
 
 st.set_page_config(page_title="Combined Forecasting", page_icon="📈", layout="wide")
 apply_theme()
+render_sidebar_nav()
 st.title("Combined ED + ICU Forecasting")
 
 with st.expander("What this page does", expanded=False):

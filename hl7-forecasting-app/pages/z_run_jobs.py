@@ -11,6 +11,7 @@ import pandas as pd
 import streamlit as st
 
 from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav
 from utils.databricks_trigger import (
     job_run_url,
     parse_job_id,
@@ -21,6 +22,7 @@ from utils.workflow_progress import format_task_completion_line, summarize_workf
 
 st.set_page_config(page_title="Run Databricks Jobs", page_icon="🚀", layout="wide")
 apply_theme()
+render_sidebar_nav()
 
 st.title("Run Databricks jobs")
 st.caption(

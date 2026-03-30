@@ -10,9 +10,11 @@ import pandas as pd
 from utils.db import run_query
 from utils import queries
 from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav
 
 st.set_page_config(page_title="ML Forecasting", page_icon="🔮", layout="wide")
 apply_theme()
+render_sidebar_nav()
 st.title("ML Forecasting Predictions")
 
 with st.expander("What this page does — and how to read it", expanded=False):

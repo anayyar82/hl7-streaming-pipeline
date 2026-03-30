@@ -9,10 +9,12 @@ import os
 import streamlit as st
 
 from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav
 from utils.databricks_trigger import parse_job_id, trigger_job
 
 st.set_page_config(page_title="Sample Data → Volume", page_icon="📤", layout="wide")
 apply_theme()
+render_sidebar_nav()
 
 JOB_SAMPLE = parse_job_id(os.environ.get("HL7_JOB_SAMPLE_DATA"))
 DEFAULT_CATALOG = (os.environ.get("HL7_UC_CATALOG") or "users").strip()

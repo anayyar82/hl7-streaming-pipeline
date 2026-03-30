@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 import streamlit as st
 
 from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav
 from utils.databricks_activity import (
     collect_active_runs,
     collect_recent_runs,
@@ -20,6 +21,7 @@ from utils.databricks_trigger import pipeline_update_url
 
 st.set_page_config(page_title="Live Activity", page_icon="📡", layout="wide")
 apply_theme()
+render_sidebar_nav()
 
 PIPELINE_ID = (os.environ.get("HL7_PIPELINE_ID") or "").strip()
 

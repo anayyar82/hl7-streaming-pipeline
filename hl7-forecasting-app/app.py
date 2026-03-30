@@ -11,7 +11,8 @@ import streamlit as st
 
 from utils.db import run_query, PGHOST, PGDATABASE, ENDPOINT_NAME
 from utils import queries
-from utils.theme import apply_theme, sidebar_product_context
+from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav, render_home_navigation
 
 st.set_page_config(
     page_title="HL7App - ED & ICU Operations",
@@ -21,22 +22,7 @@ st.set_page_config(
 )
 
 apply_theme()
-
-st.sidebar.title("HL7App")
-st.sidebar.markdown(
-    """
-**Lakebase** · `ankur_nayyar`  
-**Project** · `ankurhlsproject`
-    """
-)
-st.sidebar.markdown("---")
-st.sidebar.page_link("pages/0_status.py", label="System status", icon="📡")
-st.sidebar.page_link("pages/0b_live_activity.py", label="Live activity", icon="📡")
-st.sidebar.page_link("pages/0a_sample_to_volume.py", label="Sample data → volume", icon="📤")
-st.sidebar.page_link("pages/z_run_jobs.py", label="Run Databricks jobs", icon="🚀")
-st.sidebar.page_link("pages/9_platform_pulse.py", label="Platform pulse", icon="⚡")
-st.sidebar.page_link("pages/8_genie_chat.py", label="Ask your data (Genie)", icon="💬")
-sidebar_product_context()
+render_sidebar_nav()
 
 # ---- Hero ----
 st.markdown(
@@ -46,8 +32,7 @@ st.markdown(
   <p>
     Operational census, clinical analytics, and ML forecasts on top of a Databricks medallion pipeline:
     ingest → <strong>Delta Live Tables</strong> gold → <strong>Unity Catalog</strong> → <strong>Lakebase</strong> → this app.
-    Use <strong>0a · Sample → volume</strong> to land HL7 files, <strong>0b · Live activity</strong> to watch DLT and jobs run,
-    <strong>Platform pulse</strong> for Lakebase KPIs, <strong>System status</strong> for table health, and <strong>Genie</strong> for NL queries.
+    Pages are grouped in the sidebar: <strong>Clinical intelligence</strong> (Lakebase dashboards), <strong>Platform</strong> (DLT, jobs, ingest, stack pulse), and <strong>Genie</strong> for natural-language questions.
   </p>
   <div class="hl7-badge-row">
     <span class="hl7-badge">DLT</span>
@@ -85,22 +70,30 @@ st.markdown(
 with st.expander("What each page is for (quick map)", expanded=False):
     st.markdown(
         """
+### Clinical intelligence (Lakebase)
 | Page | What it does |
 |------|----------------|
-| **Home** | Connection, KPIs, throughput sparkline, navigation. |
-| **0 · System status** | Per-table freshness matrix and job runbook. |
-| **0a · Sample → volume** | Generate HL7 files into the UC landing volume (parameterized job run). |
-| **0b · Live activity** | Near–real-time DLT + Workflows run status (auto-refresh). |
-| **Run Databricks jobs** (`z_run_jobs`) | Start DLT + Workflows (inference, Lakebase load, etc.) from the app. |
-| **9 · Platform pulse** | Cross-stack KPIs, encounter trend, HL7 treemap, ML feature snapshot. |
-| **1 · Real-time ops** | Current ED/ICU census and hourly strips. |
-| **2 · Trends** | Daily rollups, heatmaps, ED vs ICU. |
-| **3 · ML forecasting** | Predictions, bands, timelines, vs actuals. |
-| **4 · Model performance** | MAE, MAPE, coverage, model comparison. |
-| **5 · Patient & clinical** | Demographics, diagnoses, labs, orders. |
-| **6 · Combined forecast** | ED+ICU system pressure and ratios. |
-| **7 · Operations** | Message throughput, pipeline breakdown. |
-| **8 · Genie** | Plain-English Q&A over your Genie space. |
+| **Real-time ops** | Current ED/ICU census and hourly strips. |
+| **Trends** | Daily rollups, heatmaps, ED vs ICU. |
+| **ML forecasting** | Predictions, bands, timelines, vs actuals. |
+| **Model performance** | MAE, MAPE, coverage, model comparison. |
+| **Patient & clinical** | Demographics, diagnoses, labs, orders. |
+| **Combined forecast** | ED+ICU system pressure and ratios. |
+| **HL7 operations** | Message throughput, pipeline breakdown. |
+
+### Platform (Databricks workspace)
+| Page | What it does |
+|------|----------------|
+| **System status** | Per-table freshness matrix and runbook. |
+| **Sample → volume** | Land HL7 files into the UC landing volume. |
+| **Live activity** | DLT + Workflows run status (auto-refresh). |
+| **Run jobs & workflow** | DLT, bundled workflow, inference, Lakebase load. |
+| **Platform pulse** | Cross-stack KPIs, treemap, ML snapshot. |
+
+### Ask your data
+| **Genie** | Plain-English Q&A over your Genie space. |
+
+**Home** — connection, KPIs, throughput, and the visual map below.
         """
     )
 
@@ -258,92 +251,7 @@ except Exception as e:
     st.warning(f"Could not query Lakebase metadata: {e}")
 
 st.markdown("---")
-st.markdown("### Dashboard pages")
-
-st.page_link("pages/0_status.py", label="0. System status — freshness & runbook", icon="📡")
-st.page_link("pages/0b_live_activity.py", label="Live activity — DLT & jobs", icon="📡")
-st.page_link("pages/0a_sample_to_volume.py", label="Sample data → UC volume", icon="📤")
-st.page_link("pages/z_run_jobs.py", label="Run jobs — DLT & Workflows", icon="🚀")
-st.page_link("pages/9_platform_pulse.py", label="9. Platform pulse — Databricks stack snapshot", icon="⚡")
-st.page_link("pages/8_genie_chat.py", label="8. Ask your data (Genie)", icon="💬")
-
-row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
-
-with row1_c1:
-    st.markdown(
-        '<div class="hl7-nav-card green">'
-        "<h4>1. Real-time ops</h4>"
-        "<p>Live census, hourly arrivals &amp; discharges, filters by facility and department.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-with row1_c2:
-    st.markdown(
-        '<div class="hl7-nav-card blue">'
-        "<h4>2. Trends</h4>"
-        "<p>Daily summaries, heatmaps, ED vs ICU, length-of-stay views.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-with row1_c3:
-    st.markdown(
-        '<div class="hl7-nav-card purple">'
-        "<h4>3. ML forecasting</h4>"
-        "<p>Predictions, confidence bands, horizons, predicted vs actual.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-with row1_c4:
-    st.markdown(
-        '<div class="hl7-nav-card orange">'
-        "<h4>4. Model performance</h4>"
-        "<p>MAE, MAPE, coverage, and model comparison bubbles.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
-
-with row2_c1:
-    st.markdown(
-        '<div class="hl7-nav-card teal">'
-        "<h4>5. Patient &amp; clinical</h4>"
-        "<p>Demographics, diagnoses, labs, allergies, orders.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-with row2_c2:
-    st.markdown(
-        '<div class="hl7-nav-card red">'
-        "<h4>6. Combined forecast</h4>"
-        "<p>ED+ICU pressure, ratios, combined feature trends.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-with row2_c3:
-    st.markdown(
-        '<div class="hl7-nav-card indigo">'
-        "<h4>7. Operations</h4>"
-        "<p>Message throughput, types, facilities, patient class activity.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-with row2_c4:
-    st.markdown(
-        '<div class="hl7-nav-card genie">'
-        "<h4>8. Genie</h4>"
-        "<p>Natural language over UC via AI/BI Genie space.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-    st.page_link("pages/8_genie_chat.py", label="Open Genie chat", icon="💬")
-
+render_home_navigation()
 st.markdown("---")
 st.caption(
     "Powered by Databricks Unity Catalog · Delta Live Tables · MLflow AutoML · Lakebase · Apps"

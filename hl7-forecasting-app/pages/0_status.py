@@ -10,9 +10,11 @@ import streamlit as st
 from utils.db import run_query, PGHOST, PGDATABASE, ENDPOINT_NAME
 from utils import queries
 from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav
 
 st.set_page_config(page_title="System Status", page_icon="📡", layout="wide")
 apply_theme()
+render_sidebar_nav()
 st.title("System status")
 st.caption(
     "Snapshot of **Lakebase** gold tables (row counts and latest activity). "

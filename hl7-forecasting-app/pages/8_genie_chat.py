@@ -9,6 +9,7 @@ import streamlit as st
 
 from utils.genie_client import get_genie_space_id
 from utils.theme import apply_theme
+from utils.navigation import render_sidebar_nav
 
 st.set_page_config(
     page_title="Ask your data (Genie)",
@@ -18,6 +19,7 @@ st.set_page_config(
 )
 
 apply_theme()
+render_sidebar_nav()
 
 st.markdown(
     """
