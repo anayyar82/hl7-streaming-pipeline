@@ -214,4 +214,4 @@ def _home_card(col, num: str, title: str, desc: str, path: str, icon: str, accen
             """,
             unsafe_allow_html=True,
         )
-        st.page_link(path, label=f"Open · {title}", icon="➜")
+        st.page_link(path, label=f"Open · {title}", icon="🔗")
