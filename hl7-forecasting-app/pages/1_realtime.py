@@ -13,8 +13,10 @@ from utils.filters import (
     sidebar_section, facility_filter, department_filter,
     apply_facility, weekend_toggle, apply_weekend,
 )
+from utils.theme import apply_theme
 
 st.set_page_config(page_title="Real-Time Operations", page_icon="📊", layout="wide")
+apply_theme()
 st.title("Real-Time ED & ICU Operations")
 
 with st.expander("What this page does", expanded=False):

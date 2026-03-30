@@ -5,8 +5,13 @@ Real-time operations dashboard and ML forecasting for Emergency Department
 and ICU arrivals/discharges, powered by Lakebase Postgres.
 """
 
+import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
-from utils.db import run_query
+
+from utils.db import run_query, PGHOST, PGDATABASE, ENDPOINT_NAME
+from utils import queries
+from utils.theme import apply_theme, sidebar_product_context
 
 st.set_page_config(
     page_title="HL7App - ED & ICU Operations",
@@ -15,73 +20,63 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+apply_theme()
+
+st.sidebar.title("HL7App")
+st.sidebar.markdown(
+    """
+**Lakebase** · `ankur_nayyar`  
+**Project** · `ankurhlsproject`
+    """
+)
+st.sidebar.markdown("---")
+st.sidebar.page_link("pages/0_status.py", label="System status", icon="📡")
+st.sidebar.page_link("pages/9_platform_pulse.py", label="Platform pulse", icon="⚡")
+st.sidebar.page_link("pages/8_genie_chat.py", label="Ask your data (Genie)", icon="💬")
+sidebar_product_context()
+
+# ---- Hero ----
 st.markdown(
     """
-    <style>
-    .block-container { padding-top: 1.5rem; }
-    div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #667eea11, #764ba211);
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 12px 16px;
-    }
-    .card {
-        background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 12px;
-        border-left: 4px solid;
-        min-height: 140px;
-    }
-    .card h4 { margin: 0 0 8px 0; }
-    .card p { margin: 0; font-size: 0.9em; color: #444; }
-    .card-green { border-left-color: #4CAF50; }
-    .card-blue { border-left-color: #2196F3; }
-    .card-purple { border-left-color: #9C27B0; }
-    .card-orange { border-left-color: #FF9800; }
-    .card-teal { border-left-color: #009688; }
-    .card-red { border-left-color: #F44336; }
-    .card-indigo { border-left-color: #3F51B5; }
-    .card-genie { border-left-color: #6a1b9a; }
-    .conn-box {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 16px;
-        font-size: 0.85em;
-    }
-    .conn-box code { color: #0d6efd; }
-    </style>
+<div class="hl7-hero">
+  <h1>HL7 ED & ICU Operations</h1>
+  <p>
+    Operational census, clinical analytics, and ML forecasts on top of a Databricks medallion pipeline:
+    ingest → <strong>Delta Live Tables</strong> gold → <strong>Unity Catalog</strong> → <strong>Lakebase</strong> → this app.
+    Use <strong>Platform pulse</strong> for a live cross-stack snapshot, <strong>System status</strong> for table health,
+    and <strong>Genie</strong> for natural-language questions over your UC space.
+  </p>
+  <div class="hl7-badge-row">
+    <span class="hl7-badge">DLT</span>
+    <span class="hl7-badge">UNITY CATALOG</span>
+    <span class="hl7-badge">LAKEBASE</span>
+    <span class="hl7-badge">AUTOML / MLFLOW</span>
+    <span class="hl7-badge">DATABRICKS APPS</span>
+  </div>
+</div>
     """,
     unsafe_allow_html=True,
 )
 
-st.sidebar.title("HL7App")
-st.sidebar.markdown("---")
-st.sidebar.markdown(
-    """
-    **Data Source:** Lakebase Postgres  
-    **Project:** `ankurhlsproject`  
-    **Schema:** `ankur_nayyar`
-    """
-)
-st.sidebar.markdown("---")
-st.sidebar.page_link(
-    "pages/0_status.py",
-    label="System status",
-    icon="📡",
-)
-st.sidebar.page_link(
-    "pages/8_genie_chat.py",
-    label="Ask your data (Genie)",
-    icon="💬",
-)
-
-st.title("HL7 ED & ICU Operations Dashboard")
+# ---- Architecture strip ----
+st.markdown("**Data flow** (logical)")
 st.markdown(
-    "Open **0. System status** for a Lakebase freshness matrix and runbook, or use the sidebar for "
-    "**8. Ask your data (Genie)** — natural-language questions over your Genie space — plus "
-    "real-time operations, trends, forecasts, clinical analytics, and pipeline health."
+    """
+<div class="hl7-arch">
+  <div class="hl7-arch-step"><strong>HL7 files</strong><span>Volume / landing</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>Bronze / Silver</strong><span>DLT parse &amp; conform</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>Gold</strong><span>UC tables · facts &amp; dims</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>ML layer</strong><span>Features · AutoML · predictions</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>Lakebase</strong><span>Postgres API to gold</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>This app</strong><span>Streamlit + Genie</span></div>
+</div>
+    """,
+    unsafe_allow_html=True,
 )
 
 with st.expander("What each page is for (quick map)", expanded=False):
@@ -89,23 +84,127 @@ with st.expander("What each page is for (quick map)", expanded=False):
         """
 | Page | What it does |
 |------|----------------|
-| **Home** (this page) | Connection check, table list, and shortcuts to every section. |
-| **0 · System status** | Row counts, freshness/staleness flags, and runbook steps for jobs (DLT, inference, Lakebase load). |
-| **1 · Real-time ops** | Right-now ED/ICU census, arrivals/discharges, hourly strip charts. |
-| **2 · Trends** | Daily rollups, hour-of-day patterns, ED vs ICU comparisons over a date range. |
-| **3 · ML forecasting** | Latest model outputs: predicted values, confidence bands, timelines, predicted vs actual. |
-| **4 · Model performance** | After actuals exist: MAE, MAPE, coverage, and which models behave best. |
-| **5 · Patient & clinical** | Who is in the data: demographics, diagnoses, labs, allergies, orders. |
-| **6 · Combined forecast** | ED+ICU together: system pressure, ratios, combined feature trends. |
-| **7 · Operations** | Pipeline view: message volume, freshness, throughput, patient class activity. |
-| **8 · Ask your data (Genie)** | Plain-English questions answered with SQL against your Genie space (when configured). |
-
-**Data path:** HL7 → Databricks DLT (Delta gold) → **Lakebase Postgres** → this app. ML adds AutoML + inference jobs on top of the same gold tables.
+| **Home** | Connection, KPIs, throughput sparkline, navigation. |
+| **0 · System status** | Per-table freshness matrix and job runbook. |
+| **9 · Platform pulse** | Cross-stack KPIs, encounter trend, HL7 treemap, ML feature snapshot. |
+| **1 · Real-time ops** | Current ED/ICU census and hourly strips. |
+| **2 · Trends** | Daily rollups, heatmaps, ED vs ICU. |
+| **3 · ML forecasting** | Predictions, bands, timelines, vs actuals. |
+| **4 · Model performance** | MAE, MAPE, coverage, model comparison. |
+| **5 · Patient & clinical** | Demographics, diagnoses, labs, orders. |
+| **6 · Combined forecast** | ED+ICU system pressure and ratios. |
+| **7 · Operations** | Message throughput, pipeline breakdown. |
+| **8 · Genie** | Plain-English Q&A over your Genie space. |
         """
     )
 
-# ---- Lakebase Connection & Data Summary ----
-st.markdown("### Lakebase Connection")
+# ---- KPI row ----
+st.markdown("### Operational snapshot")
+
+k1, k2, k3, k4 = st.columns(4)
+
+def _safe_int(df, col, default=0):
+    if df is None or df.empty or col not in df.columns:
+        return default
+    v = df[col].iloc[0]
+    if v is None or (isinstance(v, float) and pd.isna(v)):
+        return default
+    return int(v)
+
+try:
+    enc_df = run_query(queries.HOME_ENCOUNTER_COUNT_7D, quiet=True)
+    k1.metric("Encounters (7d)", f"{_safe_int(enc_df, 'n'):,}")
+except Exception:
+    k1.metric("Encounters (7d)", "—")
+
+try:
+    msg_df = run_query(queries.HOME_MESSAGE_VOLUME_24H, quiet=True)
+    k2.metric("HL7 messages (24h)", f"{_safe_int(msg_df, 'messages_24h'):,}")
+except Exception:
+    k2.metric("HL7 messages (24h)", "—")
+
+try:
+    ml_df = run_query(queries.HOME_ML_PREDICTION_OVERVIEW, quiet=True)
+    k3.metric("ML predictions", f"{_safe_int(ml_df, 'total_predictions'):,}", help="Total rows in predictions table")
+except Exception:
+    k3.metric("ML predictions", "—")
+
+try:
+    pat_df = run_query(queries.PATIENT_COUNTS, quiet=True)
+    k4.metric("Patients", f"{_safe_int(pat_df, 'total_patients'):,}")
+except Exception:
+    k4.metric("Patients", "—")
+
+# ---- Charts ----
+ch_left, ch_right = st.columns(2)
+
+with ch_left:
+    st.markdown("### Pipeline throughput (72h)")
+    st.caption("`gold_message_metrics` aggregated hourly — shows DLT-fed ingest cadence.")
+    try:
+        tp = run_query(queries.HOME_THROUGHPUT_RECENT, quiet=True)
+        if not tp.empty:
+            tp["processing_hour"] = pd.to_datetime(tp["processing_hour"])
+            tp["total_messages"] = pd.to_numeric(tp["total_messages"], errors="coerce").fillna(0)
+            fig_tp = go.Figure(
+                go.Bar(
+                    x=tp["processing_hour"],
+                    y=tp["total_messages"],
+                    marker_color="#2563eb",
+                    opacity=0.85,
+                )
+            )
+            fig_tp.update_layout(
+                height=280,
+                margin=dict(t=20),
+                xaxis_title="Hour",
+                yaxis_title="Messages",
+                showlegend=False,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(248,250,252,0.9)",
+            )
+            st.plotly_chart(fig_tp, use_container_width=True)
+        else:
+            st.info("No throughput rows in the last 72 hours.")
+    except Exception as e:
+        st.warning(f"Throughput chart unavailable: {e}")
+
+with ch_right:
+    st.markdown("### Encounters (30d)")
+    st.caption("`gold_encounter_fact` daily counts — clinical volume landing in UC gold.")
+    try:
+        tr = run_query(queries.HOME_ENCOUNTER_TREND_30D, quiet=True)
+        if not tr.empty:
+            tr["d"] = pd.to_datetime(tr["d"])
+            tr["encounter_count"] = pd.to_numeric(tr["encounter_count"], errors="coerce").fillna(0)
+            fig_tr = go.Figure(
+                go.Scatter(
+                    x=tr["d"],
+                    y=tr["encounter_count"],
+                    mode="lines",
+                    line=dict(color="#059669", width=2),
+                    fill="tozeroy",
+                    fillcolor="rgba(5, 150, 105, 0.1)",
+                )
+            )
+            fig_tr.update_layout(
+                height=280,
+                margin=dict(t=20),
+                showlegend=False,
+                xaxis_title="Date",
+                yaxis_title="Encounters",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(248,250,252,0.9)",
+            )
+            st.plotly_chart(fig_tr, use_container_width=True)
+        else:
+            st.info("No encounters in the last 30 days.")
+    except Exception as e:
+        st.warning(f"Encounter trend unavailable: {e}")
+
+# ---- Lakebase connection ----
+st.markdown("---")
+st.markdown("### Lakebase connection")
 
 TABLE_COUNT_QUERY = """
 SELECT
@@ -126,20 +225,25 @@ try:
         with col_conn:
             st.markdown(
                 '<div class="conn-box">'
-                "<b>Endpoint:</b> <code>ep-wandering-meadow-d1tdkigo</code><br>"
-                "<b>Database:</b> <code>databricks_postgres</code><br>"
+                "<b>Host:</b> <code>"
+                + str(PGHOST)
+                + "</code><br>"
+                "<b>Database:</b> <code>"
+                + str(PGDATABASE)
+                + "</code><br>"
                 "<b>Schema:</b> <code>ankur_nayyar</code><br>"
-                "<b>Region:</b> <code>us-west-2</code><br>"
+                "<b>Endpoint:</b> <code>"
+                + str(ENDPOINT_NAME)
+                + "</code><br>"
                 f"<b>Tables:</b> <code>{tbl_count}</code>"
                 "</div>",
                 unsafe_allow_html=True,
             )
 
         with col_stats:
-            from utils.db import PGHOST, PGDATABASE, ENDPOINT_NAME
-            st.metric("Gold Tables", tbl_count)
+            st.metric("Gold tables in schema", tbl_count)
             if tbl_list:
-                with st.expander("View Table Names"):
+                with st.expander("Table names"):
                     for t in sorted(tbl_list.split(", ")):
                         st.code(t, language=None)
     else:
@@ -148,59 +252,46 @@ except Exception as e:
     st.warning(f"Could not query Lakebase metadata: {e}")
 
 st.markdown("---")
+st.markdown("### Dashboard pages")
 
-st.markdown("### Dashboard Pages")
-
-st.page_link(
-    "pages/0_status.py",
-    label="0. System status — Lakebase freshness & runbook",
-    icon="📡",
-)
-st.page_link(
-    "pages/8_genie_chat.py",
-    label="8. Ask your data (Genie) — AI/BI natural language",
-    icon="💬",
-)
+st.page_link("pages/0_status.py", label="0. System status — freshness & runbook", icon="📡")
+st.page_link("pages/9_platform_pulse.py", label="9. Platform pulse — Databricks stack snapshot", icon="⚡")
+st.page_link("pages/8_genie_chat.py", label="8. Ask your data (Genie)", icon="💬")
 
 row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
 
 with row1_c1:
     st.markdown(
-        '<div class="card card-green">'
-        "<h4>1. Real-Time Ops</h4>"
-        "<p>Live ED &amp; ICU census, hourly arrivals &amp; discharges, "
-        "department-level status.<br><b>Filters:</b> facility, department, "
-        "time window, weekday/weekend</p>"
+        '<div class="hl7-nav-card green">'
+        "<h4>1. Real-time ops</h4>"
+        "<p>Live census, hourly arrivals &amp; discharges, filters by facility and department.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
 
 with row1_c2:
     st.markdown(
-        '<div class="card card-blue">'
+        '<div class="hl7-nav-card blue">'
         "<h4>2. Trends</h4>"
-        "<p>Daily summaries, hour-of-day heatmaps, ED vs ICU comparison, "
-        "LOS analytics.<br><b>Filters:</b> date range, facility, weekday/weekend</p>"
+        "<p>Daily summaries, heatmaps, ED vs ICU, length-of-stay views.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
 
 with row1_c3:
     st.markdown(
-        '<div class="card card-purple">'
-        "<h4>3. ML Forecasting</h4>"
-        "<p>Predicted vs actual, confidence intervals, forecast horizons, "
-        "model outputs.<br><b>Filters:</b> department, metric, horizon</p>"
+        '<div class="hl7-nav-card purple">'
+        "<h4>3. ML forecasting</h4>"
+        "<p>Predictions, confidence bands, horizons, predicted vs actual.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
 
 with row1_c4:
     st.markdown(
-        '<div class="card card-orange">'
-        "<h4>4. Model Performance</h4>"
-        "<p>Accuracy metrics, MAE/MAPE trends, model comparison, "
-        "coverage analysis.<br><b>Filters:</b> model selection</p>"
+        '<div class="hl7-nav-card orange">'
+        "<h4>4. Model performance</h4>"
+        "<p>MAE, MAPE, coverage, and model comparison bubbles.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -209,52 +300,42 @@ row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
 
 with row2_c1:
     st.markdown(
-        '<div class="card card-teal">'
-        "<h4>5. Patient &amp; Clinical</h4>"
-        "<p>Demographics, top diagnoses, lab results, allergies, "
-        "orders &amp; provider activity.<br><b>Filters:</b> coding system, severity, "
-        "priority, provider search</p>"
+        '<div class="hl7-nav-card teal">'
+        "<h4>5. Patient &amp; clinical</h4>"
+        "<p>Demographics, diagnoses, labs, allergies, orders.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
 
 with row2_c2:
     st.markdown(
-        '<div class="card card-red">'
-        "<h4>6. Combined Forecast</h4>"
-        "<p>ED + ICU system pressure, cross-department analysis, "
-        "rolling averages, feature heatmaps.<br><b>Filters:</b> date range, "
-        "weekday/weekend</p>"
+        '<div class="hl7-nav-card red">'
+        "<h4>6. Combined forecast</h4>"
+        "<p>ED+ICU pressure, ratios, combined feature trends.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
 
 with row2_c3:
     st.markdown(
-        '<div class="card card-indigo">'
+        '<div class="hl7-nav-card indigo">'
         "<h4>7. Operations</h4>"
-        "<p>Message throughput, pipeline health, data freshness, "
-        "patient activity by class.<br><b>Filters:</b> date range, message type, "
-        "facility, patient class</p>"
+        "<p>Message throughput, types, facilities, patient class activity.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
 
 with row2_c4:
     st.markdown(
-        '<div class="card card-genie">'
-        "<h4>8. Ask your data (Genie)</h4>"
-        "<p>Natural-language Q&amp;A via Databricks AI/BI Genie over tables "
-        "in your Genie space.<br><b>Requires:</b> <code>GENIE_SPACE_ID</code> "
-        "and UC/warehouse grants.</p>"
+        '<div class="hl7-nav-card genie">'
+        "<h4>8. Genie</h4>"
+        "<p>Natural language over UC via AI/BI Genie space.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
-    st.page_link(
-        "pages/8_genie_chat.py",
-        label="Open Genie chat",
-        icon="💬",
-    )
+    st.page_link("pages/8_genie_chat.py", label="Open Genie chat", icon="💬")
 
 st.markdown("---")
-st.caption("Powered by Databricks Unity Catalog + DLT + MLflow AutoML + Lakebase")
+st.caption(
+    "Powered by Databricks Unity Catalog · Delta Live Tables · MLflow AutoML · Lakebase · Apps"
+)

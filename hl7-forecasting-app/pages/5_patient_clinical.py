@@ -10,8 +10,10 @@ import pandas as pd
 from utils.db import run_query
 from utils import queries
 from utils.filters import sidebar_section
+from utils.theme import apply_theme
 
 st.set_page_config(page_title="Patient & Clinical", page_icon="🏥", layout="wide")
+apply_theme()
 st.title("Patient & Clinical Analytics")
 
 with st.expander("What this page does", expanded=False):

@@ -589,3 +589,74 @@ SELECT
     COUNT(DISTINCT model_name)::bigint AS distinct_models
 FROM {_fqn("gold_forecast_predictions")}
 """
+
+# ---------------------------------------------------------------------------
+# Home dashboard & platform pulse (cross-cutting summaries)
+# ---------------------------------------------------------------------------
+
+HOME_ENCOUNTER_COUNT_7D = f"""
+SELECT COUNT(*)::bigint AS n
+FROM {_fqn("gold_encounter_fact")}
+WHERE created_at >= NOW() - INTERVAL '7 days'
+"""
+
+HOME_ML_PREDICTION_OVERVIEW = f"""
+SELECT
+    COUNT(*)::bigint AS total_predictions,
+    COUNT(*) FILTER (WHERE actual_value IS NOT NULL)::bigint AS scored_predictions,
+    MAX(forecast_generated_at) AS latest_forecast_run
+FROM {_fqn("gold_forecast_predictions")}
+"""
+
+HOME_MESSAGE_VOLUME_24H = f"""
+SELECT COALESCE(SUM(message_count), 0)::bigint AS messages_24h
+FROM {_fqn("gold_message_metrics")}
+WHERE processing_hour >= NOW() - INTERVAL '24 hours'
+"""
+
+HOME_THROUGHPUT_RECENT = f"""
+SELECT
+    processing_hour,
+    SUM(message_count) AS total_messages
+FROM {_fqn("gold_message_metrics")}
+WHERE processing_hour >= NOW() - INTERVAL '72 hours'
+GROUP BY processing_hour
+ORDER BY processing_hour
+"""
+
+HOME_ENCOUNTER_TREND_30D = f"""
+SELECT
+    created_at::date AS d,
+    COUNT(*)::bigint AS encounter_count
+FROM {_fqn("gold_encounter_fact")}
+WHERE created_at >= NOW() - INTERVAL '30 days'
+GROUP BY created_at::date
+ORDER BY d
+"""
+
+MESSAGE_MIX_FOR_TREEMAP = f"""
+SELECT
+    COALESCE(message_type, 'Unknown') AS message_type,
+    COALESCE(sending_facility, 'Unknown') AS sending_facility,
+    SUM(message_count)::bigint AS msg_count
+FROM {_fqn("gold_message_metrics")}
+GROUP BY message_type, sending_facility
+ORDER BY msg_count DESC
+LIMIT 50
+"""
+
+PLATFORM_FEATURE_SAMPLE = f"""
+SELECT
+    event_hour,
+    location_facility,
+    arrivals,
+    discharges,
+    arrivals_lag_1h,
+    arrivals_rolling_24h,
+    cumulative_net_census,
+    is_night_shift,
+    is_holiday_window
+FROM {_fqn("gold_ed_forecast_features")}
+ORDER BY event_hour DESC
+LIMIT 24
+"""

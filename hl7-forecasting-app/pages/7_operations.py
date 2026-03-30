@@ -14,8 +14,10 @@ from utils.filters import (
     sidebar_section, facility_filter, date_range_filter,
     apply_facility, apply_date_range,
 )
+from utils.theme import apply_theme
 
 st.set_page_config(page_title="Operations", page_icon="⚙️", layout="wide")
+apply_theme()
 st.title("Pipeline Operations & Data Monitor")
 
 with st.expander("What this page does", expanded=False):

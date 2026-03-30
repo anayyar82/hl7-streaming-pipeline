@@ -9,8 +9,10 @@ import pandas as pd
 
 from utils.db import run_query
 from utils import queries
+from utils.theme import apply_theme
 
 st.set_page_config(page_title="Model Performance", page_icon="📉", layout="wide")
+apply_theme()
 st.title("Model Performance Tracking")
 
 with st.expander("What this page does — and what the metrics mean", expanded=False):

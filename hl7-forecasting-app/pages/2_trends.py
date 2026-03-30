@@ -14,8 +14,10 @@ from utils.filters import (
     sidebar_section, facility_filter, date_range_filter, weekend_toggle,
     apply_facility, apply_date_range, apply_weekend,
 )
+from utils.theme import apply_theme
 
 st.set_page_config(page_title="Trends & Analytics", page_icon="📈", layout="wide")
+apply_theme()
 st.title("Trends & Analytics")
 
 with st.expander("What this page does", expanded=False):
@@ -246,5 +248,28 @@ try:
 
 except Exception as e:
     st.error(f"Failed to load comparison data: {e}")
+
+st.markdown("---")
+st.header("Encounter volume by patient class")
+st.caption("Daily counts from **`gold_encounter_fact`** (DLT gold) — useful for capacity and mix discussions.")
+
+try:
+    ev = run_query(queries.ENCOUNTER_VOLUME_TREND)
+    if not ev.empty:
+        ev["encounter_date"] = pd.to_datetime(ev["encounter_date"])
+        ev["encounter_count"] = pd.to_numeric(ev["encounter_count"], errors="coerce").fillna(0)
+        fig_ev = px.area(
+            ev,
+            x="encounter_date",
+            y="encounter_count",
+            color="patient_class_desc",
+            title="Encounters per day by patient class",
+        )
+        fig_ev.update_layout(height=380, margin=dict(t=40), legend=dict(orientation="h", y=-0.2))
+        st.plotly_chart(fig_ev, use_container_width=True)
+    else:
+        st.info("No encounter trend data.")
+except Exception as e:
+    st.warning(f"Encounter volume chart unavailable: {e}")
 
 st.caption("All trends computed from Lakebase Postgres gold tables.")

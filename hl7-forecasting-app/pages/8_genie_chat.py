@@ -8,6 +8,7 @@ configured for this app. Similar in spirit to embedded Genie / standalone chat a
 import streamlit as st
 
 from utils.genie_client import get_genie_space_id
+from utils.theme import apply_theme
 
 st.set_page_config(
     page_title="Ask your data (Genie)",
@@ -15,6 +16,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+apply_theme()
 
 st.markdown(
     """
