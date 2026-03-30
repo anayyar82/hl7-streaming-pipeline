@@ -46,6 +46,10 @@ def render_sidebar_nav() -> None:
     )
     st.sidebar.markdown("---")
 
+    # Main script is not under pages/ — default Streamlit nav is hidden, so link Home explicitly.
+    st.sidebar.markdown('<p class="hl7-sidebar-cat">App</p>', unsafe_allow_html=True)
+    st.sidebar.page_link("app.py", label="Home", icon="🏠")
+
     st.sidebar.markdown('<p class="hl7-sidebar-cat">Clinical intelligence</p>', unsafe_allow_html=True)
     for path, label, icon in _CLINICAL:
         st.sidebar.page_link(path, label=label, icon=icon)
