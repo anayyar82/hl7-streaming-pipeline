@@ -67,6 +67,11 @@ st.sidebar.markdown(
 )
 st.sidebar.markdown("---")
 st.sidebar.page_link(
+    "pages/0_status.py",
+    label="System status",
+    icon="📡",
+)
+st.sidebar.page_link(
     "pages/8_genie_chat.py",
     label="Ask your data (Genie)",
     icon="💬",
@@ -74,9 +79,9 @@ st.sidebar.page_link(
 
 st.title("HL7 ED & ICU Operations Dashboard")
 st.markdown(
-    "Use the sidebar (or the link below) for **8. Ask your data (Genie)** — natural-language "
-    "questions over your Genie space — plus real-time operations, trends, forecasts, "
-    "clinical analytics, and pipeline health."
+    "Open **0. System status** for a Lakebase freshness matrix and runbook, or use the sidebar for "
+    "**8. Ask your data (Genie)** — natural-language questions over your Genie space — plus "
+    "real-time operations, trends, forecasts, clinical analytics, and pipeline health."
 )
 
 # ---- Lakebase Connection & Data Summary ----
@@ -126,6 +131,11 @@ st.markdown("---")
 
 st.markdown("### Dashboard Pages")
 
+st.page_link(
+    "pages/0_status.py",
+    label="0. System status — Lakebase freshness & runbook",
+    icon="📡",
+)
 st.page_link(
     "pages/8_genie_chat.py",
     label="8. Ask your data (Genie) — AI/BI natural language",

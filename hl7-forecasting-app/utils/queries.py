@@ -461,3 +461,131 @@ SELECT
     COUNT(*) AS total_metric_rows
 FROM {_fqn('gold_message_metrics')}
 """
+
+# ---------------------------------------------------------------------------
+# System status page (Lakebase snapshot; one row per table)
+# stale_after_hours: warn when last_activity older than this (None = no age rule)
+# ---------------------------------------------------------------------------
+
+STATUS_MONITOR_SPECS = [
+    {
+        "layer": "Stream",
+        "area": "HL7 throughput",
+        "table": "gold_message_metrics",
+        "stale_after_hours": 36,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(last_message_at) AS last_activity
+            FROM {_fqn("gold_message_metrics")}
+        """,
+    },
+    {
+        "layer": "Gold",
+        "area": "Encounters",
+        "table": "gold_encounter_fact",
+        "stale_after_hours": 72,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(created_at) AS last_activity
+            FROM {_fqn("gold_encounter_fact")}
+        """,
+    },
+    {
+        "layer": "Gold",
+        "area": "Patients",
+        "table": "gold_patient_dim",
+        "stale_after_hours": 168,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(last_updated_at) AS last_activity
+            FROM {_fqn("gold_patient_dim")}
+        """,
+    },
+    {
+        "layer": "Gold",
+        "area": "ED census (hourly)",
+        "table": "gold_ed_hourly_census",
+        "stale_after_hours": 48,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(event_hour) AS last_activity
+            FROM {_fqn("gold_ed_hourly_census")}
+        """,
+    },
+    {
+        "layer": "Gold",
+        "area": "ICU census (hourly)",
+        "table": "gold_icu_hourly_census",
+        "stale_after_hours": 48,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(event_hour) AS last_activity
+            FROM {_fqn("gold_icu_hourly_census")}
+        """,
+    },
+    {
+        "layer": "Gold",
+        "area": "Department snapshot",
+        "table": "gold_department_census_current",
+        "stale_after_hours": 48,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(snapshot_at) AS last_activity
+            FROM {_fqn("gold_department_census_current")}
+        """,
+    },
+    {
+        "layer": "ML",
+        "area": "Forecast features",
+        "table": "gold_ed_forecast_features",
+        "stale_after_hours": 72,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(event_hour) AS last_activity
+            FROM {_fqn("gold_ed_forecast_features")}
+        """,
+    },
+    {
+        "layer": "ML",
+        "area": "Forecast features",
+        "table": "gold_icu_forecast_features",
+        "stale_after_hours": 72,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(event_hour) AS last_activity
+            FROM {_fqn("gold_icu_forecast_features")}
+        """,
+    },
+    {
+        "layer": "ML",
+        "area": "Combined features",
+        "table": "gold_combined_forecast_features",
+        "stale_after_hours": 72,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(event_hour) AS last_activity
+            FROM {_fqn("gold_combined_forecast_features")}
+        """,
+    },
+    {
+        "layer": "ML",
+        "area": "Predictions",
+        "table": "gold_forecast_predictions",
+        "stale_after_hours": 48,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(forecast_generated_at) AS last_activity
+            FROM {_fqn("gold_forecast_predictions")}
+        """,
+    },
+    {
+        "layer": "ML",
+        "area": "Accuracy rollup",
+        "table": "gold_forecast_accuracy",
+        "stale_after_hours": None,
+        "sql": f"""
+            SELECT COUNT(*)::bigint AS row_count, MAX(prediction_date::timestamp) AS last_activity
+            FROM {_fqn("gold_forecast_accuracy")}
+        """,
+    },
+]
+
+STATUS_FORECAST_ACTIVITY = f"""
+SELECT
+    MAX(forecast_generated_at) AS last_run,
+    COUNT(*) FILTER (
+        WHERE forecast_generated_at >= NOW() - INTERVAL '24 hours'
+    )::bigint AS rows_24h,
+    COUNT(DISTINCT model_name)::bigint AS distinct_models
+FROM {_fqn("gold_forecast_predictions")}
+"""

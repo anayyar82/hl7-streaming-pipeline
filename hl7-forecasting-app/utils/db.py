@@ -95,7 +95,7 @@ def get_pool() -> ConnectionPool:
     )
 
 
-def run_query(query: str, params=None) -> pd.DataFrame:
+def run_query(query: str, params=None, *, quiet: bool = False) -> pd.DataFrame:
     try:
         pool = get_pool()
         with pool.connection() as conn:
@@ -106,7 +106,8 @@ def run_query(query: str, params=None) -> pd.DataFrame:
                     return pd.DataFrame()
                 return pd.DataFrame(rows)
     except Exception as e:
-        st.error(f"Database connection error: {e}")
+        if not quiet:
+            st.error(f"Database connection error: {e}")
         try:
             get_pool.clear()
         except Exception:
