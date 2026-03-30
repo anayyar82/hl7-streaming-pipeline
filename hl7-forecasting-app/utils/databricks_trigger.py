@@ -19,6 +19,7 @@ class TriggerResult:
     url: Optional[str] = None
     run_id: Optional[int] = None
     job_id: Optional[int] = None
+    update_id: Optional[str] = None
 
 
 def _workspace_host() -> str:
@@ -111,10 +112,12 @@ def trigger_pipeline_update(
         uid = getattr(resp, "update_id", None)
         if not uid:
             return TriggerResult(False, "Pipeline update started but no update_id returned.")
+        uid_s = str(uid)
         return TriggerResult(
             True,
-            f"Pipeline **{pipeline_id[:8]}…** update started.",
-            pipeline_update_url(pipeline_id, str(uid)),
+            f"Pipeline **{pipeline_id[:8]}…** update started — update id **{uid_s[:8]}…**.",
+            pipeline_update_url(pipeline_id, uid_s),
+            update_id=uid_s,
         )
     except Exception as e:
         err = str(e)

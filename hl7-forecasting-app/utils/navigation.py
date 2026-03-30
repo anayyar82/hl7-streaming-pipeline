@@ -23,6 +23,7 @@ _PLATFORM = [
     ("pages/0_status.py", "System status", "📡"),
     ("pages/0a_sample_to_volume.py", "Sample → volume", "📤"),
     ("pages/0b_live_activity.py", "Live activity", "⚡"),
+    ("pages/0c_dlt_update_live.py", "DLT update live", "🔄"),
     ("pages/z_run_jobs.py", "Run jobs & workflow", "🚀"),
     ("pages/9_platform_pulse.py", "Platform pulse", "🛰️"),
 ]

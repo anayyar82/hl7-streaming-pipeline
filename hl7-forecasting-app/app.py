@@ -96,6 +96,7 @@ with st.expander("What each page is for (quick map)", expanded=False):
 | **System status** | Per-table freshness matrix and runbook. |
 | **Sample → volume** | Land HL7 files into the UC landing volume. |
 | **Live activity** | DLT + Workflows run status (auto-refresh). |
+| **DLT update live** | Per-flow status + row metrics from pipeline event log. |
 | **Run jobs & workflow** | DLT, bundled workflow, inference, Lakebase load. |
 | **Platform pulse** | Cross-stack KPIs, treemap, ML snapshot. |
 

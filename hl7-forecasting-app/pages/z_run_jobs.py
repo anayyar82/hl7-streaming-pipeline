@@ -203,6 +203,12 @@ if st.button("Start DLT pipeline update", type="primary", disabled=not PIPELINE_
         st.success(r.message)
         if r.url:
             st.markdown(f"[Open pipeline update in workspace]({r.url})")
+        if getattr(r, "update_id", None):
+            st.session_state["dlt_mon_update_id"] = r.update_id
+            st.info(
+                "Update id saved for **DLT update live** — open that page to watch per-flow status."
+            )
+            st.page_link("pages/0c_dlt_update_live.py", label="Open DLT update live", icon="🔄")
     else:
         st.error(r.message)
 
