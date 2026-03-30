@@ -11,6 +11,12 @@ variables:
   funke_wheel_name:
     description: Filename of the funke wheel package
     default: funke-0.1.0a1-py3-none-any.whl
+  ml_spark_version:
+    description: DBR 17.x ML for AutoML, MLflow 3, pyfunc inference
+    default: 17.3.x-cpu-ml-scala2.12
+  ml_node_type:
+    description: Worker node type for ML training/inference jobs
+    default: i3.xlarge
 
 resources:
   jobs:
@@ -39,16 +45,49 @@ resources:
               schema: ${var.schema}
               project_id: ankurhlsproject
 
+    hl7_genie_uc_grants:
+      name: "[${bundle.target}] HL7 Genie UC Grants (hl7app SP)"
+      tasks:
+        - task_key: apply_uc_grants
+          existing_cluster_id: 0311-163008-zyak1y4y
+          notebook_task:
+            notebook_path: ../notebooks/12_genie_uc_grants.py
+
+    hl7_sample_data:
+      name: "[${bundle.target}] HL7 Generate Sample Data"
+      tasks:
+        - task_key: generate_hl7_files
+          existing_cluster_id: 0311-163008-zyak1y4y
+          notebook_task:
+            notebook_path: ../notebooks/06_generate_sample_data.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.source_volume}
+              num_days: "60"
+              num_patients: "150"
+              clear_existing: "yes"
+
     hl7_automl_training:
       name: "[${bundle.target}] HL7 AutoML Model Training"
+      job_clusters:
+        - job_cluster_key: ml_cpu
+          new_cluster:
+            spark_version: ${var.ml_spark_version}
+            node_type_id: ${var.ml_node_type}
+            autoscale:
+              min_workers: 1
+              max_workers: 2
+            data_security_mode: SINGLE_USER
       tasks:
         - task_key: train_models
-          existing_cluster_id: 0311-163008-zyak1y4y
+          job_cluster_key: ml_cpu
           notebook_task:
             notebook_path: ../notebooks/07_automl_training.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
+              experiment_prefix: hl7_forecasting
               timeout_minutes: "15"
 
     hl7_model_inference:
@@ -57,9 +96,18 @@ resources:
         quartz_cron_expression: "0 0 * * * ?"
         timezone_id: America/Los_Angeles
         pause_status: PAUSED
+      job_clusters:
+        - job_cluster_key: ml_cpu
+          new_cluster:
+            spark_version: ${var.ml_spark_version}
+            node_type_id: ${var.ml_node_type}
+            autoscale:
+              min_workers: 1
+              max_workers: 2
+            data_security_mode: SINGLE_USER
       tasks:
         - task_key: run_inference
-          existing_cluster_id: 0311-163008-zyak1y4y
+          job_cluster_key: ml_cpu
           notebook_task:
             notebook_path: ../notebooks/08_model_inference.py
             base_parameters:
@@ -70,6 +118,12 @@ resources:
     hl7_ed_icu_dashboard:
       display_name: "[${bundle.target}] HL7 ED & ICU Operations"
       file_path: ../dashboards/hl7_ed_icu_operations.lvdash.json
+      warehouse_id: e9b34f7a2e4b0561
+      embed_credentials: true
+
+    hl7_ed_icu_dashboard_main:
+      display_name: "[${bundle.target}] HL7 ED & ICU"
+      file_path: ../dashboards/hl7_ed_icu.lvdash.json
       warehouse_id: e9b34f7a2e4b0561
       embed_credentials: true
 

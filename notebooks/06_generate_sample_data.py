@@ -1,8 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # HL7 Sample Data Generator
-# MAGIC Generates realistic HL7 v2.5.1 ADT & ORU messages and writes them directly to the
-# MAGIC Unity Catalog landing volume for pipeline testing.
+# MAGIC Generates realistic HL7 v2.5.1 ADT & ORU messages and writes them to the Unity Catalog
+# MAGIC **landing** volume (`/Volumes/<catalog>/<schema>/<volume>`). After this job, run the
+# MAGIC **DLT** pipeline (`hl7_streaming_dlt`), then **AutoML** (`hl7_automl_training`) and
+# MAGIC **inference** (`hl7_model_inference`). Use **≥ ~30 days** of data so forecast features
+# MAGIC (168h lags) and AutoML have enough rows.
 
 # COMMAND ----------
 
@@ -14,20 +17,22 @@
 dbutils.widgets.text("catalog", "users", "Catalog")
 dbutils.widgets.text("schema", "ankur_nayyar", "Schema")
 dbutils.widgets.text("volume", "landing", "Volume")
-dbutils.widgets.text("num_days", "14", "Days of Data")
-dbutils.widgets.text("num_patients", "80", "Number of Patients")
-dbutils.widgets.dropdown("clear_existing", "no", ["yes", "no"], "Clear Existing Files")
+dbutils.widgets.text("num_days", "60", "Days of Data")
+dbutils.widgets.text("num_patients", "150", "Number of Patients")
+dbutils.widgets.text("start_date", "", "Start YYYY-MM-DD (empty = last N days ending yesterday UTC)")
+dbutils.widgets.dropdown("clear_existing", "yes", ["yes", "no"], "Clear Existing .hl7 Files")
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
 volume = dbutils.widgets.get("volume")
 num_days = int(dbutils.widgets.get("num_days"))
 num_patients = int(dbutils.widgets.get("num_patients"))
+start_date_raw = (dbutils.widgets.get("start_date") or "").strip()
 clear_existing = dbutils.widgets.get("clear_existing") == "yes"
 
 VOLUME_PATH = f"/Volumes/{catalog}/{schema}/{volume}"
 print(f"Target volume: {VOLUME_PATH}")
-print(f"Config: {num_days} days, {num_patients} patients, clear_existing={clear_existing}")
+print(f"Config: {num_days} days, {num_patients} patients, clear_existing={clear_existing}, start_date={start_date_raw or '(rolling)'}")
 
 # COMMAND ----------
 
@@ -133,13 +138,35 @@ def is_icu_location(location):
     return any(x in location for x in ("ICU", "MICU", "SICU", "CCU"))
 
 
+def build_pv1(pc, assigned_location_pl, attending_provider, visit_number, admit_dt_str, discharge_dt_str=""):
+    """
+    HL7 v2.5.1 PV1 with admit/discharge in fields 44–45 (1-based), aligned with
+    funke / silver_pv1 paths. Short PV1 strings previously put timestamps in
+    the wrong slots so admit_datetime never parsed; reports then fell back to
+    created_at and collapsed to one hour → too few rows for AutoML.
+    """
+    f = [""] * 46
+    f[1] = "1"
+    f[2] = pc
+    f[3] = assigned_location_pl
+    f[7] = attending_provider
+    f[10] = "MED"
+    f[19] = visit_number
+    f[44] = admit_dt_str
+    f[45] = discharge_dt_str
+    return "PV1|" + "|".join(f[1:46])
+
+
 def generate_adt_a01(msg_id, ts, mrn, last, first, dob, sex, facility, location, provider, dx_list):
     pc = "I" if is_icu_location(location) else "E"
+    pl = f"{location}^{facility}"
+    admit_ts = ts - timedelta(minutes=random.randint(10, 60))
+    pv1 = build_pv1(pc, pl, provider, f"V{msg_id:04d}", fmt_ts(admit_ts), "")
     lines = [
         f"MSH|^~\\&|EPIC|{facility}|DATABRICKS|ANALYTICS|{fmt_ts(ts)}||ADT^A01^ADT_A01|MSG{msg_id:06d}|P|2.5.1|||AL|NE",
         f"EVN|A01|{fmt_ts(ts)}",
         make_pid(mrn, last, first, dob, sex, facility),
-        f"PV1|1|{pc}|{location}^{facility}||||{provider}|||MED||||||||V{msg_id:04d}||||||||||||||||||||{fmt_ts(ts - timedelta(minutes=random.randint(10, 60)))}",
+        pv1,
     ]
     for i in range(random.randint(3, 5)):
         lines.append(make_obx(i + 1, ts - timedelta(minutes=random.randint(5, 30))))
@@ -154,21 +181,26 @@ def generate_adt_a01(msg_id, ts, mrn, last, first, dob, sex, facility, location,
 
 def generate_adt_a03(msg_id, ts, mrn, last, first, dob, sex, facility, location, provider, admit_ts):
     pc = "I" if is_icu_location(location) else "E"
+    pl = f"{location}^{facility}"
+    pv1 = build_pv1(pc, pl, provider, f"V{msg_id:04d}", fmt_ts(admit_ts), fmt_ts(ts))
     lines = [
         f"MSH|^~\\&|EPIC|{facility}|DATABRICKS|ANALYTICS|{fmt_ts(ts)}||ADT^A03^ADT_A03|MSG{msg_id:06d}|P|2.5.1|||AL|NE",
         f"EVN|A03|{fmt_ts(ts)}",
         make_pid(mrn, last, first, dob, sex, facility),
-        f"PV1|1|{pc}|{location}^{facility}||||{provider}|||MED||||||||V{msg_id:04d}||||||||||||||||||||{fmt_ts(admit_ts)}|{fmt_ts(ts)}",
+        pv1,
     ]
     return "\r".join(lines)
 
 
 def generate_adt_a08(msg_id, ts, mrn, last, first, dob, sex, facility, location, provider):
+    pl = f"{location}^{facility}"
+    admit_ts = ts - timedelta(hours=random.randint(1, 8))
+    pv1 = build_pv1("I", pl, provider, f"V{msg_id:04d}", fmt_ts(admit_ts), "")
     lines = [
         f"MSH|^~\\&|EPIC|{facility}|DATABRICKS|ANALYTICS|{fmt_ts(ts)}||ADT^A08^ADT_A08|MSG{msg_id:06d}|P|2.5.1|||AL|NE",
         f"EVN|A08|{fmt_ts(ts)}",
         make_pid(mrn, last, first, dob, sex, facility),
-        f"PV1|1|I|{location}^{facility}||||{provider}|||MED||||||||V{msg_id:04d}||||||||||||||||||||{fmt_ts(ts - timedelta(hours=random.randint(1, 8)))}",
+        pv1,
     ]
     for i in range(random.randint(2, 4)):
         lines.append(make_obx(i + 1, ts))
@@ -202,7 +234,13 @@ def generate_oru(msg_id, ts, mrn, last, first, dob, sex, facility):
 
 # COMMAND ----------
 
-start_date = datetime(2024, 1, 10, 0, 0, 0)
+if start_date_raw:
+    start_date = datetime.strptime(start_date_raw, "%Y-%m-%d")
+else:
+    today_utc = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = today_utc - timedelta(days=num_days)
+
+print(f"First simulated day (UTC midnight): {start_date.date()}")
 msg_id = 1
 all_messages = []
 
@@ -219,8 +257,8 @@ for i in range(num_patients):
 for day_offset in range(num_days):
     current_day = start_date + timedelta(days=day_offset)
     is_weekend = current_day.weekday() >= 5
-    ed_daily = random.randint(40, 70) if not is_weekend else random.randint(55, 90)
-    icu_daily = random.randint(8, 18)
+    ed_daily = random.randint(55, 95) if not is_weekend else random.randint(70, 110)
+    icu_daily = random.randint(12, 26)
 
     for hour in range(24):
         ts_base = current_day + timedelta(hours=hour)
@@ -306,7 +344,11 @@ print(f"Generated {total_messages} messages in memory")
 # COMMAND ----------
 
 if clear_existing:
-    existing = dbutils.fs.ls(f"dbfs:{VOLUME_PATH}")
+    try:
+        existing = dbutils.fs.ls(VOLUME_PATH)
+    except Exception as e:
+        print(f"Note: could not list volume (may be empty): {e}")
+        existing = []
     hl7_files = [f for f in existing if f.name.endswith(".hl7")]
     for f in hl7_files:
         dbutils.fs.rm(f.path)

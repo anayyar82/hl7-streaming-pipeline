@@ -16,6 +16,9 @@ targets:
       schema: ankur_nayyar
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
+      # DBR 17 ML: MLflow 3, tracing, AutoML (07 / 08 jobs)
+      ml_spark_version: 17.3.x-cpu-ml-scala2.12
+      ml_node_type: i3.xlarge
 
   staging:
     variables:
@@ -23,6 +26,8 @@ targets:
       schema: ankur_nayyar
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
+      ml_spark_version: 17.3.x-cpu-ml-scala2.12
+      ml_node_type: i3.xlarge
 
   prod:
     mode: production
@@ -31,3 +36,5 @@ targets:
       schema: ankur_nayyar
       source_volume: landing
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
+      ml_spark_version: 17.3.x-cpu-ml-scala2.12
+      ml_node_type: i3.xlarge

@@ -63,6 +63,24 @@ import pandas as pd
 import numpy as np
 
 mlflow.set_registry_uri("databricks-uc")
+print(f"MLflow version: {mlflow.__version__}")
+try:
+    mlflow.tracing.enable()
+    print("MLflow tracing enabled")
+except Exception as _te:
+    print(f"MLflow tracing not available: {_te}")
+
+
+def _pyfunc_predict_traced(model, pdf: pd.DataFrame, span_name: str):
+    """Run pyfunc.predict inside MLflow 3 start_span when available (Traces UI)."""
+    try:
+        with mlflow.start_span(name=span_name) as span:
+            if span is not None and hasattr(span, "set_attribute"):
+                span.set_attribute("feature_rows", len(pdf))
+                span.set_attribute("feature_cols", len(pdf.columns))
+            return model.predict(pdf)
+    except Exception:
+        return model.predict(pdf)
 
 # COMMAND ----------
 
@@ -145,7 +163,9 @@ for model_name, model_info in loaded_models.items():
         continue
 
     try:
-        predictions = model.predict(pdf)
+        predictions = _pyfunc_predict_traced(
+            model, pdf, span_name=f"hl7_forecast_{config['name']}"
+        )
 
         pred_std = np.std(predictions) if len(predictions) > 1 else 0
         latest_pred = float(predictions[-1]) if len(predictions) > 0 else 0.0

@@ -95,15 +95,33 @@ def make_al1(set_id: int) -> str:
     return f"AL1|{set_id}|{a[2]}^{a[3]}^HL70127|{a[0]}^{a[1]}^RxNorm|{a[4]}^{a[5]}^HL70128|{a[6]}|20200101"
 
 
+def build_pv1(pc: str, assigned_location_pl: str, attending_provider: str, visit_number: str,
+              admit_dt_str: str, discharge_dt_str: str = "") -> str:
+    """PV1 with admit/discharge in HL7 fields 44–45 (matches funke / silver_pv1)."""
+    f = [""] * 46
+    f[1] = "1"
+    f[2] = pc
+    f[3] = assigned_location_pl
+    f[7] = attending_provider
+    f[10] = "MED"
+    f[19] = visit_number
+    f[44] = admit_dt_str
+    f[45] = discharge_dt_str
+    return "PV1|" + "|".join(f[1:46])
+
+
 def generate_adt_a01(msg_id: int, ts: datetime, mrn: str, last: str, first: str,
                      dob: str, sex: str, facility: str, location: str, provider: str,
                      dx_list: list) -> str:
+    pc = "I" if any(x in location for x in ("ICU", "MICU", "SICU", "CCU")) else "E"
+    pl = f"{location}^{facility}"
+    admit_ts = ts - timedelta(minutes=random.randint(10, 60))
+    pv1 = build_pv1(pc, pl, provider, f"V{msg_id:04d}", fmt_ts(admit_ts), "")
     lines = [
         f"MSH|^~\\&|EPIC|{facility}|DATABRICKS|ANALYTICS|{fmt_ts(ts)}||ADT^A01^ADT_A01|MSG{msg_id:06d}|P|2.5.1|||AL|NE",
         f"EVN|A01|{fmt_ts(ts)}",
         make_pid(mrn, last, first, dob, sex, facility),
-        f"PV1|1|{'I' if 'ICU' in location or 'MICU' in location or 'SICU' in location or 'CCU' in location else 'E'}|"
-        f"{location}^{facility}||||{provider}|||MED||||||||V{msg_id:04d}||||||||||||||||||||{fmt_ts(ts - timedelta(minutes=random.randint(10, 60)))}",
+        pv1,
     ]
     for i in range(random.randint(3, 5)):
         lines.append(make_obx(i + 1, ts - timedelta(minutes=random.randint(5, 30))))
@@ -119,23 +137,28 @@ def generate_adt_a01(msg_id: int, ts: datetime, mrn: str, last: str, first: str,
 def generate_adt_a03(msg_id: int, ts: datetime, mrn: str, last: str, first: str,
                      dob: str, sex: str, facility: str, location: str, provider: str,
                      admit_ts: datetime) -> str:
+    pc = "I" if any(x in location for x in ("ICU", "MICU", "SICU", "CCU")) else "E"
+    pl = f"{location}^{facility}"
+    pv1 = build_pv1(pc, pl, provider, f"V{msg_id:04d}", fmt_ts(admit_ts), fmt_ts(ts))
     lines = [
         f"MSH|^~\\&|EPIC|{facility}|DATABRICKS|ANALYTICS|{fmt_ts(ts)}||ADT^A03^ADT_A03|MSG{msg_id:06d}|P|2.5.1|||AL|NE",
         f"EVN|A03|{fmt_ts(ts)}",
         make_pid(mrn, last, first, dob, sex, facility),
-        f"PV1|1|{'I' if 'ICU' in location or 'MICU' in location or 'SICU' in location or 'CCU' in location else 'E'}|"
-        f"{location}^{facility}||||{provider}|||MED||||||||V{msg_id:04d}||||||||||||||||||||{fmt_ts(admit_ts)}|{fmt_ts(ts)}",
+        pv1,
     ]
     return "\r".join(lines)
 
 
 def generate_adt_a08(msg_id: int, ts: datetime, mrn: str, last: str, first: str,
                      dob: str, sex: str, facility: str, location: str, provider: str) -> str:
+    pl = f"{location}^{facility}"
+    admit_ts = ts - timedelta(hours=random.randint(1, 8))
+    pv1 = build_pv1("I", pl, provider, f"V{msg_id:04d}", fmt_ts(admit_ts), "")
     lines = [
         f"MSH|^~\\&|EPIC|{facility}|DATABRICKS|ANALYTICS|{fmt_ts(ts)}||ADT^A08^ADT_A08|MSG{msg_id:06d}|P|2.5.1|||AL|NE",
         f"EVN|A08|{fmt_ts(ts)}",
         make_pid(mrn, last, first, dob, sex, facility),
-        f"PV1|1|I|{location}^{facility}||||{provider}|||MED||||||||V{msg_id:04d}||||||||||||||||||||{fmt_ts(ts - timedelta(hours=random.randint(1, 8)))}",
+        pv1,
     ]
     for i in range(random.randint(2, 4)):
         lines.append(make_obx(i + 1, ts))

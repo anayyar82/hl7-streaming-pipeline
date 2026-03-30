@@ -42,6 +42,7 @@ st.markdown(
     .card-teal { border-left-color: #009688; }
     .card-red { border-left-color: #F44336; }
     .card-indigo { border-left-color: #3F51B5; }
+    .card-genie { border-left-color: #6a1b9a; }
     .conn-box {
         background: #f8f9fa;
         border: 1px solid #dee2e6;
@@ -64,11 +65,18 @@ st.sidebar.markdown(
     **Schema:** `ankur_nayyar`
     """
 )
+st.sidebar.markdown("---")
+st.sidebar.page_link(
+    "pages/8_genie_chat.py",
+    label="Ask your data (Genie)",
+    icon="💬",
+)
 
 st.title("HL7 ED & ICU Operations Dashboard")
 st.markdown(
-    "Navigate to a page in the sidebar to explore real-time operations, "
-    "trends, forecasts, clinical analytics, and pipeline health."
+    "Use the sidebar (or the link below) for **8. Ask your data (Genie)** — natural-language "
+    "questions over your Genie space — plus real-time operations, trends, forecasts, "
+    "clinical analytics, and pipeline health."
 )
 
 # ---- Lakebase Connection & Data Summary ----
@@ -118,6 +126,12 @@ st.markdown("---")
 
 st.markdown("### Dashboard Pages")
 
+st.page_link(
+    "pages/8_genie_chat.py",
+    label="8. Ask your data (Genie) — AI/BI natural language",
+    icon="💬",
+)
+
 row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
 
 with row1_c1:
@@ -161,7 +175,7 @@ with row1_c4:
         unsafe_allow_html=True,
     )
 
-row2_c1, row2_c2, row2_c3, _ = st.columns(4)
+row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
 
 with row2_c1:
     st.markdown(
@@ -194,6 +208,22 @@ with row2_c3:
         "facility, patient class</p>"
         "</div>",
         unsafe_allow_html=True,
+    )
+
+with row2_c4:
+    st.markdown(
+        '<div class="card card-genie">'
+        "<h4>8. Ask your data (Genie)</h4>"
+        "<p>Natural-language Q&amp;A via Databricks AI/BI Genie over tables "
+        "in your Genie space.<br><b>Requires:</b> <code>GENIE_SPACE_ID</code> "
+        "and UC/warehouse grants.</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/8_genie_chat.py",
+        label="Open Genie chat",
+        icon="💬",
     )
 
 st.markdown("---")

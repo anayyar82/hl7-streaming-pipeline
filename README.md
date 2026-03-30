@@ -70,11 +70,13 @@ A production-ready HL7 v2.x streaming pipeline built on Databricks using Delta L
 
 | Notebook | Purpose |
 |----------|---------|
-| `07_automl_training.py` | Trains ED/ICU forecast models via Databricks AutoML + MLflow |
-| `08_model_inference.py` | Batch-scores latest features against registered models |
+| `06_generate_sample_data.py` | Generates synthetic HL7 (correct PV1 fields 44–45) into the UC landing volume for demos and AutoML |
+| `07_automl_training.py` | Trains ED/ICU forecast models via Databricks AutoML + MLflow 3 (DBR 17 ML) |
+| `08_model_inference.py` | Batch-scores latest features against registered models (MLflow tracing spans on predict) |
 | `09_lakebase_sync.py` | Enables Change Data Feed for Unity Catalog tables |
 | `10_lakebase_load.py` | Loads gold tables into Lakebase Postgres (TRUNCATE + batch INSERT) |
 | `11_lakebase_grants.py` | Grants Postgres permissions to the app service principal |
+| `12_genie_uc_grants.py` | One-shot Unity Catalog + SQL warehouse grants for **hl7app** / Genie (`hl7_genie_uc_grants` job) |
 
 ---
 
@@ -270,6 +272,7 @@ Interactive Streamlit dashboard deployed as a Databricks App, connecting to Lake
 
 | Page | Name | Filters | Description |
 |------|------|---------|-------------|
+| 8 | **Ask your data (Genie)** | — | Natural-language Q&A via Databricks AI/BI Genie (requires `GENIE_SPACE_ID` and a curated Genie space; see below) |
 | 1 | **Real-Time Ops** | Department, Facility, Time Window, Weekday/Weekend | Live ED & ICU census, hourly arrivals/discharges, cumulative net, peak hour detection |
 | 2 | **Trends** | Date Range, Facility, Weekday/Weekend | Daily summaries, LOS analytics, hour-of-day arrival heatmaps, ED vs ICU daily comparison |
 | 3 | **ML Forecasting** | Department, Metric, Horizon | Predicted vs actual values, confidence intervals, forecast timelines |
@@ -277,6 +280,34 @@ Interactive Streamlit dashboard deployed as a Databricks App, connecting to Lake
 | 5 | **Patient & Clinical** | Coding System, Top N, Value Type, Severity, Priority, Provider Search | Demographics, top diagnoses, lab results, allergies, orders, provider activity |
 | 6 | **Combined Forecast** | Date Range, Weekday/Weekend | ED+ICU system pressure, ED-to-ICU ratio, rolling averages, feature heatmaps |
 | 7 | **Operations** | Date Range, Message Type, Facility, Patient Class | Message throughput, pipeline health, data freshness, patient activity by class |
+
+### Ask your data (Databricks Genie)
+
+The **8 — Ask your data** page (`pages/8_genie_chat.py`) is a chat UI on top of the [Genie Conversation API](https://docs.databricks.com/aws/en/genie/conversation-api). It uses `WorkspaceClient()` in the app runtime, so requests run as the **hl7app service principal**, not as each end-user’s identity. Answers are limited to the tables, instructions, and sample SQL you configure in **your** Genie space (for example a space titled *Healthcare Operations and Patient Analytics*).
+
+**How it fits in the repo**
+
+| Piece | Role |
+|--------|------|
+| `utils/genie_client.py` | Resolves `GENIE_SPACE_ID`, starts/continues conversations, parses attachments, fetches SQL result previews via Statement Execution. |
+| `hl7-forecasting-app/app.yaml` | Maps `GENIE_SPACE_ID` → `valueFrom: genie-space` (must match the **resource key** in Apps, not the Genie space display name). |
+| `notebooks/12_genie_uc_grants.py` | Optional one-shot UC + warehouse grants for the app SP; also available as job **`hl7_genie_uc_grants`**. |
+| `app.py` | Sidebar and home **`st.page_link`** to `pages/8_genie_chat.py` so Genie is easy to find. |
+
+**Setup checklist (working configuration)**
+
+1. **Genie space** — In **AI/BI → Genie**, create or use a space scoped to your HL7 gold tables in Unity Catalog (`users.ankur_nayyar` or your catalog). Add instructions, sample questions, and benchmarks ([best practices](https://docs.databricks.com/aws/en/genie/best-practices)).
+2. **Attach to the app** — **Compute → Apps → hl7app → Resources → Add resource → Genie space**, permission **Can run**. When prompted for a **resource key**, use **`genie-space`** so it matches this repo’s `app.yaml`, *or* change `valueFrom` in `app.yaml` to your custom key and redeploy.
+3. **Important:** The Genie space **title** (e.g. “Healthcare Operations and Patient Analytics”) is only a label. What must match `valueFrom` is the **resource key** in the Apps UI. If they differ, `GENIE_SPACE_ID` stays empty and the chat page shows setup instructions.
+4. **Deploy + restart** — After changing `app.yaml` or resources, run **`databricks bundle deploy -t <target>`** and **restart** hl7app so the runtime picks up `GENIE_SPACE_ID`.
+5. **Fallback env var** — You can instead set **`GENIE_SPACE_ID`** directly under the app’s **Environment variables** to the UUID from the Genie URL (`.../rooms/<SPACE_ID>`). Optional: `GENIE_SPACE_ID` in `.streamlit/secrets.toml` is read by `8_genie_chat.py` if present.
+6. **Grants** — The app SP needs `USE CATALOG`, `USE SCHEMA`, and `SELECT` on the schema Genie queries, plus **`CAN USE`** on the SQL warehouse the Genie space uses. Run **`12_genie_uc_grants.py`** (set the **warehouse name** widget) or **`databricks bundle run hl7_genie_uc_grants -t dev`**. Confirm the SP with `databricks apps get hl7app -o json | jq -r .service_principal_client_id`.
+
+**Lakeview dashboards vs this app**
+
+Lakeview JSON can enable **`uiSettings.genieSpace`** for Genie inside a *dashboard*; that is separate from the Streamlit page, which talks to Genie through the **SDK + `GENIE_SPACE_ID`**.
+
+Official reference: [Add a Genie space resource to a Databricks app](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/genie).
 
 ### App Architecture
 
@@ -287,9 +318,11 @@ hl7-forecasting-app/
 ├── requirements.txt        # Python deps: streamlit, psycopg, plotly, databricks-sdk, requests
 ├── utils/
 │   ├── db.py               # Lakebase connection (ConnectionPool + OAuth token rotation)
+│   ├── genie_client.py     # Genie API: space id resolution, conversation, result previews
 │   ├── queries.py          # All SQL queries organized by dashboard page
 │   └── filters.py          # Reusable sidebar filter components (facility, date, department, etc.)
 └── pages/
+    ├── 8_genie_chat.py      # Natural-language analytics via Genie (requires configured Genie space)
     ├── 1_realtime.py        # Real-time operations with department/facility/time filters
     ├── 2_trends.py          # Trend analytics with date range/facility/weekend filters
     ├── 3_forecasting.py     # ML forecast visualization with dept/metric/horizon filters
@@ -314,6 +347,9 @@ env:
     value: 'require'
   - name: ENDPOINT_NAME
     value: 'projects/ankurhlsproject/branches/production/endpoints/primary'
+  # Genie: resource key in Apps UI must match valueFrom (default genie-space).
+  - name: GENIE_SPACE_ID
+    valueFrom: genie-space
 ```
 
 > **Do NOT** add `--server.port 8501` or `--server.address` to the command. The runtime sets `DATABRICKS_APP_PORT` / `STREAMLIT_SERVER_PORT` automatically. A mismatched port causes "App Not Available" even though the API shows RUNNING.
@@ -541,27 +577,33 @@ HL7 Streaming/
 ├── README.md                            # This file
 ├── databricks.yml                       # DAB bundle configuration
 ├── requirements.txt                     # Python dev dependencies
+├── docs/
+│   └── SOLUTION_BRIEF_HL7_STREAMING.md   # Stakeholder-style solution brief (use cases)
 ├── notebooks/
 │   ├── hl7_dlt_pipeline.py              # Pipeline overview notebook
 │   ├── 01_bronze.py                     # Bronze: ingestion + funke parsing
 │   ├── 02_silver.py                     # Silver: segment extraction
 │   ├── 03_gold.py                       # Gold: dimensions, facts, metrics
 │   ├── 04_reports.py                    # Reports: ED/ICU census & summaries
-│   ├── 05_forecasting.py               # Forecasting: features + predictions
-│   ├── 07_automl_training.py            # AutoML model training
-│   ├── 08_model_inference.py            # Batch model inference
+│   ├── 05_forecasting.py                # Forecasting: features + predictions
+│   ├── 06_generate_sample_data.py       # Synthetic HL7 → landing volume
+│   ├── 07_automl_training.py            # AutoML + MLflow 3 (DBR 17 ML)
+│   ├── 08_model_inference.py            # Batch model inference + tracing spans
 │   ├── 09_lakebase_sync.py              # CDF enablement for Lakebase
 │   ├── 10_lakebase_load.py              # Gold → Lakebase Postgres loader
-│   └── 11_lakebase_grants.py            # Postgres grants for app SP
+│   ├── 11_lakebase_grants.py            # Postgres grants for app SP
+│   └── 12_genie_uc_grants.py            # UC + warehouse grants for Genie / hl7app
 ├── hl7-forecasting-app/                 # Databricks App (Streamlit)
 │   ├── app.py                           # Landing page with Lakebase status card
 │   ├── app.yaml                         # App config (env vars, startup command)
 │   ├── requirements.txt                 # App Python dependencies
 │   ├── utils/
 │   │   ├── db.py                        # Lakebase connection pool + OAuth rotation
+│   │   ├── genie_client.py              # Genie Conversation API + space id resolution
 │   │   ├── queries.py                   # SQL queries for all dashboard pages
 │   │   └── filters.py                   # Reusable sidebar filter components
 │   └── pages/                           # Streamlit multipage dashboards
+│       ├── 8_genie_chat.py              # Ask your data (Genie)
 │       ├── 1_realtime.py                # Real-time ops (dept/facility/time/weekend)
 │       ├── 2_trends.py                  # Trends (date range/facility/weekend)
 │       ├── 3_forecasting.py             # ML forecasting (dept/metric/horizon)
@@ -571,6 +613,7 @@ HL7 Streaming/
 │       └── 7_operations.py              # Operations (date/msg type/facility/class)
 ├── dashboards/
 │   ├── hl7_ed_icu_operations.lvdash.json       # Lakeview: ED/ICU Ops
+│   ├── hl7_ed_icu.lvdash.json                  # Lakeview: ED/ICU (main)
 │   └── hl7_patient_clinical_analytics.lvdash.json  # Lakeview: Patient Clinical
 ├── libraries/
 │   └── funke-*.whl                      # funke wheel (deployed via DAB)
@@ -600,7 +643,8 @@ HL7 Streaming/
 
 - Databricks workspace with Unity Catalog enabled
 - Databricks CLI v0.100+ with Asset Bundles support
-- Databricks Runtime 13.0+ with Delta Live Tables
+- Databricks Runtime with Delta Live Tables for the **DLT** pipeline (13.0+; bundle uses current channel)
+- **Databricks Runtime 17.3.x ML** (or compatible) available in the workspace for **`hl7_automl_training`** and **`hl7_model_inference`** job clusters (`ml_spark_version`)
 - Lakebase Autoscaling project created
 
 ### Deploy with Databricks Asset Bundles
@@ -618,6 +662,29 @@ databricks bundle run hl7_streaming_dlt -t dev
 # Load gold tables into Lakebase
 databricks bundle run hl7_lakebase_load -t dev
 ```
+
+### Sample HL7 data (forecasting & AutoML)
+
+Create the Unity Catalog volume once if it does not exist:  
+`/Volumes/<catalog>/<schema>/landing` (defaults: `users`, `ankur_nayyar`, `landing` from `databricks.yml`).
+
+Then:
+
+1. **Generate and load synthetic HL7** into that volume (ADT A01/A03/A08, ORU; bundle default **60** days / **150** patients, ED + ICU patterns):
+
+   ```bash
+   databricks bundle run hl7_sample_data -t dev
+   ```
+
+   Or run notebook `notebooks/06_generate_sample_data.py` in the workspace and adjust widgets (`num_days` ≥ **30** is recommended so `gold_*_forecast_features` has enough history for 168h lags and AutoML). PV1 admit/discharge times are emitted in **HL7 fields 44–45** so `admit_datetime` / `discharge_datetime` parse correctly; otherwise `gold_ed_hourly_census` can collapse to a single processing hour and AutoML sees only a handful of rows.
+
+2. **Refresh the DLT pipeline** so Bronze → Gold and `05_forecasting` rebuild `gold_ed_forecast_features`, `gold_icu_forecast_features`, and `gold_combined_forecast_features`:
+
+   ```bash
+   databricks bundle run hl7_streaming_dlt -t dev
+   ```
+
+3. **Train and score** (see next section): `hl7_automl_training`, then `hl7_model_inference`.
 
 ### Set Up Lakebase Auth for the App
 
@@ -654,7 +721,8 @@ databricks apps logs hl7app
 ### Train and Score ML Models
 
 ```bash
-# Train ML models
+# Train ML models (AutoML experiments: /Users/<you>/databricks_automl/<experiment_prefix>/<model>;
+# job default experiment_prefix is hl7_forecasting — relative only, not /Shared/…)
 databricks bundle run hl7_automl_training -t dev
 
 # Run model inference
@@ -669,18 +737,29 @@ databricks bundle run hl7_model_inference -t dev
 | `schema` | Target schema name | `ankur_nayyar` |
 | `source_volume` | Landing volume for raw HL7 files | `landing` |
 | `funke_wheel_name` | Filename of the funke wheel | `funke-0.1.0a1-py3-none-any.whl` |
+| `ml_spark_version` | DBR ML image for AutoML + inference jobs | `17.3.x-cpu-ml-scala2.12` |
+| `ml_node_type` | Worker type for those jobs | `i3.xlarge` |
+
+### ML jobs: DBR 17 ML and MLflow 3
+
+`hl7_automl_training` and `hl7_model_inference` run on **Databricks Runtime 17.3.x ML** (see `ml_spark_version` in `databricks.yml` / `resources/hl7_pipeline.yml`). That runtime ships **MLflow 3** with tracing. The notebooks call `mlflow.tracing.enable()` and, during inference, wrap batch `pyfunc.predict` in `mlflow.start_span` so spans show up in the **Traces** experience for the active experiment. Avoid `pip install mlflow` on DBR ML clusters so you do not override the tested, managed build.
+
+The **DLT** pipeline uses its own cluster definition in the bundle and is unchanged by `ml_spark_version`.
 
 ### Deployed Resources (via DAB)
 
 | Resource | Type | Description |
 |----------|------|-------------|
 | `hl7_streaming_dlt` | DLT Pipeline | 5-notebook Medallion pipeline (Photon, autoscale 1-2 workers) |
+| `hl7_sample_data` | Job | Writes synthetic `.hl7` batches to the landing volume (`06_generate_sample_data.py`) |
 | `hl7_lakebase_load` | Job | Loads gold tables into Lakebase Postgres |
 | `hl7_automl_training` | Job | Trains forecast models via AutoML |
 | `hl7_model_inference` | Job | Hourly batch inference (PAUSED by default) |
 | `hl7_lakebase_sync` | Job | CDF enablement for Lakebase sync |
+| `hl7_genie_uc_grants` | Job | One-shot UC + warehouse grants for **hl7app** / Genie (`12_genie_uc_grants.py`) |
 | `hl7app` | App | Streamlit dashboard (Databricks App, `sql` scope) |
-| `hl7_ed_icu_dashboard` | Dashboard | Lakeview dashboard for ED/ICU operations |
+| `hl7_ed_icu_dashboard` | Dashboard | Lakeview: ED/ICU operations (`hl7_ed_icu_operations.lvdash.json`) |
+| `hl7_ed_icu_dashboard_main` | Dashboard | Lakeview: ED/ICU (`hl7_ed_icu.lvdash.json`) |
 | `hl7_patient_clinical_dashboard` | Dashboard | Lakeview dashboard for patient clinical analytics |
 
 ---

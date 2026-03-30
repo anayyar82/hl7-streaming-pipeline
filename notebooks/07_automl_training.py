@@ -29,17 +29,21 @@
 
 dbutils.widgets.text("catalog", "users", "Catalog")
 dbutils.widgets.text("schema", "ankur_nayyar", "Schema")
-dbutils.widgets.text("experiment_prefix", "/Users/ankur.nayyar@databricks.com/hl7_forecasting", "MLflow Experiment Prefix")
+# AutoML places experiments under: /Users/<user>/databricks_automl/<this_prefix>/<model_name>
+# Do NOT use leading / or "Shared/..." — that becomes .../databricks_automl/Shared/... (404).
+dbutils.widgets.text("experiment_prefix", "hl7_forecasting", "Relative folder under databricks_automl")
 dbutils.widgets.dropdown("timeout_minutes", "15", ["5", "10", "15", "30", "60"], "AutoML Timeout (min)")
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
-experiment_prefix = dbutils.widgets.get("experiment_prefix")
+_raw_prefix = dbutils.widgets.get("experiment_prefix").strip().strip("/")
+experiment_rel_path = _raw_prefix or "hl7_forecasting"
 timeout_minutes = int(dbutils.widgets.get("timeout_minutes"))
 
 MODEL_REGISTRY_PREFIX = f"{catalog}.{schema}"
 print(f"Catalog: {catalog}, Schema: {schema}")
 print(f"Model registry: {MODEL_REGISTRY_PREFIX}.*")
+print(f"AutoML experiment path (relative): {experiment_rel_path}")
 print(f"AutoML timeout: {timeout_minutes} min per model")
 
 # COMMAND ----------
@@ -54,8 +58,39 @@ import databricks.automl as automl
 import pyspark.sql.functions as F
 from pyspark.sql.types import *
 from datetime import datetime
+from databricks.sdk import WorkspaceClient
 
 mlflow.set_registry_uri("databricks-uc")
+print(f"MLflow version: {mlflow.__version__}")
+# MLflow 3+: unified tracking + tracing (DBR 17 ML includes MLflow 3)
+try:
+    mlflow.tracing.enable()
+    print("MLflow tracing enabled")
+except Exception as _te:
+    print(f"MLflow tracing not available: {_te}")
+
+# AutoML expects parent: /Users/<user>/databricks_automl/<experiment_rel_path>
+def _workspace_user_name():
+    try:
+        return WorkspaceClient().current_user.me().user_name
+    except Exception:
+        import json
+        ctx = json.loads(
+            dbutils.notebook.entry_point.getDbutils().notebook().getContext().toJson()
+        )
+        return (ctx.get("tags") or {}).get("user")
+
+
+try:
+    w = WorkspaceClient()
+    user_name = _workspace_user_name()
+    if not user_name:
+        raise RuntimeError("Could not resolve workspace user (tags.user / current_user.me)")
+    automl_parent = f"/Users/{user_name}/databricks_automl/{experiment_rel_path}"
+    w.workspace.mkdirs(automl_parent)
+    print(f"Ensured AutoML workspace parent exists: {automl_parent}")
+except Exception as _e:
+    print(f"Could not mkdir AutoML parent (training may 404): {_e}")
 
 # COMMAND ----------
 
@@ -168,7 +203,7 @@ for config in MODEL_CONFIGS:
         })
         continue
 
-    experiment_name = f"{experiment_prefix}/{model_name}"
+    experiment_name = f"{experiment_rel_path}/{model_name}"
 
     try:
         summary = automl.regress(
