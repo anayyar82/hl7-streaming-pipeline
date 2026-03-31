@@ -12,6 +12,7 @@ import streamlit as st
 from utils.databricks_activity import get_pipeline_snapshot
 from utils.databricks_trigger import pipeline_update_url
 from utils.dlt_live_monitor import (
+    build_dlt_update_kpi_html,
     events_to_dataframes,
     fetch_pipeline_events,
     fetch_update_row,
@@ -91,11 +92,7 @@ def _panel() -> None:
     if urow.get("error"):
         st.error(urow["error"])
     else:
-        mcols = st.columns(4)
-        mcols[0].metric("Update state", str(urow.get("state") or "—"))
-        mcols[1].metric("Cluster", str(urow.get("cluster_id") or "—")[:16] + "…" if len(str(urow.get("cluster_id") or "")) > 18 else str(urow.get("cluster_id") or "—"))
-        mcols[2].metric("Started", str(urow.get("creation_time_fmt") or "—"))
-        mcols[3].metric("Ended", str(urow.get("end_time_fmt") or "—"))
+        st.markdown(build_dlt_update_kpi_html(urow), unsafe_allow_html=True)
         if urow.get("cause"):
             st.caption(str(urow["cause"])[:400])
 

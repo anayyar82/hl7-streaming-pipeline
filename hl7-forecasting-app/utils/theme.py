@@ -24,6 +24,17 @@ h1, h2, h3 {
   letter-spacing: -0.02em !important;
 }
 
+/* Slightly tighter page titles than Streamlit default */
+.block-container h1 {
+  font-size: 1.5rem !important;
+  line-height: 1.25 !important;
+}
+.block-container h2,
+.block-container h3 {
+  font-size: 1.15rem !important;
+  line-height: 1.3 !important;
+}
+
 /* Metrics — card-like */
 div[data-testid="stMetric"] {
   background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
@@ -40,6 +51,60 @@ div[data-testid="stMetric"] label {
 div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   color: #0f172a !important;
   font-weight: 700 !important;
+  font-size: 1.05rem !important;
+}
+
+/* DLT live — compact update summary row (replaces oversized metrics on that page) */
+.hl7-dlt-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 0 0 12px 0;
+}
+@media (max-width: 900px) {
+  .hl7-dlt-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.hl7-dlt-kpi-cell {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-width: 0;
+}
+.hl7-dlt-kpi-label {
+  display: block;
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.hl7-dlt-kpi-value {
+  display: block;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+  max-width: 100%;
+}
+.hl7-dlt-kpi-value:hover {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-word;
+  position: relative;
+  z-index: 3;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  border-radius: 6px;
+  margin: -2px -4px;
+  padding: 2px 4px;
 }
 
 /* Primary buttons — Databricks-adjacent accent */

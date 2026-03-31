@@ -8,11 +8,74 @@ https://docs.databricks.com/aws/en/ldp/monitor-event-log-schema
 
 from __future__ import annotations
 
+import html
 import json
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 import pandas as pd
+
+
+def _state_code_and_detail(val: Any) -> tuple[str, str]:
+    """SDK enums like UpdateInfoState.WAITING_FOR_RESOURCES → ('WAITING_FOR_RESOURCES', full str)."""
+    if val is None:
+        return "", ""
+    detail = str(val)
+    if hasattr(val, "value") and not isinstance(val, bool):
+        return str(val.value), detail
+    if hasattr(val, "name"):
+        return str(val.name), detail
+    if "." in detail:
+        return detail.split(".")[-1], detail
+    return detail, detail
+
+
+def format_state_display(code: str) -> str:
+    """WAITING_FOR_RESOURCES → 'Waiting For Resources' (readable, compact)."""
+    if not code or code == "—":
+        return "—"
+    return " ".join(w.capitalize() for w in code.replace("_", " ").split())
+
+
+def build_dlt_update_kpi_html(urow: dict[str, Any]) -> str:
+    """
+    Compact KPI row with native browser tooltips (title=) and smaller type.
+    Hover shows full cluster id / raw state from API.
+    """
+    code = str(urow.get("state") or "").strip()
+    state_detail = str(urow.get("state_detail") or "").strip()
+    if not code and not state_detail:
+        state_disp = "—"
+        state_tip_esc = ""
+    else:
+        state_disp = format_state_display(code) if code else "—"
+        state_tip_esc = html.escape(state_detail or code or state_disp)
+
+    cluster = str(urow.get("cluster_id") or "—")
+    cluster_short = cluster if len(cluster) <= 26 else cluster[:24] + "…"
+    cluster_tip = html.escape(cluster)
+
+    started = str(urow.get("creation_time_fmt") or "—")
+    ended = str(urow.get("end_time_fmt") or "—")
+
+    cells = [
+        ("Update state", state_disp, state_tip_esc),
+        ("Cluster", cluster_short, cluster_tip),
+        ("Started", started, html.escape(started)),
+        ("Ended", ended, html.escape(ended)),
+    ]
+
+    parts = ['<div class="hl7-dlt-kpi-row">']
+    for label, disp, tip in cells:
+        tip_attr = f' title="{tip}"' if tip else ""
+        parts.append(
+            '<div class="hl7-dlt-kpi-cell">'
+            f'<span class="hl7-dlt-kpi-label">{html.escape(label)}</span>'
+            f'<span class="hl7-dlt-kpi-value"{tip_attr}>{html.escape(disp)}</span>'
+            "</div>"
+        )
+    parts.append("</div>")
+    return "".join(parts)
 
 
 def _client():
@@ -91,6 +154,12 @@ def fetch_update_row(pipeline_id: str, update_id: str) -> dict[str, Any]:
         row["creation_time_fmt"] = _fmt_ts(row["creation_time"])
     if "end_time" in row:
         row["end_time_fmt"] = _fmt_ts(row["end_time"])
+
+    # Normalize enum-like state; keep API string for tooltips
+    if "state" in row and row["state"] is not None:
+        code, detail = _state_code_and_detail(row["state"])
+        row["state_detail"] = detail
+        row["state"] = code or str(row["state"])
     return row
 
 
@@ -182,13 +251,16 @@ def events_to_dataframes(events: list[Any]) -> tuple[pd.DataFrame, pd.DataFrame]
 
         det = _event_details_dict(ev)
         metrics = det.get("metrics") if isinstance(det.get("metrics"), dict) else _as_dict(det.get("metrics"))
+        st_v = det.get("status")
+        st_code, _ = _state_code_and_detail(st_v) if st_v is not None else ("", "")
+        st_disp = format_state_display(st_code) if st_code else "—"
         flow_rows.append(
             {
                 "_ts": ts,
                 "Time (UTC)": ts_fmt,
                 "Flow": str(det.get("flow_name") or det.get("name") or det.get("flow_id") or "—"),
                 "Flow id": str(det.get("flow_id") or "—"),
-                "Status": str(det.get("status") or "—"),
+                "Status": st_disp,
                 "Output rows": metrics.get("num_output_rows"),
                 "Upserted": metrics.get("num_upserted_rows"),
                 "Deleted": metrics.get("num_deleted_rows"),
