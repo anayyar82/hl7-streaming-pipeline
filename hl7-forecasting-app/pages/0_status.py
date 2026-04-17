@@ -11,6 +11,7 @@ from utils.db import run_query, PGHOST, PGDATABASE, ENDPOINT_NAME
 from utils import queries
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav
+from utils.streamlit_refresh import run_live_dashboard
 
 st.set_page_config(page_title="System Status", page_icon="📡", layout="wide")
 apply_theme()
@@ -74,135 +75,138 @@ def _status_label(age_h: float | None, stale_after: float | None) -> str:
     return "critical"
 
 
-if st.button("Refresh snapshot", type="primary"):
-    st.rerun()
-
-# ---- Lakebase connectivity (same pool as other pages) ----
-st.subheader("Connection")
-c1, c2, c3 = st.columns(3)
-c1.metric("Postgres host", PGHOST.split(".")[0] + "…")
-c2.metric("Database", PGDATABASE)
-c3.metric("Lakebase endpoint", ENDPOINT_NAME.split("/")[-1] or ENDPOINT_NAME)
-
-st.markdown("---")
-
-# ---- Forecast activity (single query) ----
-st.subheader("ML predictions (24h)")
-try:
-    fa = run_query(queries.STATUS_FORECAST_ACTIVITY, quiet=True)
-    if not fa.empty and fa.iloc[0].get("last_run") is not None:
-        r0 = fa.iloc[0]
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Last inference time", str(r0.get("last_run"))[:19])
-        m2.metric("Prediction rows (24h)", f"{int(r0.get('rows_24h') or 0):,}")
-        m3.metric("Models in table", int(r0.get("distinct_models") or 0))
-    else:
-        st.info("No rows in `gold_forecast_predictions`, or table not reachable.")
-except Exception as e:
-    st.warning(f"Forecast summary: {e}")
-
-st.markdown("---")
-
-# ---- Per-table matrix ----
-st.subheader("Gold table freshness")
-st.caption(
-    "**ok** = last activity within threshold · **stale** = up to 2× threshold · **critical** = older. "
-    "Thresholds differ by table (stream vs dimensions vs ML)."
-)
-st.caption(
-    "**📭 not in Lakebase** = Postgres has no table yet (run **`hl7_lakebase_load`**). "
-    "**❓ no data** = query error. Forecast feature tables also need DLT **`05_forecasting`** to succeed in UC before load can copy rows."
-)
-
-rows_out = []
-
-for spec in queries.STATUS_MONITOR_SPECS:
-    df = run_query(spec["sql"], quiet=True)
-    stale_h = spec.get("stale_after_hours")
-    if df.empty:
-        chk = "missing in Lakebase" if not _lakebase_table_exists(spec["table"]) else "no data"
+def _status_main() -> None:
+    if st.button("Refresh snapshot", type="primary"):
+        st.rerun()
+    
+    # ---- Lakebase connectivity (same pool as other pages) ----
+    st.subheader("Connection")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Postgres host", PGHOST.split(".")[0] + "…")
+    c2.metric("Database", PGDATABASE)
+    c3.metric("Lakebase endpoint", ENDPOINT_NAME.split("/")[-1] or ENDPOINT_NAME)
+    
+    st.markdown("---")
+    
+    # ---- Forecast activity (single query) ----
+    st.subheader("ML predictions (24h)")
+    try:
+        fa = run_query(queries.STATUS_FORECAST_ACTIVITY, quiet=True)
+        if not fa.empty and fa.iloc[0].get("last_run") is not None:
+            r0 = fa.iloc[0]
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Last inference time", str(r0.get("last_run"))[:19])
+            m2.metric("Prediction rows (24h)", f"{int(r0.get('rows_24h') or 0):,}")
+            m3.metric("Models in table", int(r0.get("distinct_models") or 0))
+        else:
+            st.info("No rows in `gold_forecast_predictions`, or table not reachable.")
+    except Exception as e:
+        st.warning(f"Forecast summary: {e}")
+    
+    st.markdown("---")
+    
+    # ---- Per-table matrix ----
+    st.subheader("Gold table freshness")
+    st.caption(
+        "**ok** = last activity within threshold · **stale** = up to 2× threshold · **critical** = older. "
+        "Thresholds differ by table (stream vs dimensions vs ML)."
+    )
+    st.caption(
+        "**📭 not in Lakebase** = Postgres has no table yet (run **`hl7_lakebase_load`**). "
+        "**❓ no data** = query error. Forecast feature tables also need DLT **`05_forecasting`** to succeed in UC before load can copy rows."
+    )
+    
+    rows_out = []
+    
+    for spec in queries.STATUS_MONITOR_SPECS:
+        df = run_query(spec["sql"], quiet=True)
+        stale_h = spec.get("stale_after_hours")
+        if df.empty:
+            chk = "missing in Lakebase" if not _lakebase_table_exists(spec["table"]) else "no data"
+            rows_out.append(
+                {
+                    "Layer": spec["layer"],
+                    "Area": spec["area"],
+                    "Table": spec["table"],
+                    "Rows": None,
+                    "Last activity": None,
+                    "Age (h)": None,
+                    "Check": chk,
+                }
+            )
+            continue
+        r = df.iloc[0]
+        rc = r.get("row_count")
+        la = r.get("last_activity")
+        try:
+            rc_int = int(rc) if rc is not None and not pd.isna(rc) else 0
+        except (TypeError, ValueError):
+            rc_int = 0
+        age = _hours_since(la)
+        la_missing = la is None or pd.isna(pd.to_datetime(la, errors="coerce"))
+        label = _status_label(age, stale_h)
+        if rc_int == 0 and la_missing:
+            label = "empty"
+    
         rows_out.append(
             {
                 "Layer": spec["layer"],
                 "Area": spec["area"],
                 "Table": spec["table"],
-                "Rows": None,
-                "Last activity": None,
-                "Age (h)": None,
-                "Check": chk,
+                "Rows": rc_int,
+                "Last activity": la,
+                "Age (h)": round(age, 1) if age is not None else None,
+                "Check": label,
             }
         )
-        continue
-    r = df.iloc[0]
-    rc = r.get("row_count")
-    la = r.get("last_activity")
-    try:
-        rc_int = int(rc) if rc is not None and not pd.isna(rc) else 0
-    except (TypeError, ValueError):
-        rc_int = 0
-    age = _hours_since(la)
-    la_missing = la is None or pd.isna(pd.to_datetime(la, errors="coerce"))
-    label = _status_label(age, stale_h)
-    if rc_int == 0 and la_missing:
-        label = "empty"
+    
+    summary = pd.DataFrame(rows_out)
+    if not summary.empty:
+        ok_n = (summary["Check"] == "ok").sum()
+        stale_n = (summary["Check"] == "stale").sum()
+        crit_n = (summary["Check"] == "critical").sum()
+        s1, s2, s3, s4 = st.columns(4)
+        s1.metric("Tables · ok", int(ok_n))
+        s2.metric("Tables · stale", int(stale_n))
+        s3.metric("Tables · critical", int(crit_n))
+        s4.metric("Tables tracked", len(summary))
+    
+        display = summary.copy()
+        display["Check"] = display["Check"].map(
+            lambda x: {
+                "ok": "✅ ok",
+                "stale": "⚠️ stale",
+                "critical": "🔴 critical",
+                "empty": "⬜ empty",
+                "no data": "❓ no data",
+                "missing in Lakebase": "📭 not in Lakebase (run lakebase load)",
+                "n/a": "➖ n/a",
+                "—": "—",
+            }.get(str(x), str(x))
+        )
+        st.dataframe(display, use_container_width=True, hide_index=True)
+    else:
+        st.warning("No status rows built.")
+    
+    st.markdown("---")
+    
+    # ---- Runbook (Databricks; not queried live — app has SQL scope to Lakebase) ----
+    with st.expander("Runbook — what to run in Databricks when something is stale", expanded=False):
+        st.markdown(
+            """
+    1. **DLT** — Run or refresh **`hl7_streaming_pipeline`** (Bronze → Gold). The **`05_forecasting`** notebook must complete so `gold_*_forecast_features` exist in UC with data.  
+    2. **Lakebase load** — Job **`hl7_lakebase_load`**: `databricks bundle run hl7_lakebase_load -t dev` — creates missing Postgres tables and copies gold; re-run after DLT or inference.  
+    3. **ML inference** — Job **`hl7_model_inference`** after features exist — updates `gold_forecast_predictions` in Delta; re-run **lakebase load** so this app sees new rows.  
+    4. **AutoML** — **`hl7_automl_training`** when you need new champion models.  
+    
+    **Order (typical):** DLT → (optional AutoML) → inference → lakebase load → refresh this page.
+    
+    **From this app:** **0a · Sample → volume** writes HL7 to the landing volume (parameterized). **0b · Live activity** shows live DLT/job runs. **Run Databricks jobs** starts DLT and other workflows (set IDs in app environment variables).
+    
+    **Git app deploy:** If the workspace requires Git, push to the repo configured on **hl7app** and deploy from **Compute → Apps**.
+            """
+        )
+    
+    st.caption("Data source: Lakebase schema `ankur_nayyar` · Times are as stored in Postgres (naive local).")
 
-    rows_out.append(
-        {
-            "Layer": spec["layer"],
-            "Area": spec["area"],
-            "Table": spec["table"],
-            "Rows": rc_int,
-            "Last activity": la,
-            "Age (h)": round(age, 1) if age is not None else None,
-            "Check": label,
-        }
-    )
-
-summary = pd.DataFrame(rows_out)
-if not summary.empty:
-    ok_n = (summary["Check"] == "ok").sum()
-    stale_n = (summary["Check"] == "stale").sum()
-    crit_n = (summary["Check"] == "critical").sum()
-    s1, s2, s3, s4 = st.columns(4)
-    s1.metric("Tables · ok", int(ok_n))
-    s2.metric("Tables · stale", int(stale_n))
-    s3.metric("Tables · critical", int(crit_n))
-    s4.metric("Tables tracked", len(summary))
-
-    display = summary.copy()
-    display["Check"] = display["Check"].map(
-        lambda x: {
-            "ok": "✅ ok",
-            "stale": "⚠️ stale",
-            "critical": "🔴 critical",
-            "empty": "⬜ empty",
-            "no data": "❓ no data",
-            "missing in Lakebase": "📭 not in Lakebase (run lakebase load)",
-            "n/a": "➖ n/a",
-            "—": "—",
-        }.get(str(x), str(x))
-    )
-    st.dataframe(display, use_container_width=True, hide_index=True)
-else:
-    st.warning("No status rows built.")
-
-st.markdown("---")
-
-# ---- Runbook (Databricks; not queried live — app has SQL scope to Lakebase) ----
-with st.expander("Runbook — what to run in Databricks when something is stale", expanded=False):
-    st.markdown(
-        """
-1. **DLT** — Run or refresh **`hl7_streaming_pipeline`** (Bronze → Gold). The **`05_forecasting`** notebook must complete so `gold_*_forecast_features` exist in UC with data.  
-2. **Lakebase load** — Job **`hl7_lakebase_load`**: `databricks bundle run hl7_lakebase_load -t dev` — creates missing Postgres tables and copies gold; re-run after DLT or inference.  
-3. **ML inference** — Job **`hl7_model_inference`** after features exist — updates `gold_forecast_predictions` in Delta; re-run **lakebase load** so this app sees new rows.  
-4. **AutoML** — **`hl7_automl_training`** when you need new champion models.  
-
-**Order (typical):** DLT → (optional AutoML) → inference → lakebase load → refresh this page.
-
-**From this app:** **0a · Sample → volume** writes HL7 to the landing volume (parameterized). **0b · Live activity** shows live DLT/job runs. **Run Databricks jobs** starts DLT and other workflows (set IDs in app environment variables).
-
-**Git app deploy:** If the workspace requires Git, push to the repo configured on **hl7app** and deploy from **Compute → Apps**.
-        """
-    )
-
-st.caption("Data source: Lakebase schema `ankur_nayyar` · Times are as stored in Postgres (naive local).")
+run_live_dashboard(_status_main, interval_seconds=25, manual_key="hl7_status_live_refresh")

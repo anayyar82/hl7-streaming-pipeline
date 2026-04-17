@@ -14,6 +14,8 @@ Prerequisite (Lakebase SQL):
 """
 
 import os
+from concurrent.futures import ThreadPoolExecutor
+
 import streamlit as st
 import psycopg
 import requests
@@ -113,3 +115,27 @@ def run_query(query: str, params=None, *, quiet: bool = False) -> pd.DataFrame:
         except Exception:
             pass
         return pd.DataFrame()
+
+
+def run_query_batch(named_sql: dict[str, str], *, quiet: bool = True) -> dict[str, pd.DataFrame]:
+    """
+    Run several independent SELECTs in parallel (faster home / pulse pages).
+
+    Preserves key order in the returned dict for stable UI.
+    """
+    if not named_sql:
+        return {}
+    keys = list(named_sql.keys())
+    n = len(keys)
+    workers = min(8, max(1, n))
+
+    def _one(name: str, sql: str) -> tuple[str, pd.DataFrame]:
+        return name, run_query(sql, quiet=quiet)
+
+    out: dict[str, pd.DataFrame] = {}
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futs = [ex.submit(_one, k, named_sql[k]) for k in keys]
+        for fut in futs:
+            name, df = fut.result()
+            out[name] = df
+    return out

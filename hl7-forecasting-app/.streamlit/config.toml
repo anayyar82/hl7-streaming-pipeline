@@ -1,3 +1,7 @@
 # Custom categorized nav: utils.navigation.render_sidebar_nav() on Home + every page.
 [client]
 showSidebarNavigation = false
+
+[runner]
+# Snappier widget-driven reruns (Streamlit ≥ 1.27)
+fastReruns = true

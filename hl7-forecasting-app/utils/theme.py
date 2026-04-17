@@ -123,8 +123,9 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 /* Home & nav cards */
 .hl7-hero {
   background: linear-gradient(125deg, #0f172a 0%, #1e3a5f 40%, #312e81 72%, #0c4a6e 100%);
-  background-size: 180% 180%;
-  animation: hl7-hero-flow 20s ease-in-out infinite;
+  background-size: 100% 100%;
+  /* Static hero — animated gradient was heavy on low-power clients */
+  animation: none;
   color: #f8fafc;
   border-radius: 16px;
   padding: 28px 32px;
