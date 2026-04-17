@@ -10,8 +10,16 @@ import pandas as pd
 from utils.db import run_query
 from utils import queries
 from utils.filters import (
-    sidebar_section, facility_filter, department_filter,
-    apply_facility, weekend_toggle, apply_weekend,
+    sidebar_section,
+    facility_filter,
+    department_filter,
+    apply_facility,
+    weekend_toggle,
+    apply_weekend,
+    read_facility_selection,
+    read_department_selection,
+    read_weekend_selection,
+    read_radio_choice,
 )
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav
@@ -91,21 +99,32 @@ def _render_hourly(
         st.dataframe(hourly_df, use_container_width=True, hide_index=True)
 
 
-def _realtime_body() -> None:
+def _realtime_sidebar() -> None:
+    """Sidebar only — must run outside ``st.fragment``."""
     sidebar_section("Real-Time Filters")
+    census_df = run_query(queries.CURRENT_CENSUS)
+    if census_df.empty:
+        st.sidebar.warning("No census data for filters yet.")
+        return
+    department_filter(census_df, key="rt_dept")
+    facility_filter(census_df, key="rt_fac")
+    st.sidebar.markdown("---")
+    weekend_toggle(key="rt_wknd")
+    st.sidebar.markdown("---")
+    st.sidebar.radio("Time Window", ["Last 24h", "All Data"], key="rt_time", horizontal=True)
 
+
+def _realtime_main() -> None:
     st.header("Current Department Census")
 
-    fac_sel: list[str] = []
+    census_df = run_query(queries.CURRENT_CENSUS)
+    fac_sel = read_facility_selection(census_df, key="rt_fac")
 
     try:
-        census_df = run_query(queries.CURRENT_CENSUS)
-
         if census_df.empty:
             st.warning("No census data available yet. Run the DLT pipeline to populate tables.")
         else:
-            dept_sel = department_filter(census_df, key="rt_dept")
-            fac_sel = facility_filter(census_df, key="rt_fac")
+            dept_sel = read_department_selection(census_df, key="rt_dept")
 
             filtered = census_df.copy()
             if dept_sel:
@@ -155,11 +174,8 @@ def _realtime_body() -> None:
 
     st.header("Hourly Arrivals & Discharges")
 
-    wknd_choice = weekend_toggle(key="rt_wknd")
-    st.sidebar.markdown("---")
-    time_range = st.sidebar.radio(
-        "Time Window", ["Last 24h", "All Data"], key="rt_time", horizontal=True,
-    )
+    wknd_choice = read_weekend_selection("rt_wknd")
+    time_range = read_radio_choice(("Last 24h", "All Data"), "rt_time", "Last 24h")
 
     tab_ed, tab_icu = st.tabs(["Emergency Department", "Intensive Care Unit"])
 
@@ -190,4 +206,9 @@ def _realtime_body() -> None:
     st.caption("Data sourced from Lakebase Postgres gold tables.")
 
 
-run_live_dashboard(_realtime_body, interval_seconds=20, manual_key="hl7_realtime_live_refresh")
+run_live_dashboard(
+    _realtime_main,
+    interval_seconds=20,
+    manual_key="hl7_realtime_live_refresh",
+    before_fragment=_realtime_sidebar,
+)

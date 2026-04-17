@@ -11,8 +11,16 @@ import numpy as np
 from utils.db import run_query
 from utils import queries
 from utils.filters import (
-    sidebar_section, facility_filter, date_range_filter, weekend_toggle,
-    apply_facility, apply_date_range, apply_weekend,
+    sidebar_section,
+    facility_filter,
+    date_range_filter,
+    weekend_toggle,
+    apply_facility,
+    apply_date_range,
+    apply_weekend,
+    read_facility_selection,
+    read_date_range_selection,
+    read_weekend_selection,
 )
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav
@@ -39,21 +47,42 @@ Facility, **date range**, and optional **weekend-only** slice so you can compare
         """
     )
 
-def _trends_body() -> None:
+def _trends_sidebar() -> None:
     sidebar_section("Trend Filters")
-    
-    # ---- Load data once ----
     ed_daily_raw = run_query(queries.ED_DAILY_SUMMARY)
     icu_daily_raw = run_query(queries.ICU_DAILY_SUMMARY)
-    
-    combined_raw = pd.concat([
-        ed_daily_raw.assign(dept="ED") if not ed_daily_raw.empty else pd.DataFrame(),
-        icu_daily_raw.assign(dept="ICU") if not icu_daily_raw.empty else pd.DataFrame(),
-    ], ignore_index=True)
-    
-    fac_sel = facility_filter(combined_raw, key="tr_fac")
-    start_date, end_date = date_range_filter(combined_raw, key="tr_dr")
-    
+    combined_raw = pd.concat(
+        [
+            ed_daily_raw.assign(dept="ED") if not ed_daily_raw.empty else pd.DataFrame(),
+            icu_daily_raw.assign(dept="ICU") if not icu_daily_raw.empty else pd.DataFrame(),
+        ],
+        ignore_index=True,
+    )
+    if combined_raw.empty:
+        st.sidebar.info("No combined trend rows for filters.")
+        return
+    facility_filter(combined_raw, key="tr_fac")
+    date_range_filter(combined_raw, key="tr_dr")
+    st.sidebar.markdown("---")
+    weekend_toggle(key="tr_wknd")
+
+
+def _trends_main() -> None:
+    ed_daily_raw = run_query(queries.ED_DAILY_SUMMARY)
+    icu_daily_raw = run_query(queries.ICU_DAILY_SUMMARY)
+
+    combined_raw = pd.concat(
+        [
+            ed_daily_raw.assign(dept="ED") if not ed_daily_raw.empty else pd.DataFrame(),
+            icu_daily_raw.assign(dept="ICU") if not icu_daily_raw.empty else pd.DataFrame(),
+        ],
+        ignore_index=True,
+    )
+
+    fac_sel = read_facility_selection(combined_raw, key="tr_fac")
+    start_date, end_date = read_date_range_selection(combined_raw, key="tr_dr")
+    wknd_choice = read_weekend_selection("tr_wknd")
+
     # ---- Daily Summaries ----
     st.header("Daily Summaries")
     
@@ -163,9 +192,7 @@ def _trends_body() -> None:
     
     # ---- Hour-of-Day Heatmap ----
     st.header("Arrival Patterns by Hour of Day")
-    
-    wknd_choice = weekend_toggle(key="tr_wknd")
-    
+
     try:
         ed_hourly = run_query(queries.ED_HOURLY_ALL)
         if not ed_hourly.empty:
@@ -278,4 +305,9 @@ def _trends_body() -> None:
     
     st.caption("All trends computed from Lakebase Postgres gold tables.")
 
-run_live_dashboard(_trends_body, interval_seconds=22, manual_key="hl7_trends_live_refresh")
+run_live_dashboard(
+    _trends_main,
+    interval_seconds=22,
+    manual_key="hl7_trends_live_refresh",
+    before_fragment=_trends_sidebar,
+)

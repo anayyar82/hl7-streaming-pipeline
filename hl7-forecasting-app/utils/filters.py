@@ -80,3 +80,63 @@ def sidebar_section(title: str = "Filters"):
     """Render a sidebar section header."""
     st.sidebar.markdown(f"### {title}")
     st.sidebar.markdown("---")
+
+
+def read_facility_selection(df: pd.DataFrame, col: str = "location_facility", key: str = "fac") -> list[str]:
+    """Mirror ``facility_filter`` after widgets were rendered outside a ``st.fragment``."""
+    if df.empty or col not in df.columns:
+        return []
+    options = sorted(df[col].dropna().unique())
+    if len(options) <= 1:
+        return options
+    val = st.session_state.get(key)
+    if not isinstance(val, list) or not val:
+        return options
+    return [x for x in val if x in options] or options
+
+
+def read_department_selection(df: pd.DataFrame, col: str = "department", key: str = "dept") -> list[str]:
+    """Mirror ``department_filter`` after widgets were rendered outside a fragment."""
+    if df.empty or col not in df.columns:
+        return []
+    options = sorted(df[col].dropna().unique())
+    choice = st.session_state.get(key, "All")
+    if choice == "All":
+        return list(options)
+    return [choice] if choice in options else list(options)
+
+
+def read_date_range_selection(
+    df: pd.DataFrame,
+    col: str = "activity_date",
+    key: str = "dr",
+) -> tuple[datetime.date, datetime.date]:
+    """Mirror ``date_range_filter`` using ``st.session_state`` (no sidebar writes)."""
+    if df.empty or col not in df.columns:
+        today = datetime.date.today()
+        return today - datetime.timedelta(days=30), today
+    dates = pd.to_datetime(df[col])
+    min_d, max_d = dates.min().date(), dates.max().date()
+    val = st.session_state.get(key)
+    if not val or not isinstance(val, (tuple, list)) or len(val) < 2:
+        return min_d, max_d
+    return val[0], val[1]
+
+
+def read_weekend_selection(key: str = "wknd") -> str:
+    return str(st.session_state.get(key, "All"))
+
+
+def read_multiselect_subset_or_all(options: list, key: str) -> list:
+    """For sidebar multiselects with default=all — returns stored list or full options."""
+    if not options:
+        return []
+    val = st.session_state.get(key)
+    if not isinstance(val, list) or not val:
+        return list(options)
+    return [x for x in val if x in options] or list(options)
+
+
+def read_radio_choice(options: tuple[str, ...], key: str, default: str) -> str:
+    v = st.session_state.get(key, default)
+    return v if v in options else default

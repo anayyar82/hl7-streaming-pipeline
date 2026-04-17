@@ -9,7 +9,7 @@ re-runs that slice on a timer so metrics and charts stay current after DLT / Lak
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Callable
+from typing import Callable, Optional
 
 import streamlit as st
 
@@ -27,12 +27,19 @@ def run_live_dashboard(
     *,
     interval_seconds: int = 20,
     manual_key: str = "hl7_manual_data_refresh",
+    before_fragment: Optional[Callable[[], None]] = None,
 ) -> None:
     """
     Run ``body`` on a timer inside a fragment when supported.
 
+    ``st.sidebar`` may not be called inside ``st.fragment`` — pass ``before_fragment``
+    to render sidebar widgets once per full app rerun (filters, section headers).
+
     ``manual_key`` must be unique per page (Streamlit widget key).
     """
+    if before_fragment is not None:
+        before_fragment()
+
     frag = periodic_fragment(interval_seconds)
     if frag is not None:
 
