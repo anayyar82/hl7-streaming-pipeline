@@ -274,7 +274,7 @@ The current app is **Streamlit** (`hl7-forecasting-app/`). If the UI feels slow 
 
 1. From an empty directory under this repo, run **`databricks apps init`** and follow the prompts (same flow as the [manual quick start](https://databricks.github.io/appkit/docs/#manual-quick-start)).
 2. Port environment and behavior from **`hl7-forecasting-app/app.yaml`** (Lakebase `PG*`, `GENIE_SPACE_ID`, job IDs, UC paths) into the AppKit app’s configuration.
-3. Print a second-app bundle snippet: **`./scripts/bootstrap_appkit_hl7_app.sh --print-bundle-snippet`** — merge that into **`resources/hl7_pipeline.yml`** (or a new file under `resources/`) to deploy **`hl7app_appkit`** alongside **`hl7app`**, then port pages incrementally before switching `hl7app`’s `source_code_path` or retiring Streamlit.
+3. Deploy the AppKit app with the **separate** bundle: **`cd bundles/hl7_appkit && databricks bundle deploy -t dev`** (workspace name **`hl7app-appkit`**; the main bundle cannot list two git-sourced apps). See **`hl7-appkit-app/README.md`**. Port pages incrementally before retiring Streamlit.
 
 For a short command checklist: **`./scripts/bootstrap_appkit_hl7_app.sh --init-hint`**.
 
