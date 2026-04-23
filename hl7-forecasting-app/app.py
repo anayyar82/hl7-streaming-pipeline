@@ -41,11 +41,62 @@ st.markdown(
 <div class="hl7-app-header">
   <p class="hl7-app-eyebrow">ED &amp; ICU · Lakebase</p>
   <h1>Operations dashboard</h1>
-  <p class="hl7-app-lead">Census, throughput, and model outputs on Unity Catalog gold, served to this app and Genie. The sidebar lists every page; use the row below for common entry points.</p>
+  <p class="hl7-app-lead">Census, throughput, and model outputs on Unity Catalog gold, served to this app and Genie. Below is the <strong>end-to-end reference architecture</strong> the bundled jobs follow when you refresh the stack.</p>
 </div>
     """,
     unsafe_allow_html=True,
 )
+
+# ---- Reference architecture (data path); keep in sync with Run jobs / DLT order ----
+st.markdown(
+    """
+<div class="hl7-architect-panel">
+  <p class="hl7-home-eyebrow">System architecture</p>
+  <h2 class="hl7-dataflow-title" style="margin-top:0">Data path — landing to app</h2>
+  <p class="hl7-dataflow-deck">Medallion pattern: ingest → conform → gold facts/dims → ML features &amp; scores → Lakebase for low-latency SQL → this app and Genie on the same Lakebase read path.</p>
+  <div class="hl7-arch" role="list" aria-label="Pipeline layers">
+    <div class="hl7-arch-step" role="listitem">
+      <span class="hl7-arch-badge" aria-hidden="true">L1</span>
+      <strong>HL7 &amp; landing</strong>
+      <span>Volume, raw feeds</span>
+    </div>
+    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+    <div class="hl7-arch-step" role="listitem">
+      <span class="hl7-arch-badge" aria-hidden="true">L2</span>
+      <strong>Bronze &amp; silver</strong>
+      <span>DLT parse, conform</span>
+    </div>
+    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+    <div class="hl7-arch-step" role="listitem">
+      <span class="hl7-arch-badge" aria-hidden="true">L3</span>
+      <strong>Gold (UC)</strong>
+      <span>Facts, dimensions</span>
+    </div>
+    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+    <div class="hl7-arch-step" role="listitem">
+      <span class="hl7-arch-badge" aria-hidden="true">L4</span>
+      <strong>ML layer</strong>
+      <span>Features, train, predict</span>
+    </div>
+    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+    <div class="hl7-arch-step" role="listitem">
+      <span class="hl7-arch-badge" aria-hidden="true">L5</span>
+      <strong>Lakebase</strong>
+      <span>Postgres sync</span>
+    </div>
+    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+    <div class="hl7-arch-step hl7-arch-step--app" role="listitem">
+      <span class="hl7-arch-badge" aria-hidden="true">L6</span>
+      <strong>HL7App</strong>
+      <span>Streamlit + Genie</span>
+    </div>
+  </div>
+  <p class="hl7-architect-foot">Operational order for a full refresh: <strong>sample data</strong> (optional) → <strong>DLT</strong> → <strong>inference</strong> → <strong>Lakebase load</strong> — use <strong>Jobs</strong> in the app or the bundle workflow.</p>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
+
 a1, a2, a3, a4 = st.columns(4, gap="small")
 with a1:
     st.page_link("pages/1_realtime.py", label="Real-time", icon="📊", use_container_width=True)

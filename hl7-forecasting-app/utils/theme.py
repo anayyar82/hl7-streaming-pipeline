@@ -171,7 +171,49 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   line-height: 1.45;
 }
 
-/* Home — data flow card (pipeline strip) */
+/* Home — reference architecture (blueprint-style) */
+.hl7-architect-panel {
+  background-color: #f1f5f9;
+  background-image:
+    linear-gradient(rgba(100, 116, 139, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.09) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: -1px -1px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 22px 20px 16px;
+  margin: 0 0 1.35rem 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+.hl7-architect-foot {
+  margin: 16px 0 0 0 !important;
+  font-size: 0.8rem !important;
+  line-height: 1.5 !important;
+  color: #64748b !important;
+  padding-top: 12px;
+  border-top: 1px dashed #cbd5e1;
+  max-width: 900px;
+}
+.hl7-arch-badge {
+  display: inline-block;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #0f766e;
+  background: #ecfdf5;
+  border: 1px solid #99f6e4;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin: 0 0 6px 0;
+}
+.hl7-arch-step--app {
+  border-color: #0d9488 !important;
+  background: #f0fdfa !important;
+  box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.15);
+}
+
+/* Home — data flow card (pipeline strip) — also used for titles inside architect panel */
 .hl7-dataflow-wrap {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -271,34 +313,49 @@ h3.hl7-section-h3 {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
-  gap: 10px;
-  margin: 1rem 0 1.5rem 0;
+  justify-content: center;
+  gap: 8px 6px;
+  margin: 14px 0 0 0;
 }
 .hl7-arch-step {
-  flex: 1 1 120px;
-  min-width: 100px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 12px 14px;
-  text-align: center;
+  flex: 1 1 108px;
+  min-width: 96px;
+  max-width: 160px;
+  background: #ffffff;
+  border: 1px solid #94a3b8;
+  border-top: 3px solid #0f766e;
+  border-radius: 6px;
+  padding: 10px 10px 12px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 .hl7-arch-step strong {
   display: block;
   color: #0f172a;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
   margin-bottom: 4px;
+  letter-spacing: -0.02em;
 }
-.hl7-arch-step span {
-  font-size: 0.72rem;
+.hl7-arch-step > span:not(.hl7-arch-badge) {
+  font-size: 0.68rem;
   color: #64748b;
   line-height: 1.35;
+  display: block;
 }
 .hl7-arch-arrow {
   align-self: center;
-  color: #94a3b8;
-  font-weight: 700;
-  font-size: 1.1rem;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0 1px;
+  user-select: none;
+}
+@media (max-width: 1100px) {
+  .hl7-arch { gap: 10px; }
+  .hl7-arch-arrow { display: none; }
+  .hl7-arch-step { max-width: none; flex: 1 1 45%; }
 }
 
 .hl7-nav-card {
