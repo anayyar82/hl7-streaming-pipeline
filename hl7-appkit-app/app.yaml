@@ -1,7 +1,11 @@
 # Databricks App — AppKit (Node/TypeScript). See README in this folder.
+# `dist/` is not in Git; start must build first (see package.json `start:databricks`).
 # Keep env aligned with ../hl7-forecasting-app/app.yaml when using the same Lakebase + Genie stack.
-command: ['npm', 'run', 'start']
+command: ['npm', 'run', 'start:databricks']
 env:
+  # Ensure `npm install` in the app runtime can install devDependencies (Vite, tsdown, etc.) for `build:deploy`.
+  - name: NPM_CONFIG_PRODUCTION
+    value: 'false'
   - name: PGHOST
     value: 'ep-wandering-meadow-d1tdkigo.database.us-west-2.cloud.databricks.com'
   - name: PGDATABASE

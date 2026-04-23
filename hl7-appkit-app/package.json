@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "NODE_ENV=production node --env-file-if-exists=./.env ./dist/server.js",
+    "start:databricks": "npm run build:deploy && NODE_ENV=production node --env-file-if-exists=./.env ./dist/server.js",
+    "build:deploy": "npm run sync && npm run typegen && npm run build:server && npm run build:client",
     "dev": "NODE_ENV=development tsx watch --tsconfig ./tsconfig.server.json --env-file-if-exists=./.env ./server/server.ts",
     "build:client": "tsc -b tsconfig.client.json && vite build --config client/vite.config.ts",
     "build:server": "tsdown -c tsdown.server.config.ts",

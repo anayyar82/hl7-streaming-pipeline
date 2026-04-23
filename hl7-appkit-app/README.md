@@ -31,9 +31,11 @@ npm run dev          # local dev (optional .env from .env.example)
 
    The Databricks app name is **`hl7app-appkit`** (resource key in YAML is `hl7app_appkit`); git settings use the `app_git_*` variables in `resources/hl7_appkit_app_resource.yml`.
 3. If the **Streamlit** app and this app share a service principal for Lakebase, you set `PGUSER` to the same `service_principal_client_id` (or update Lakebase role after the AppKit app is first created). Both apps’ `app.yaml` files are aligned, but the active SP UUID comes from the deployed app in your workspace.
-4. **Build output must be in Git** or produced by your CI before the app runs `npm start`, unless you use a custom image or build step. The default `command` is `npm run start` (see `app.yaml`).
+4. **Git-federated deploy:** `app.yaml` uses **`npm run start:databricks`**, which runs `build:deploy` (sync + typegen + server + client) then the production **Node** process. `dist/` stays out of Git. First cold start can take a few minutes. If the app still fails, check **Apps → hl7app-appkit → Logs**; common causes: Lakebase/warehouse stopped, or `NPM_CONFIG_PRODUCTION` not allowing devDependencies (see `app.yaml`).
 
-**Note:** For many teams, a CI job runs `npm ci && npm run build` and commits `dist/`, *or* you use a Dockerfile — confirm with your Databricks App deploy pipeline.
+**Local:** `npm run build` then `npm start` (no build on `start` locally, unless you use `start:databricks`).
+
+**Note:** You can still commit `dist/` and switch `command` to `['npm', 'run', 'start']` for faster restarts, or use a CI that publishes artifacts.
 
 ## Plugins
 
