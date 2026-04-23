@@ -1,0 +1,38 @@
+# Databricks App — AppKit (Node/TypeScript). See README in this folder.
+# Keep env aligned with ../hl7-forecasting-app/app.yaml when using the same Lakebase + Genie stack.
+command: ['npm', 'run', 'start']
+env:
+  - name: PGHOST
+    value: 'ep-wandering-meadow-d1tdkigo.database.us-west-2.cloud.databricks.com'
+  - name: PGDATABASE
+    value: 'databricks_postgres'
+  - name: PGPORT
+    value: '5432'
+  - name: PGSSLMODE
+    value: 'require'
+  - name: PGUSER
+    value: 'd27fa0aa-3bf3-49c0-9fcc-160243c99035'
+  - name: ENDPOINT_NAME
+    value: 'projects/ankurhlsproject/branches/production/endpoints/primary'
+  - name: GENIE_SPACE_ID
+    value: '01f1286ab1d611dd92b5807d9280541b'
+  - name: DATABRICKS_GENIE_SPACE_ID
+    value: '01f1286ab1d611dd92b5807d9280541b'
+  - name: DATABRICKS_ORG_ID
+    value: '1444828305810485'
+  - name: HL7_UC_CATALOG
+    value: 'users'
+  - name: HL7_UC_SCHEMA
+    value: 'ankur_nayyar'
+  - name: HL7_LANDING_VOLUME
+    value: 'landing'
+  - name: HL7_PIPELINE_ID
+    value: 'a28d206f-e707-4951-ba16-42a94f075be0'
+  - name: HL7_JOB_SAMPLE_DATA
+    value: '544648305465960'
+  - name: HL7_JOB_INFERENCE
+    value: '280816865078318'
+  - name: HL7_JOB_LAKEBASE_LOAD
+    value: '931240195475649'
+  - name: HL7_JOB_REFRESH_WORKFLOW
+    value: '179564813727985'

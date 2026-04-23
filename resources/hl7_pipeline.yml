@@ -272,6 +272,8 @@ resources:
       permissions:
         - level: CAN_USE
           group_name: users
+    # AppKit UI is deployed with a *separate* bundle: see bundles/hl7_appkit/ (one Git-sourced app per bundle; main bundle
+    # cannot list two). hl7-appkit-app/README.md has the deploy command.
 
   pipelines:
     # Serverless Lakeflow Pipelines — no `clusters` block; see serverless DLT docs.

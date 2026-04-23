@@ -1,14 +1,36 @@
 """
 Shared Streamlit styling — call apply_theme() immediately after st.set_page_config on every page.
+
+Type and color tokens follow the Databricks AppKit / brand palette used in
+https://github.com/mkgs-databricks-demos/dbxWearables (e.g. zeroBus/dbxW_zerobus_app/src/app/client/src/index.css).
+Streamlit cannot load AppKit UI, but this CSS approximates the same look (DM Sans, Lava primary, Oat surfaces, Navy text).
 """
 
 import streamlit as st
 
 PROFESSIONAL_CSS = """
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+:root {
+  --dbx-lava-600: #FF3621;
+  --dbx-lava-500: #FF5F46;
+  --dbx-navy-800: #1B3139;
+  --dbx-navy-900: #0B2026;
+  --dbx-oat-light: #F9F7F4;
+  --dbx-oat-medium: #EEEDE9;
+  --dbx-gray-text: #5A6F77;
+  --dbx-gray-lines: #DCE0E2;
+  --dbx-green-600: #00A972;
+  --dbx-blue-600: #2272B4;
+  --dbx-radius: 0.625rem;
+}
 
 html, body, .stApp, [data-testid="stAppViewContainer"] {
-  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: "DM Sans", "Inter", system-ui, -apple-system, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--dbx-oat-light) !important;
+  color: var(--dbx-navy-800) !important;
 }
 
 /* Main content breathing room */
@@ -19,37 +41,38 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 }
 
 h1, h2, h3 {
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   font-weight: 600 !important;
   letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
 }
 
 /* Slightly tighter page titles than Streamlit default */
 .block-container h1 {
   font-size: 1.5rem !important;
-  line-height: 1.25 !important;
+  line-height: 1.2 !important;
 }
 .block-container h2,
 .block-container h3 {
   font-size: 1.15rem !important;
-  line-height: 1.3 !important;
+  line-height: 1.25 !important;
 }
 
-/* Metrics — card-like */
+/* Metrics — card on brand surfaces (dbxWearables) */
 div[data-testid="stMetric"] {
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px 18px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: #ffffff !important;
+  border: 1px solid var(--dbx-gray-lines) !important;
+  border-radius: var(--dbx-radius) !important;
+  padding: 14px 18px !important;
+  box-shadow: 0 1px 2px rgba(11, 32, 38, 0.06) !important;
 }
 div[data-testid="stMetric"] label {
-  color: #64748b !important;
+  color: var(--dbx-gray-text) !important;
   font-size: 0.8rem !important;
   font-weight: 500 !important;
 }
 div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   font-weight: 700 !important;
   font-size: 1.05rem !important;
 }
@@ -67,8 +90,8 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   }
 }
 .hl7-dlt-kpi-cell {
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border: 1px solid var(--dbx-gray-lines);
   border-radius: 10px;
   padding: 8px 12px;
   min-width: 0;
@@ -77,7 +100,7 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   display: block;
   font-size: 0.68rem !important;
   font-weight: 600 !important;
-  color: #64748b !important;
+  color: var(--dbx-gray-text) !important;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 2px;
@@ -86,7 +109,7 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   display: block;
   font-size: 0.88rem !important;
   font-weight: 600 !important;
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -107,11 +130,16 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   padding: 2px 4px;
 }
 
-/* Primary — restrained teal (enterprise) */
+/* Primary — Databricks Lava (dbxWearables) */
 .stButton > button[kind="primary"] {
-  background: linear-gradient(180deg, #0f766e 0%, #0d5c56 100%) !important;
+  background: linear-gradient(180deg, var(--dbx-lava-600) 0%, var(--dbx-lava-500) 100%) !important;
   border: none !important;
   font-weight: 600 !important;
+  color: #fff !important;
+  border-radius: var(--dbx-radius) !important;
+}
+.stButton > button[kind="primary"]:hover {
+  filter: brightness(0.95);
 }
 
 /* Expanders */
@@ -120,15 +148,15 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   color: #334155 !important;
 }
 
-/* Home — professional header (light) */
+/* Home — header (white on oat page; Lava left rule like dbx demo cards) */
 .hl7-app-header {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid #0f766e;
-  border-radius: 12px;
+  border: 1px solid var(--dbx-gray-lines);
+  border-left: 4px solid var(--dbx-lava-600);
+  border-radius: var(--dbx-radius);
   padding: 22px 24px 20px;
   margin: 0 0 1.25rem 0;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 3px rgba(11, 32, 38, 0.06);
 }
 .hl7-app-eyebrow {
   display: block;
@@ -136,11 +164,11 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   font-weight: 700 !important;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #64748b !important;
+  color: var(--dbx-gray-text) !important;
   margin: 0 0 8px 0 !important;
 }
 .hl7-app-header h1 {
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   font-size: 1.6rem !important;
   line-height: 1.2 !important;
   margin: 0 0 8px 0 !important;
@@ -151,8 +179,8 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 .hl7-app-lead {
   margin: 0 !important;
   font-size: 0.95rem !important;
-  line-height: 1.55;
-  color: #475569 !important;
+  line-height: 1.5;
+  color: var(--dbx-gray-text) !important;
   max-width: 720px;
 }
 /* Home — more shortcuts (inside st.container) */
@@ -160,57 +188,57 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   margin: 0 0 2px 0 !important;
   font-size: 0.9rem !important;
   font-weight: 600 !important;
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   border: none !important;
   letter-spacing: -0.02em !important;
 }
 .hl7-pro-quickstart-hint {
   margin: 0 0 12px 0 !important;
   font-size: 0.8rem !important;
-  color: #64748b !important;
+  color: var(--dbx-gray-text) !important;
   line-height: 1.45;
 }
 
-/* Home — reference architecture (blueprint-style) */
+/* Home — reference architecture (blueprint on oat; dbxWearables diagram tone) */
 .hl7-architect-panel {
-  background-color: #f1f5f9;
+  background-color: var(--dbx-oat-medium);
   background-image:
-    linear-gradient(rgba(100, 116, 139, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(100, 116, 139, 0.09) 1px, transparent 1px);
+    linear-gradient(rgba(90, 111, 119, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90, 111, 119, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
   background-position: -1px -1px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border: 1px solid var(--dbx-gray-lines);
+  border-radius: var(--dbx-radius);
   padding: 22px 20px 16px;
   margin: 0 0 1.35rem 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 .hl7-architect-foot {
   margin: 16px 0 0 0 !important;
   font-size: 0.8rem !important;
   line-height: 1.5 !important;
-  color: #64748b !important;
+  color: var(--dbx-gray-text) !important;
   padding-top: 12px;
-  border-top: 1px dashed #cbd5e1;
+  border-top: 1px dashed var(--dbx-gray-lines);
   max-width: 900px;
 }
 .hl7-arch-badge {
   display: inline-block;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-family: "DM Mono", ui-monospace, monospace;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #0f766e;
-  background: #ecfdf5;
-  border: 1px solid #99f6e4;
+  color: #00875c;
+  background: #e6faf4;
+  border: 1px solid #9ed6c4;
   border-radius: 4px;
   padding: 2px 6px;
   margin: 0 0 6px 0;
 }
 .hl7-arch-step--app {
-  border-color: #0d9488 !important;
-  background: #f0fdfa !important;
-  box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.15);
+  border-color: var(--dbx-blue-600) !important;
+  background: #f0f7fc !important;
+  box-shadow: 0 0 0 1px rgba(34, 114, 180, 0.2);
 }
 
 /* Home — data flow card (pipeline strip) — also used for titles inside architect panel */
@@ -228,21 +256,21 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   font-weight: 700 !important;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #64748b !important;
+  color: var(--dbx-gray-text) !important;
   margin: 0 0 4px 0 !important;
 }
 .hl7-dataflow-title {
   margin: 0 0 6px 0 !important;
   font-size: 1.2rem !important;
   font-weight: 700 !important;
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   letter-spacing: -0.02em !important;
   border: none !important;
 }
 .hl7-dataflow-deck {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: #64748b;
+  color: var(--dbx-gray-text);
   margin: 0 0 1rem 0;
 }
 
@@ -263,7 +291,7 @@ h2.hl7-section-h2 {
   margin: 0 0 4px 0 !important;
   font-size: 1.28rem !important;
   font-weight: 700 !important;
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   letter-spacing: -0.02em !important;
   border: none !important;
   line-height: 1.25 !important;
@@ -272,7 +300,7 @@ h3.hl7-section-h3 {
   margin: 0 0 4px 0 !important;
   font-size: 1.12rem !important;
   font-weight: 600 !important;
-  color: #0f172a !important;
+  color: var(--dbx-navy-800) !important;
   letter-spacing: -0.02em !important;
   border: none !important;
   line-height: 1.3 !important;
@@ -281,14 +309,14 @@ h3.hl7-section-h3 {
 .hl7-ops-snapshot-deck {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: #64748b;
+  color: var(--dbx-gray-text);
   margin: 0;
   max-width: 820px;
 }
 .hl7-live-deck, .hl7-charts-deck {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: #64748b;
+  color: var(--dbx-gray-text);
   margin: 0;
   max-width: 820px;
 }
@@ -322,16 +350,16 @@ h3.hl7-section-h3 {
   min-width: 96px;
   max-width: 160px;
   background: #ffffff;
-  border: 1px solid #94a3b8;
-  border-top: 3px solid #0f766e;
+  border: 1px solid var(--dbx-gray-lines);
+  border-top: 3px solid var(--dbx-green-600);
   border-radius: 6px;
   padding: 10px 10px 12px;
   text-align: left;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 2px rgba(11, 32, 38, 0.07);
 }
 .hl7-arch-step strong {
   display: block;
-  color: #0f172a;
+  color: var(--dbx-navy-800);
   font-size: 0.78rem;
   font-weight: 600;
   line-height: 1.3;
@@ -340,13 +368,13 @@ h3.hl7-section-h3 {
 }
 .hl7-arch-step > span:not(.hl7-arch-badge) {
   font-size: 0.68rem;
-  color: #64748b;
+  color: var(--dbx-gray-text);
   line-height: 1.35;
   display: block;
 }
 .hl7-arch-arrow {
   align-self: center;
-  color: #64748b;
+  color: var(--dbx-gray-text);
   font-weight: 600;
   font-size: 1rem;
   padding: 0 1px;
@@ -395,25 +423,29 @@ h3.hl7-section-h3 {
 .hl7-nav-card.genie { --hl7-accent: #6b21a8; }
 
 .conn-box {
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--dbx-gray-lines);
+  border-radius: var(--dbx-radius);
   padding: 18px 20px;
   font-size: 0.88rem;
-  line-height: 1.65;
-  color: #334155;
+  line-height: 1.6;
+  color: var(--dbx-gray-text);
+  font-family: "DM Sans", system-ui, sans-serif;
 }
 .conn-box code, .conn-box b {
-  color: #0f172a;
+  color: var(--dbx-navy-800);
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 0.82em;
 }
 
-/* Sidebar polish */
+/* Sidebar — white on oat (dbx app shell) */
 [data-testid="stSidebar"] {
-  border-right: 1px solid #e2e8f0 !important;
-  background: linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%) !important;
+  border-right: 1px solid var(--dbx-gray-lines) !important;
+  background: #ffffff !important;
 }
 [data-testid="stSidebar"] .stMarkdown {
   font-size: 0.9rem;
+  color: var(--dbx-navy-800) !important;
 }
 
 /* Categorized sidebar */
@@ -431,11 +463,11 @@ h3.hl7-section-h3 {
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: #0f172a;
+  color: var(--dbx-navy-800);
 }
 .hl7-sidebar-meta {
   font-size: 0.78rem !important;
-  color: #64748b !important;
+  color: var(--dbx-gray-text) !important;
   margin: 0 0 4px 0 !important;
   line-height: 1.45 !important;
 }
@@ -613,8 +645,8 @@ div[data-testid="stMetric"]:hover {
 }
 .hl7-arch-step:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
-  border-color: #93c5fd;
+  box-shadow: 0 4px 14px rgba(255, 95, 70, 0.2);
+  border-color: var(--dbx-lava-500) !important;
 }
 
 .hl7-nav-card-v2 {
@@ -630,26 +662,27 @@ div[data-testid="stMetric"]:hover {
   transition: background 0.15s ease, padding-left 0.15s ease;
 }
 [data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"]:hover {
-  background: rgba(99, 102, 241, 0.08) !important;
+  background: rgba(255, 54, 33, 0.08) !important;
 }
 
 .stButton > button[kind="secondary"] {
-  border-radius: 10px !important;
+  border-radius: var(--dbx-radius) !important;
   font-weight: 500 !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid var(--dbx-gray-lines) !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
+  color: var(--dbx-navy-800) !important;
 }
 .stButton > button[kind="secondary"]:hover {
-  border-color: #cbd5e1 !important;
-  background: #f8fafc !important;
+  border-color: var(--dbx-gray-text) !important;
+  background: #ffffff !important;
 }
 
 [data-testid="stVerticalBlock"] > div:has([data-testid="stPlotlyChart"]) {
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  border: 1px solid var(--dbx-gray-lines);
   padding: 8px 8px 4px 8px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(11, 32, 38, 0.05);
 }
 
 textarea[data-testid="stChatInputTextArea"],
@@ -657,13 +690,14 @@ div[data-testid="stChatInput"] {
   border-radius: 14px !important;
 }
 textarea[data-testid="stChatInputTextArea"]:focus {
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+  box-shadow: 0 0 0 2px rgba(255, 54, 33, 0.3) !important;
 }
 
 div[data-testid="stSegmentedControl"] {
-  background: #f1f5f9 !important;
-  border-radius: 12px !important;
+  background: var(--dbx-oat-medium) !important;
+  border-radius: var(--dbx-radius) !important;
   padding: 4px !important;
+  border: 1px solid var(--dbx-gray-lines) !important;
 }
 
 .hl7-panel-eyebrow {
@@ -671,7 +705,7 @@ div[data-testid="stSegmentedControl"] {
   font-weight: 700 !important;
   letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
-  color: #6366f1 !important;
+  color: var(--dbx-lava-600) !important;
   margin: 0 0 4px 0 !important;
 }
 
@@ -690,10 +724,10 @@ div[data-testid="stSegmentedControl"] {
 
 /* Bordered panels (e.g. Quick start, connection card) */
 [data-testid="stAppViewContainer"] [data-testid="stVerticalBlockBorderWrapper"] {
-  border-radius: 16px !important;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04) !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid var(--dbx-gray-lines) !important;
+  box-shadow: 0 1px 8px rgba(11, 32, 38, 0.05) !important;
 }
 
 """

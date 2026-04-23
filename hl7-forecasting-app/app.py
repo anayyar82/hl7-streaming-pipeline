@@ -133,13 +133,13 @@ def _home_chart_layout(**kwargs):
     """Consistent Plotly look on Home (matches theme typography)."""
     base = {
         "template": "plotly_white",
-        "font": {"family": "IBM Plex Sans, sans-serif", "size": 12, "color": "#475569"},
+        "font": {"family": "DM Sans, sans-serif", "size": 12, "color": "#5A6F77"},
         "height": 300,
         "margin": {"t": 28, "b": 44, "l": 52, "r": 20},
-        "xaxis": {"gridcolor": "#e2e8f0", "zeroline": False, "linecolor": "#cbd5e1"},
-        "yaxis": {"gridcolor": "#e2e8f0", "zeroline": False, "linecolor": "#cbd5e1"},
+        "xaxis": {"gridcolor": "#DCE0E2", "zeroline": False, "linecolor": "#DCE0E2"},
+        "yaxis": {"gridcolor": "#DCE0E2", "zeroline": False, "linecolor": "#DCE0E2"},
         "paper_bgcolor": "rgba(255,255,255,0.98)",
-        "plot_bgcolor": "#f8fafc",
+        "plot_bgcolor": "#F9F7F4",
     }
     base.update(kwargs)
     return base
@@ -253,7 +253,7 @@ def _home_snapshot_and_charts() -> None:
                         go.Bar(
                             x=tp["processing_hour"],
                             y=tp["total_messages"],
-                            marker_color="#2563eb",
+                            marker_color="#2272B4",
                             opacity=0.85,
                         )
                     )
@@ -314,10 +314,10 @@ def _home_snapshot_and_charts() -> None:
                             x=tr["d"],
                             y=tr["encounter_count"],
                             mode="lines+markers",
-                            line=dict(color="#059669", width=2),
-                            fill="tozeroy",
-                            fillcolor="rgba(5, 150, 105, 0.1)",
-                            marker=dict(size=8, color="#059669", line=dict(width=1, color="#ffffff")),
+                        line=dict(color="#00A972", width=2),
+                        fill="tozeroy",
+                        fillcolor="rgba(0, 169, 114, 0.12)",
+                        marker=dict(size=8, color="#00A972", line=dict(width=1, color="#ffffff")),
                         )
                     )
                     fig_tr.update_layout(

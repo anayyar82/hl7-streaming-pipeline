@@ -1,0 +1,28 @@
+variables:
+  app_git_url:
+    description: HTTPS URL for the repo that contains hl7-appkit-app
+    default: https://github.com/anayyar82/hl7-streaming-pipeline.git
+  app_git_branch:
+    description: Branch the app deploys from
+    default: main
+  app_git_provider:
+    description: Git provider (e.g. gitHub)
+    default: gitHub
+resources:
+  apps:
+    hl7app_appkit:
+      name: hl7app_appkit
+      description: "HL7 ED/ICU — AppKit (TypeScript) — see hl7-appkit-app/README.md"
+      git_repository:
+        provider: ${var.app_git_provider}
+        url: ${var.app_git_url}
+      git_source:
+        branch: ${var.app_git_branch}
+        source_code_path: hl7-appkit-app
+      # Runtime: prefer Apps → Environment, or re-deploy after `databricks bundle summary -t dev` (main bundle) to copy pipeline UUID.
+      user_api_scopes:
+        - sql
+        - dashboards.genie
+      permissions:
+        - level: CAN_USE
+          group_name: users

@@ -1,0 +1,17 @@
+# Deploy the AppKit app only. The main `databricks.yml` cannot list two git-sourced apps: Databricks returns
+# "Duplicate app source code path". Use this bundle for hl7app_appkit after the main pipeline bundle is deployed.
+bundle:
+  name: hl7_appkit_ui
+
+workspace:
+  profile: e2-demo-field-eng
+
+include:
+  - resources/hl7_appkit_app_resource.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+  staging: {}
+  prod: {}
