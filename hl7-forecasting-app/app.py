@@ -1,16 +1,24 @@
 """
-HL7App — Streamlit home: architecture, security, and system health.
+HL7App - ED & ICU Operations Dashboard
+
+Real-time operations dashboard and ML forecasting for Emergency Department
+and ICU arrivals/discharges, powered by Lakebase Postgres.
 """
 
+import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
-from utils.db import run_query_batch
+from utils.db import run_query_batch, PGHOST, PGDATABASE, ENDPOINT_NAME
+from utils.streamlit_refresh import run_live_dashboard
+from utils import queries
 from utils.theme import apply_theme
-from utils.navigation import render_sidebar_nav, render_home_footer
-from utils.health import health_freshness_queries, render_system_health_hero
+from utils.navigation import render_sidebar_nav, render_home_navigation
+from utils.plotly_selection import selection_state_from_chart, selected_row_indices
+from utils.ui import home_focus_picker, home_quick_links
 
 st.set_page_config(
-    page_title="HL7App",
+    page_title="HL7App - ED & ICU Operations",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -19,128 +27,345 @@ st.set_page_config(
 apply_theme()
 render_sidebar_nav()
 
-DOCS_BASE = "https://github.com/anayyar82/hl7-streaming-pipeline/blob/main"
-ARCH_DOCS_HREF = f"{DOCS_BASE}/docs/ARCHITECTURE.md"
-DLT_DOCS = "https://docs.databricks.com/en/delta-live-tables/index.html"
-APPS_DOCS = "https://docs.databricks.com/en/dev-tools/databricks-apps.html"
-
-
-def _home_health_batch() -> dict:
-    return run_query_batch(health_freshness_queries(), quiet=True)
-
-# Use only div/ol/ul/li — Streamlit's sanitizer (DOMPurify) for unsafe_allow_html often
-# drops <header>/<section> so tags show as raw text. Global styles target class names, not element type.
-HOME_ARCH_HTML = f"""
-<div class="hl7-home-root">
-  <div class="hl7-hero-2025" role="banner">
-    <p class="hl7-hero-kicker">Medallion · Databricks</p>
-    <h1 class="hl7-hero-title">ED &amp; ICU intelligence</h1>
-    <p class="hl7-hero-sub">Architecture, security, and <strong>system health</strong> (below) in one place. Deeper analytics and volume charts live in the sidebar — e.g. <strong>Real-time</strong> and <strong>Trends</strong> — not on this page.</p>
-  </div>
-
-  <div class="hl7-home-bento">
-    <div class="hl7-bento hl7-bento--flow" role="region" aria-labelledby="flow-heading">
-      <div class="hl7-bento-head">
-        <h2 id="flow-heading" class="hl7-bento-title">Data flow</h2>
-        <p class="hl7-bento-deck">End-to-end path from files to apps. Details align with the <a href="{ARCH_DOCS_HREF}" target="_blank" rel="noopener noreferrer">architecture doc</a> and the runbook in <code>docs/ARCHITECTURE.md</code>.</p>
-      </div>
-      <ol class="hl7-flow-timeline">
-        <li class="hl7-flow-item">
-          <span class="hl7-flow-idx" aria-hidden="true">1</span>
-          <div class="hl7-flow-body">
-            <h3 class="hl7-flow-h">Ingest</h3>
-            <p>HL7 (and similar) land in <strong>Unity Catalog volumes</strong>. Optional synthetic batches for demos. No direct app writes to gold — landing is the system of record for raw files.</p>
-          </div>
-        </li>
-        <li class="hl7-flow-item">
-          <span class="hl7-flow-idx" aria-hidden="true">2</span>
-          <div class="hl7-flow-body">
-            <h3 class="hl7-flow-h">DLT (bronze → silver)</h3>
-            <p>Incremental <a href="{DLT_DOCS}" target="_blank" rel="noopener noreferrer">Delta Live Tables</a> parse, validate, and conformed schemas. Watermark-driven idempotency; Photon where enabled on Lakeflow.</p>
-          </div>
-        </li>
-        <li class="hl7-flow-item">
-          <span class="hl7-flow-idx" aria-hidden="true">3</span>
-          <div class="hl7-flow-body">
-            <h3 class="hl7-flow-h">Gold (Unity Catalog)</h3>
-            <p>Business <strong>facts and dimensions</strong> in a governed schema. <strong>UC</strong> is the access boundary for SQL, Genie, and downstream jobs — grant <code>SELECT</code> to the automation and app identities that need it.</p>
-          </div>
-        </li>
-        <li class="hl7-flow-item">
-          <span class="hl7-flow-idx" aria-hidden="true">4</span>
-          <div class="hl7-flow-body">
-            <h3 class="hl7-flow-h">ML &amp; features</h3>
-            <p>AutoML training, batch <strong>inference</strong>, and feature / prediction tables in Delta. Scores follow the same medallion and sync rules as the rest of gold.</p>
-          </div>
-        </li>
-        <li class="hl7-flow-item">
-          <span class="hl7-flow-idx" aria-hidden="true">5</span>
-          <div class="hl7-flow-body">
-            <h3 class="hl7-flow-h">Analytical read path</h3>
-            <p>Job-driven materialization to a <strong>low-latency SQL</strong> front (JDBC) for sub-second app queries. Identity uses Databricks <strong>OAuth</strong> into the data plane, not shared passwords in this repo.</p>
-          </div>
-        </li>
-        <li class="hl7-flow-item hl7-flow-item--last">
-          <span class="hl7-flow-idx" aria-hidden="true">6</span>
-          <div class="hl7-flow-body">
-            <h3 class="hl7-flow-h">Consumption</h3>
-            <p><a href="{APPS_DOCS}" target="_blank" rel="noopener noreferrer">Databricks Apps</a> (this UI, optional AppKit), <strong>Genie</strong> with curated spaces, and Lakeview dashboards. Same governed tables, different entry points.</p>
-          </div>
-        </li>
-      </ol>
-    </div>
-
-    <div class="hl7-bento hl7-bento--sec" role="region" aria-labelledby="sec-heading">
-      <div class="hl7-bento-head">
-        <h2 id="sec-heading" class="hl7-bento-title">Security &amp; governance</h2>
-        <p class="hl7-bento-deck">High-level model; implement with UC grants, bundle scopes, and the grant notebooks in the repo.</p>
-      </div>
-      <ul class="hl7-sec-list">
-        <li>
-          <span class="hl7-sec-tag">UC</span>
-          <p><strong>Unity Catalog</strong> — <code>USE CATALOG / SCHEMA / SELECT</code> on the HL7 gold schema for the app service principal. No broad <code>MODIFY</code> in the app path; jobs use their own principals.</p>
-        </li>
-        <li>
-          <span class="hl7-sec-tag">Apps</span>
-          <p><strong>Identity &amp; API</strong> — Databricks App runs with a <strong>service principal</strong>; the bundle sets <code>user_api_scopes</code> (e.g. <code>sql</code>, <code>dashboards.genie</code>) for workspace API calls. Env vars hold pipeline / job / org ids — not secrets in the browser.</p>
-        </li>
-        <li>
-          <span class="hl7-sec-tag">Data plane</span>
-          <p><strong>Read path &amp; OAuth</strong> — <code>databricks_create_role</code> maps the app to a role on the analytical store. Grants in <code>11_lakebase_*.py</code> and Genie UCs in <code>12_genie_uc_grants.py</code>.</p>
-        </li>
-        <li>
-          <span class="hl7-sec-tag">Genie</span>
-          <p><strong>SQL &amp; warehouse</strong> — The Genie space needs <strong>CAN USE</strong> on the SQL warehouse and consistent UC <strong>SELECT</strong> for tables exposed to natural-language Q&amp;A.</p>
-        </li>
-        <li>
-          <span class="hl7-sec-tag">Net / ops</span>
-          <p>Prefer private and org-approved connectivity to data services. <strong>Secrets</strong> for email or third parties live in Databricks <strong>secret scopes</strong> in jobs, not in git-tracked <code>app.yaml</code> text.</p>
-        </li>
-      </ul>
-      <a class="hl7-sec-cta" href="{ARCH_DOCS_HREF}" target="_blank" rel="noopener noreferrer">Read full security &amp; flow (docs/ARCHITECTURE.md) ↗</a>
-    </div>
-  </div>
-</div>
+TABLE_COUNT_QUERY = """
+SELECT
+    COUNT(*) AS table_count,
+    string_agg(tablename, ', ' ORDER BY tablename) AS tables
+FROM pg_tables
+WHERE schemaname = 'ankur_nayyar'
 """
 
-st.markdown(HOME_ARCH_HTML, unsafe_allow_html=True)
+# ---- Hero ----
+st.markdown(
+    """
+<div class="hl7-hero">
+  <h1>HL7 ED & ICU Operations</h1>
+  <p>
+    Operational census, clinical analytics, and ML forecasts on top of a Databricks medallion pipeline:
+    ingest → <strong>Delta Live Tables</strong> gold → <strong>Unity Catalog</strong> → <strong>Lakebase</strong> → this app.
+    Pages are grouped in the sidebar: <strong>Clinical intelligence</strong> (Lakebase dashboards), <strong>Platform</strong> (DLT, jobs, ingest, stack pulse), and <strong>Genie</strong> for natural-language questions.
+  </p>
+  <div class="hl7-badge-row">
+    <span class="hl7-badge">DLT</span>
+    <span class="hl7-badge">UNITY CATALOG</span>
+    <span class="hl7-badge">LAKEBASE</span>
+    <span class="hl7-badge">AUTOML / MLFLOW</span>
+    <span class="hl7-badge">DATABRICKS APPS</span>
+  </div>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
 
-a1, a2, a3, a4 = st.columns(4, gap="small")
-with a1:
-    st.page_link("pages/1_realtime.py", label="Real-time", icon="📊", use_container_width=True)
-with a2:
-    st.page_link("pages/0_status.py", label="Status", icon="📡", use_container_width=True)
-with a3:
-    st.page_link("pages/z_run_jobs.py", label="Jobs", icon="🚀", use_container_width=True)
-with a4:
-    st.page_link("pages/8_genie_chat.py", label="Genie", icon="💬", use_container_width=True)
+# ---- Architecture strip ----
+st.markdown("**Data flow** (logical)")
+st.markdown(
+    """
+<div class="hl7-arch">
+  <div class="hl7-arch-step"><strong>HL7 files</strong><span>Volume / landing</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>Bronze / Silver</strong><span>DLT parse &amp; conform</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>Gold</strong><span>UC tables · facts &amp; dims</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>ML layer</strong><span>Features · AutoML · predictions</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>Lakebase</strong><span>Postgres API to gold</span></div>
+  <span class="hl7-arch-arrow">→</span>
+  <div class="hl7-arch-step"><strong>This app</strong><span>Streamlit + Genie</span></div>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
 
-st.markdown("")
-
-_hb = _home_health_batch()
 with st.container(border=True):
-    render_system_health_hero(_hb)
+    st.markdown('<p class="hl7-panel-eyebrow">Interactive</p>', unsafe_allow_html=True)
+    st.markdown("### Quick start")
+    st.caption("Choose what you’re here for — the three links below switch to match.")
+    focus = home_focus_picker()
+    home_quick_links(focus)
 
-st.caption("**Refresh** in the health section re-runs freshness queries and the DLT snapshot.")
+with st.expander("What each page is for (quick map)", expanded=False):
+    st.markdown(
+        """
+### Clinical intelligence (Lakebase)
+| Page | What it does |
+|------|----------------|
+| **Real-time ops** | Current ED/ICU census and hourly strips. |
+| **Trends** | Daily rollups, heatmaps, ED vs ICU. |
+| **ML forecasting** | Predictions, bands, timelines, vs actuals. |
+| **Model performance** | MAE, MAPE, coverage, model comparison. |
+| **Patient & clinical** | Demographics, diagnoses, labs, orders. |
+| **Combined forecast** | ED+ICU system pressure and ratios. |
+| **HL7 operations** | Message throughput, pipeline breakdown. |
 
-render_home_footer()
+### Platform (Databricks workspace)
+| Page | What it does |
+|------|----------------|
+| **System status** | Per-table freshness matrix and runbook. |
+| **Sample → volume** | Land HL7 files into the UC landing volume. |
+| **Live activity** | DLT + Workflows run status (auto-refresh). |
+| **DLT update live** | Per-flow status + row metrics from pipeline event log. |
+| **Run jobs & workflow** | DLT, bundled workflow, inference, Lakebase load. |
+| **Platform pulse** | Cross-stack KPIs, treemap, ML snapshot. |
+
+### Ask your data
+| **Genie** | Plain-English Q&A over your Genie space. |
+
+**Home** — connection, KPIs, throughput, and the visual map below.
+        """
+    )
+
+def _safe_int(df, col, default=0):
+    if df is None or df.empty or col not in df.columns:
+        return default
+    v = df[col].iloc[0]
+    if v is None or (isinstance(v, float) and pd.isna(v)):
+        return default
+    return int(v)
+
+
+def _home_snapshot_and_charts() -> None:
+    hc1, hc2 = st.columns([4, 1], vertical_alignment="center")
+    with hc1:
+        st.markdown("### Operational snapshot")
+        st.caption("Live counts from Lakebase gold (same path as your clinical pages).")
+    with hc2:
+        if st.button("Refresh", help="Reload metrics and charts from the database", use_container_width=True):
+            st.rerun()
+
+    k1, k2, k3, k4 = st.columns(4, gap="medium")
+
+    home_batch = run_query_batch(
+        {
+            "enc": queries.HOME_ENCOUNTER_COUNT_7D,
+            "msg": queries.HOME_MESSAGE_VOLUME_24H,
+            "ml": queries.HOME_ML_PREDICTION_OVERVIEW,
+            "pat": queries.PATIENT_COUNTS,
+            "tp": queries.HOME_THROUGHPUT_RECENT,
+            "tr": queries.HOME_ENCOUNTER_TREND_30D,
+            "info": TABLE_COUNT_QUERY,
+        },
+        quiet=True,
+    )
+    enc_df = home_batch.get("enc", pd.DataFrame())
+    try:
+        k1.metric(
+            "Encounters (7d)",
+            f"{_safe_int(enc_df, 'n'):,}",
+            help="Row count from gold encounter fact — last 7 days window in query.",
+        )
+    except Exception:
+        k1.metric("Encounters (7d)", "—")
+
+    msg_df = home_batch.get("msg", pd.DataFrame())
+    try:
+        k2.metric(
+            "HL7 messages (24h)",
+            f"{_safe_int(msg_df, 'messages_24h'):,}",
+            help="Aggregated HL7 message volume in the trailing 24 hours.",
+        )
+    except Exception:
+        k2.metric("HL7 messages (24h)", "—")
+
+    ml_df = home_batch.get("ml", pd.DataFrame())
+    try:
+        k3.metric("ML predictions", f"{_safe_int(ml_df, 'total_predictions'):,}", help="Total rows in predictions table")
+    except Exception:
+        k3.metric("ML predictions", "—")
+
+    pat_df = home_batch.get("pat", pd.DataFrame())
+    try:
+        k4.metric(
+            "Patients",
+            f"{_safe_int(pat_df, 'total_patients'):,}",
+            help="Distinct patients represented in the patient dimension / fact pipeline.",
+        )
+    except Exception:
+        k4.metric("Patients", "—")
+
+    # ---- Charts ----
+    st.markdown("### Charts")
+    ch_left, ch_right = st.columns(2, gap="large")
+
+    _PLOT_CONFIG = {"displayModeBar": True, "scrollZoom": True, "responsive": True}
+
+    with ch_left:
+        st.markdown("#### Pipeline throughput (72h)")
+        st.caption(
+            "`gold_message_metrics` hourly — **click a bar** or use **box / lasso** (chart toolbar) "
+            "to select multiple hours; totals and rows appear below."
+        )
+        try:
+            tp = home_batch.get("tp", pd.DataFrame())
+            if not tp.empty:
+                tp["processing_hour"] = pd.to_datetime(tp["processing_hour"])
+                tp["total_messages"] = pd.to_numeric(tp["total_messages"], errors="coerce").fillna(0)
+                fig_tp = go.Figure(
+                    go.Bar(
+                        x=tp["processing_hour"],
+                        y=tp["total_messages"],
+                        marker_color="#2563eb",
+                        opacity=0.85,
+                    )
+                )
+                fig_tp.update_layout(
+                    height=280,
+                    margin=dict(t=20),
+                    xaxis_title="Hour",
+                    yaxis_title="Messages",
+                    showlegend=False,
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(248,250,252,0.9)",
+                    dragmode="select",
+                    selectdirection="h",
+                )
+                ev_tp = st.plotly_chart(
+                    fig_tp,
+                    use_container_width=True,
+                    config=_PLOT_CONFIG,
+                    on_select="rerun",
+                    key="home_throughput_chart",
+                    selection_mode=["points", "box", "lasso"],
+                )
+                sel_tp = selection_state_from_chart(ev_tp, "home_throughput_chart", st.session_state)
+                idx_tp = selected_row_indices(tp, sel_tp, "processing_hour")
+                if idx_tp:
+                    sub = tp.iloc[idx_tp].sort_values("processing_hour")
+                    tot = int(sub["total_messages"].sum())
+                    st.markdown("##### Selection — throughput")
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Hours selected", len(idx_tp))
+                    m2.metric("Messages in selection", f"{tot:,}")
+                    m3.metric(
+                        "Avg / hour",
+                        f"{tot // len(idx_tp):,}" if idx_tp else "—",
+                    )
+                    show = sub.copy()
+                    show["processing_hour"] = show["processing_hour"].dt.strftime("%Y-%m-%d %H:%M")
+                    st.dataframe(
+                        show.rename(columns={"processing_hour": "Hour", "total_messages": "Messages"}),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+            else:
+                st.info("No throughput rows in the last 72 hours.")
+        except Exception as e:
+            st.warning(f"Throughput chart unavailable: {e}")
+
+    with ch_right:
+        st.markdown("#### Encounters (30d)")
+        st.caption(
+            "`gold_encounter_fact` daily — **click points** on the line or **box-select** a date range; "
+            "summary appears below."
+        )
+        try:
+            tr = home_batch.get("tr", pd.DataFrame())
+            if not tr.empty:
+                tr["d"] = pd.to_datetime(tr["d"])
+                tr["encounter_count"] = pd.to_numeric(tr["encounter_count"], errors="coerce").fillna(0)
+                fig_tr = go.Figure(
+                    go.Scatter(
+                        x=tr["d"],
+                        y=tr["encounter_count"],
+                        mode="lines+markers",
+                        line=dict(color="#059669", width=2),
+                        fill="tozeroy",
+                        fillcolor="rgba(5, 150, 105, 0.1)",
+                        marker=dict(size=8, color="#059669", line=dict(width=1, color="#ffffff")),
+                    )
+                )
+                fig_tr.update_layout(
+                    height=280,
+                    margin=dict(t=20),
+                    showlegend=False,
+                    xaxis_title="Date",
+                    yaxis_title="Encounters",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(248,250,252,0.9)",
+                    dragmode="select",
+                    selectdirection="h",
+                )
+                ev_tr = st.plotly_chart(
+                    fig_tr,
+                    use_container_width=True,
+                    config=_PLOT_CONFIG,
+                    on_select="rerun",
+                    key="home_encounters_chart",
+                    selection_mode=["points", "box", "lasso"],
+                )
+                sel_tr = selection_state_from_chart(ev_tr, "home_encounters_chart", st.session_state)
+                idx_tr = selected_row_indices(tr, sel_tr, "d")
+                if idx_tr:
+                    sub = tr.iloc[idx_tr].sort_values("d")
+                    tot_e = int(sub["encounter_count"].sum())
+                    st.markdown("##### Selection — encounters")
+                    e1, e2, e3 = st.columns(3)
+                    e1.metric("Days selected", len(idx_tr))
+                    e2.metric("Encounters in selection", f"{tot_e:,}")
+                    e3.metric(
+                        "Avg / day",
+                        f"{tot_e // len(idx_tr):,}" if idx_tr else "—",
+                    )
+                    show_e = sub.copy()
+                    show_e["d"] = show_e["d"].dt.strftime("%Y-%m-%d")
+                    st.dataframe(
+                        show_e.rename(columns={"d": "Date", "encounter_count": "Encounters"}),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+            else:
+                st.info("No encounters in the last 30 days.")
+        except Exception as e:
+            st.warning(f"Encounter trend unavailable: {e}")
+
+    # ---- Lakebase connection ----
+    st.markdown("---")
+    st.markdown("### Lakebase connection")
+
+    try:
+        info_df = home_batch.get("info", pd.DataFrame())
+        if not info_df.empty:
+            tbl_count = int(info_df["table_count"].iloc[0])
+            tbl_list = info_df["tables"].iloc[0] or ""
+
+            col_conn, col_stats = st.columns([1, 1])
+
+            with col_conn:
+                st.markdown(
+                    '<div class="conn-box">'
+                    "<b>Host:</b> <code>"
+                    + str(PGHOST)
+                    + "</code><br>"
+                    "<b>Database:</b> <code>"
+                    + str(PGDATABASE)
+                    + "</code><br>"
+                    "<b>Schema:</b> <code>ankur_nayyar</code><br>"
+                    "<b>Endpoint:</b> <code>"
+                    + str(ENDPOINT_NAME)
+                    + "</code><br>"
+                    f"<b>Tables:</b> <code>{tbl_count}</code>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+
+            with col_stats:
+                st.metric("Gold tables in schema", tbl_count)
+                if tbl_list:
+                    with st.expander("Table names"):
+                        for t in sorted(tbl_list.split(", ")):
+                            st.code(t, language=None)
+        else:
+            st.info("Connected to Lakebase but no tables found in schema.")
+    except Exception as e:
+        st.warning(f"Could not query Lakebase metadata: {e}")
+
+
+run_live_dashboard(_home_snapshot_and_charts, interval_seconds=22, manual_key="hl7_home_live_refresh")
+
+st.markdown("---")
+render_home_navigation()
+st.markdown("---")
+st.caption(
+    "Powered by Databricks Unity Catalog · Delta Live Tables · MLflow AutoML · Lakebase · Apps"
+)
