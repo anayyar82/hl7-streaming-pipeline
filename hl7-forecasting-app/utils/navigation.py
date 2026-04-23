@@ -80,8 +80,9 @@ def render_home_navigation() -> None:
     st.markdown(
         """
 <div class="hl7-nav-intro">
-  <h2>Where to next</h2>
-  <p>Clinical views read from <strong>Lakebase</strong>. Platform pages control <strong>DLT, jobs, and the Databricks stack</strong>.</p>
+  <p class="hl7-bento-eyebrow">Start here</p>
+  <h2 class="hl7-bento-heading">Where do you want to go?</h2>
+  <p class="hl7-bento-deck">Clinical pages query <strong>Lakebase</strong> on gold. Platform pages run and observe <strong>DLT, jobs, and workspace health</strong> — separate by design.</p>
 </div>
         """,
         unsafe_allow_html=True,
@@ -97,7 +98,7 @@ def render_home_navigation() -> None:
     <span class="hl7-banner-ico">🏥</span>
     <div>
       <h3>Clinical intelligence</h3>
-      <p>Census, trends, ML forecasts, and patient analytics — all from Lakebase gold.</p>
+      <p>Live census, trends, forecasts, and patient context — read paths from gold.</p>
     </div>
   </div>
 </div>
@@ -188,7 +189,7 @@ def render_home_navigation() -> None:
     <span class="hl7-banner-ico">⚙️</span>
     <div>
       <h3>Platform</h3>
-      <p>Pipelines, jobs, and workspace health — kept apart from clinical dashboards on purpose.</p>
+      <p>DLT, workflows, and observability — control plane, not patient-facing.</p>
     </div>
   </div>
 </div>

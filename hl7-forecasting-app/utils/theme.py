@@ -447,6 +447,38 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   border: none !important;
 }
 .hl7-hero-sub strong { color: #1b3139 !important; }
+/* Hero: stack / product pills */
+.hl7-hero-2025 .hl7-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 1.1rem 0 0 0;
+}
+.hl7-badge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px 10px;
+  line-height: 1.2;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+/* Section separation (replaces a heavy <hr> between bento and hero) */
+.hl7-section-divider {
+  display: block;
+  margin: 0.5rem 0 1.25rem 0;
+  padding: 0;
+  border: 0;
+  clear: both;
+  background: linear-gradient(90deg, transparent, rgba(220, 224, 226, 0.85) 20%, rgba(220, 224, 226, 0.85) 80%, transparent);
+  height: 1px;
+}
 .hl7-home-bento {
   display: grid;
   grid-template-columns: 1fr;
@@ -710,6 +742,13 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   color: var(--dbx-gray-text);
   margin: 0 0 1rem 0;
 }
+.hl7-dataflow-wrap--home {
+  margin: 0 0 1.5rem 0;
+}
+.hl7-dataflow-wrap--home .hl7-arch {
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
 
 /* Home — live / charts / observability / Lakebase section headers (injected in app.py) */
 .hl7-live-head,
@@ -929,25 +968,47 @@ h3.hl7-section-h3 {
   border-bottom-color: #c7d2fe;
 }
 
-/* Home navigation */
+/* Home navigation (bento intro) */
 .hl7-nav-intro {
   margin: 0 0 1.5rem 0;
-  padding: 0 4px;
+  padding: 0 4px 0.75rem 2px;
+  border-bottom: 1px solid #e8ecef;
 }
-.hl7-nav-intro h2 {
-  margin: 0 0 6px 0 !important;
-  font-size: 1.5rem !important;
-  background: linear-gradient(90deg, #0f172a, #4338ca);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.hl7-bento-eyebrow {
+  display: block;
+  margin: 0 0 0.4rem 0 !important;
+  font-size: 0.64rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: #64748b !important;
+  border: none !important;
 }
-.hl7-nav-intro p {
+.hl7-bento-heading {
+  margin: 0 0 0.5rem 0 !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.18 !important;
+  color: #0b2026 !important;
+  -webkit-text-fill-color: #0b2026 !important;
+  background: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+  border: none !important;
+}
+@media (min-width: 700px) {
+  .hl7-bento-heading { font-size: 1.5rem !important; }
+}
+.hl7-bento-deck {
   margin: 0 !important;
-  color: #475569;
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 0.94rem !important;
+  line-height: 1.55 !important;
+  color: #5a6f77 !important;
+  max-width: 40rem;
+  border: none !important;
 }
+.hl7-bento-deck strong { color: #1b3139 !important; }
 
 .hl7-clinical-banner, .hl7-platform-banner {
   border-radius: 18px;
@@ -955,14 +1016,14 @@ h3.hl7-section-h3 {
   overflow: hidden;
 }
 .hl7-clinical-banner {
-  background: linear-gradient(135deg, #eff6ff 0%, #ecfdf5 50%, #f0f9ff 100%);
-  border: 1px solid #bfdbfe;
-  box-shadow: 0 4px 24px rgba(37, 99, 235, 0.08);
+  background: linear-gradient(145deg, #f8fbff 0%, #f0fdf9 100%);
+  border: 1px solid #dbeafe;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .hl7-platform-banner {
-  background: linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #0f172a 100%);
-  border: 1px solid #4338ca;
-  box-shadow: 0 8px 32px rgba(49, 46, 129, 0.35);
+  background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.18);
 }
 .hl7-banner-inner {
   display: flex;
@@ -1041,11 +1102,11 @@ h3.hl7-section-h3 {
 
 .hl7-genie-spotlight {
   margin-top: 20px;
-  padding: 18px 18px;
-  border-radius: 16px;
-  background: linear-gradient(120deg, #fef3c7 0%, #fde68a 35%, #fcd34d 100%);
-  border: 1px solid #f59e0b;
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.2);
+  padding: 16px 16px 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 .hl7-genie-row {
   display: flex;
@@ -1053,19 +1114,32 @@ h3.hl7-section-h3 {
   align-items: center;
 }
 .hl7-genie-emoji {
-  font-size: 2rem;
+  font-size: 1.65rem;
   line-height: 1;
+  opacity: 0.9;
 }
 .hl7-genie-spotlight strong {
   display: block;
-  color: #78350f;
-  font-size: 1rem;
+  color: #0b2026;
+  font-size: 0.95rem;
+  font-weight: 700;
   margin-bottom: 2px;
+  letter-spacing: -0.01em;
 }
 .hl7-genie-spotlight p {
   margin: 0 !important;
-  font-size: 0.85rem !important;
-  color: #92400e !important;
+  font-size: 0.84rem !important;
+  color: #5a6f77 !important;
+  line-height: 1.45 !important;
+}
+/* Home: refined footer */
+.hl7-home-footer {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0.5rem 0 0 0;
+  padding-top: 0.5rem;
 }
 
 /* ---- Interactive polish ---- */

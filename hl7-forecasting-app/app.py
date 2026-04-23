@@ -24,54 +24,61 @@ render_sidebar_nav()
 # ---- Clinical intelligence + Platform + Genie bento (first) ----
 render_home_navigation()
 
-# ---- Hero ----
-st.markdown("---")
+st.markdown('<div class="hl7-section-divider" aria-hidden="true"></div>', unsafe_allow_html=True)
+
+# ---- Hero (themed: hl7-hero-2025) ----
 st.markdown(
     """
-<div class="hl7-hero">
-  <h1>HL7 ED & ICU Operations</h1>
-  <p>
-    Operational census, clinical analytics, and ML forecasts on top of a Databricks medallion pipeline:
-    ingest → <strong>Delta Live Tables</strong> gold → <strong>Unity Catalog</strong> → <strong>Lakebase</strong> → this app.
-    Pages are grouped in the sidebar: <strong>Clinical intelligence</strong> (Lakebase dashboards), <strong>Platform</strong> (DLT, jobs, ingest, stack pulse), and <strong>Genie</strong> for natural-language questions.
+<div class="hl7-hero-2025">
+  <p class="hl7-hero-kicker">ED &amp; ICU · Databricks Apps</p>
+  <h1 class="hl7-hero-title">HL7 ED &amp; ICU Operations</h1>
+  <p class="hl7-hero-sub">
+    Real-time census, clinical analytics, and ML forecasts on <strong>Unity Catalog</strong> gold via <strong>Lakebase</strong>.
+    The grid above is the fastest path; the <strong>sidebar</strong> lists every page under <strong>Clinical</strong>, <strong>Platform</strong> (DLT · jobs · health), and <strong>Genie</strong> for natural-language Q&amp;A.
   </p>
-  <div class="hl7-badge-row">
+  <div class="hl7-badge-row" aria-label="Stack">
     <span class="hl7-badge">DLT</span>
-    <span class="hl7-badge">UNITY CATALOG</span>
-    <span class="hl7-badge">LAKEBASE</span>
-    <span class="hl7-badge">AUTOML / MLFLOW</span>
-    <span class="hl7-badge">DATABRICKS APPS</span>
+    <span class="hl7-badge">Unity Catalog</span>
+    <span class="hl7-badge">Lakebase</span>
+    <span class="hl7-badge">AutoML · MLflow</span>
+    <span class="hl7-badge">Databricks Apps</span>
   </div>
 </div>
     """,
     unsafe_allow_html=True,
 )
 
-# ---- Architecture strip ----
-st.markdown("**Data flow** (logical)")
+# ---- Data flow (logical pipeline) ----
 st.markdown(
     """
-<div class="hl7-arch">
-  <div class="hl7-arch-step"><strong>HL7 files</strong><span>Volume / landing</span></div>
-  <span class="hl7-arch-arrow">→</span>
-  <div class="hl7-arch-step"><strong>Bronze / Silver</strong><span>DLT parse &amp; conform</span></div>
-  <span class="hl7-arch-arrow">→</span>
-  <div class="hl7-arch-step"><strong>Gold</strong><span>UC tables · facts &amp; dims</span></div>
-  <span class="hl7-arch-arrow">→</span>
-  <div class="hl7-arch-step"><strong>ML layer</strong><span>Features · AutoML · predictions</span></div>
-  <span class="hl7-arch-arrow">→</span>
-  <div class="hl7-arch-step"><strong>Lakebase</strong><span>Postgres API to gold</span></div>
-  <span class="hl7-arch-arrow">→</span>
-  <div class="hl7-arch-step"><strong>This app</strong><span>Streamlit + Genie</span></div>
+<div class="hl7-dataflow-wrap hl7-dataflow-wrap--home" role="region" aria-label="Data flow">
+  <p class="hl7-home-eyebrow">Logical pipeline</p>
+  <h2 class="hl7-dataflow-title">From HL7 files to this app</h2>
+  <p class="hl7-dataflow-deck">
+    One path from raw messages to dashboards and models — for orientation, not a literal network map.
+  </p>
+  <div class="hl7-arch" role="list">
+  <div class="hl7-arch-step" role="listitem"><strong>HL7 files</strong><span>Volume / landing</span></div>
+  <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+  <div class="hl7-arch-step" role="listitem"><strong>Bronze / Silver</strong><span>DLT parse &amp; conform</span></div>
+  <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+  <div class="hl7-arch-step" role="listitem"><strong>Gold</strong><span>UC tables · facts &amp; dims</span></div>
+  <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+  <div class="hl7-arch-step" role="listitem"><strong>ML layer</strong><span>Features · AutoML · predictions</span></div>
+  <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+  <div class="hl7-arch-step" role="listitem"><strong>Lakebase</strong><span>Postgres API to gold</span></div>
+  <span class="hl7-arch-arrow" aria-hidden="true">→</span>
+  <div class="hl7-arch-step hl7-arch-step--app" role="listitem"><strong>This app</strong><span>Streamlit + Genie</span></div>
+  </div>
 </div>
     """,
     unsafe_allow_html=True,
 )
 
 with st.container(border=True):
-    st.markdown('<p class="hl7-panel-eyebrow">Interactive</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hl7-panel-eyebrow">Shortcuts</p>', unsafe_allow_html=True)
     st.markdown("### Quick start")
-    st.caption("Choose what you’re here for — the three links below switch to match.")
+    st.caption("Pick a focus; the three buttons below follow your choice.")
     focus = home_focus_picker()
     home_quick_links(focus)
 
@@ -108,6 +115,7 @@ KPIs, throughput charts, and connection details: use **System status** or the cl
     )
 
 st.markdown("---")
-st.caption(
-    "Powered by Databricks Unity Catalog · Delta Live Tables · MLflow AutoML · Lakebase · Apps"
+st.markdown(
+    '<p class="hl7-home-footer">Unity Catalog · Delta Live Tables · MLflow AutoML · Lakebase · Databricks Apps</p>',
+    unsafe_allow_html=True,
 )
