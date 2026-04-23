@@ -15,6 +15,8 @@ targets:
       catalog: users
       schema: ankur_nayyar
       source_volume: landing
+      # Daily insight job: set `email-insight` + store sendgrid_api_key in that Databricks secret scope
+      hl7_insight_secret_scope: email-insight
       # Used by hl7_lakebase_app_grants (11_lakebase_grants) — serverless cannot auto-detect user
       lakebase_connect_user: ankur.nayyar@databricks.com
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
@@ -27,6 +29,7 @@ targets:
       catalog: users
       schema: ankur_nayyar
       source_volume: landing
+      hl7_insight_secret_scope: email-insight
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
       ml_spark_version: 17.3.x-cpu-ml-scala2.13
       ml_node_type: i3.xlarge
@@ -37,6 +40,7 @@ targets:
       catalog: users
       schema: ankur_nayyar
       source_volume: landing
+      hl7_insight_secret_scope: email-insight
       funke_wheel_name: funke-0.1.0a1-py3-none-any.whl
       ml_spark_version: 17.3.x-cpu-ml-scala2.13
       ml_node_type: i3.xlarge
