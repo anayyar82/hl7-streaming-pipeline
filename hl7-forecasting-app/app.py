@@ -5,16 +5,10 @@ Real-time operations dashboard and ML forecasting for Emergency Department
 and ICU arrivals/discharges, powered by Lakebase Postgres.
 """
 
-import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
-from utils.db import run_query_batch, PGHOST, PGDATABASE, ENDPOINT_NAME
-from utils.streamlit_refresh import run_live_dashboard
-from utils import queries
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav, render_home_navigation
-from utils.plotly_selection import selection_state_from_chart, selected_row_indices
 from utils.ui import home_focus_picker, home_quick_links
 
 st.set_page_config(
@@ -27,15 +21,11 @@ st.set_page_config(
 apply_theme()
 render_sidebar_nav()
 
-TABLE_COUNT_QUERY = """
-SELECT
-    COUNT(*) AS table_count,
-    string_agg(tablename, ', ' ORDER BY tablename) AS tables
-FROM pg_tables
-WHERE schemaname = 'ankur_nayyar'
-"""
+# ---- Clinical intelligence + Platform + Genie bento (first) ----
+render_home_navigation()
 
 # ---- Hero ----
+st.markdown("---")
 st.markdown(
     """
 <div class="hl7-hero">
@@ -108,263 +98,15 @@ with st.expander("What each page is for (quick map)", expanded=False):
 | **DLT update live** | Per-flow status + row metrics from pipeline event log. |
 | **Run jobs & workflow** | DLT, bundled workflow, inference, Lakebase load. |
 | **Platform pulse** | Cross-stack KPIs, treemap, ML snapshot. |
+| **Load test** | Parallel connection/latency checks to Lakebase. |
 
 ### Ask your data
 | **Genie** | Plain-English Q&A over your Genie space. |
 
-**Home** — connection, KPIs, throughput, and the visual map below.
+KPIs, throughput charts, and connection details: use **System status** or the clinical pages in the sidebar.
         """
     )
 
-def _safe_int(df, col, default=0):
-    if df is None or df.empty or col not in df.columns:
-        return default
-    v = df[col].iloc[0]
-    if v is None or (isinstance(v, float) and pd.isna(v)):
-        return default
-    return int(v)
-
-
-def _home_snapshot_and_charts() -> None:
-    hc1, hc2 = st.columns([4, 1], vertical_alignment="center")
-    with hc1:
-        st.markdown("### Operational snapshot")
-        st.caption("Live counts from Lakebase gold (same path as your clinical pages).")
-    with hc2:
-        if st.button("Refresh", help="Reload metrics and charts from the database", use_container_width=True):
-            st.rerun()
-
-    k1, k2, k3, k4 = st.columns(4, gap="medium")
-
-    home_batch = run_query_batch(
-        {
-            "enc": queries.HOME_ENCOUNTER_COUNT_7D,
-            "msg": queries.HOME_MESSAGE_VOLUME_24H,
-            "ml": queries.HOME_ML_PREDICTION_OVERVIEW,
-            "pat": queries.PATIENT_COUNTS,
-            "tp": queries.HOME_THROUGHPUT_RECENT,
-            "tr": queries.HOME_ENCOUNTER_TREND_30D,
-            "info": TABLE_COUNT_QUERY,
-        },
-        quiet=True,
-    )
-    enc_df = home_batch.get("enc", pd.DataFrame())
-    try:
-        k1.metric(
-            "Encounters (7d)",
-            f"{_safe_int(enc_df, 'n'):,}",
-            help="Row count from gold encounter fact — last 7 days window in query.",
-        )
-    except Exception:
-        k1.metric("Encounters (7d)", "—")
-
-    msg_df = home_batch.get("msg", pd.DataFrame())
-    try:
-        k2.metric(
-            "HL7 messages (24h)",
-            f"{_safe_int(msg_df, 'messages_24h'):,}",
-            help="Aggregated HL7 message volume in the trailing 24 hours.",
-        )
-    except Exception:
-        k2.metric("HL7 messages (24h)", "—")
-
-    ml_df = home_batch.get("ml", pd.DataFrame())
-    try:
-        k3.metric("ML predictions", f"{_safe_int(ml_df, 'total_predictions'):,}", help="Total rows in predictions table")
-    except Exception:
-        k3.metric("ML predictions", "—")
-
-    pat_df = home_batch.get("pat", pd.DataFrame())
-    try:
-        k4.metric(
-            "Patients",
-            f"{_safe_int(pat_df, 'total_patients'):,}",
-            help="Distinct patients represented in the patient dimension / fact pipeline.",
-        )
-    except Exception:
-        k4.metric("Patients", "—")
-
-    # ---- Charts ----
-    st.markdown("### Charts")
-    ch_left, ch_right = st.columns(2, gap="large")
-
-    _PLOT_CONFIG = {"displayModeBar": True, "scrollZoom": True, "responsive": True}
-
-    with ch_left:
-        st.markdown("#### Pipeline throughput (72h)")
-        st.caption(
-            "`gold_message_metrics` hourly — **click a bar** or use **box / lasso** (chart toolbar) "
-            "to select multiple hours; totals and rows appear below."
-        )
-        try:
-            tp = home_batch.get("tp", pd.DataFrame())
-            if not tp.empty:
-                tp["processing_hour"] = pd.to_datetime(tp["processing_hour"])
-                tp["total_messages"] = pd.to_numeric(tp["total_messages"], errors="coerce").fillna(0)
-                fig_tp = go.Figure(
-                    go.Bar(
-                        x=tp["processing_hour"],
-                        y=tp["total_messages"],
-                        marker_color="#2563eb",
-                        opacity=0.85,
-                    )
-                )
-                fig_tp.update_layout(
-                    height=280,
-                    margin=dict(t=20),
-                    xaxis_title="Hour",
-                    yaxis_title="Messages",
-                    showlegend=False,
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(248,250,252,0.9)",
-                    dragmode="select",
-                    selectdirection="h",
-                )
-                ev_tp = st.plotly_chart(
-                    fig_tp,
-                    use_container_width=True,
-                    config=_PLOT_CONFIG,
-                    on_select="rerun",
-                    key="home_throughput_chart",
-                    selection_mode=["points", "box", "lasso"],
-                )
-                sel_tp = selection_state_from_chart(ev_tp, "home_throughput_chart", st.session_state)
-                idx_tp = selected_row_indices(tp, sel_tp, "processing_hour")
-                if idx_tp:
-                    sub = tp.iloc[idx_tp].sort_values("processing_hour")
-                    tot = int(sub["total_messages"].sum())
-                    st.markdown("##### Selection — throughput")
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("Hours selected", len(idx_tp))
-                    m2.metric("Messages in selection", f"{tot:,}")
-                    m3.metric(
-                        "Avg / hour",
-                        f"{tot // len(idx_tp):,}" if idx_tp else "—",
-                    )
-                    show = sub.copy()
-                    show["processing_hour"] = show["processing_hour"].dt.strftime("%Y-%m-%d %H:%M")
-                    st.dataframe(
-                        show.rename(columns={"processing_hour": "Hour", "total_messages": "Messages"}),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-            else:
-                st.info("No throughput rows in the last 72 hours.")
-        except Exception as e:
-            st.warning(f"Throughput chart unavailable: {e}")
-
-    with ch_right:
-        st.markdown("#### Encounters (30d)")
-        st.caption(
-            "`gold_encounter_fact` daily — **click points** on the line or **box-select** a date range; "
-            "summary appears below."
-        )
-        try:
-            tr = home_batch.get("tr", pd.DataFrame())
-            if not tr.empty:
-                tr["d"] = pd.to_datetime(tr["d"])
-                tr["encounter_count"] = pd.to_numeric(tr["encounter_count"], errors="coerce").fillna(0)
-                fig_tr = go.Figure(
-                    go.Scatter(
-                        x=tr["d"],
-                        y=tr["encounter_count"],
-                        mode="lines+markers",
-                        line=dict(color="#059669", width=2),
-                        fill="tozeroy",
-                        fillcolor="rgba(5, 150, 105, 0.1)",
-                        marker=dict(size=8, color="#059669", line=dict(width=1, color="#ffffff")),
-                    )
-                )
-                fig_tr.update_layout(
-                    height=280,
-                    margin=dict(t=20),
-                    showlegend=False,
-                    xaxis_title="Date",
-                    yaxis_title="Encounters",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(248,250,252,0.9)",
-                    dragmode="select",
-                    selectdirection="h",
-                )
-                ev_tr = st.plotly_chart(
-                    fig_tr,
-                    use_container_width=True,
-                    config=_PLOT_CONFIG,
-                    on_select="rerun",
-                    key="home_encounters_chart",
-                    selection_mode=["points", "box", "lasso"],
-                )
-                sel_tr = selection_state_from_chart(ev_tr, "home_encounters_chart", st.session_state)
-                idx_tr = selected_row_indices(tr, sel_tr, "d")
-                if idx_tr:
-                    sub = tr.iloc[idx_tr].sort_values("d")
-                    tot_e = int(sub["encounter_count"].sum())
-                    st.markdown("##### Selection — encounters")
-                    e1, e2, e3 = st.columns(3)
-                    e1.metric("Days selected", len(idx_tr))
-                    e2.metric("Encounters in selection", f"{tot_e:,}")
-                    e3.metric(
-                        "Avg / day",
-                        f"{tot_e // len(idx_tr):,}" if idx_tr else "—",
-                    )
-                    show_e = sub.copy()
-                    show_e["d"] = show_e["d"].dt.strftime("%Y-%m-%d")
-                    st.dataframe(
-                        show_e.rename(columns={"d": "Date", "encounter_count": "Encounters"}),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-            else:
-                st.info("No encounters in the last 30 days.")
-        except Exception as e:
-            st.warning(f"Encounter trend unavailable: {e}")
-
-    # ---- Lakebase connection ----
-    st.markdown("---")
-    st.markdown("### Lakebase connection")
-
-    try:
-        info_df = home_batch.get("info", pd.DataFrame())
-        if not info_df.empty:
-            tbl_count = int(info_df["table_count"].iloc[0])
-            tbl_list = info_df["tables"].iloc[0] or ""
-
-            col_conn, col_stats = st.columns([1, 1])
-
-            with col_conn:
-                st.markdown(
-                    '<div class="conn-box">'
-                    "<b>Host:</b> <code>"
-                    + str(PGHOST)
-                    + "</code><br>"
-                    "<b>Database:</b> <code>"
-                    + str(PGDATABASE)
-                    + "</code><br>"
-                    "<b>Schema:</b> <code>ankur_nayyar</code><br>"
-                    "<b>Endpoint:</b> <code>"
-                    + str(ENDPOINT_NAME)
-                    + "</code><br>"
-                    f"<b>Tables:</b> <code>{tbl_count}</code>"
-                    "</div>",
-                    unsafe_allow_html=True,
-                )
-
-            with col_stats:
-                st.metric("Gold tables in schema", tbl_count)
-                if tbl_list:
-                    with st.expander("Table names"):
-                        for t in sorted(tbl_list.split(", ")):
-                            st.code(t, language=None)
-        else:
-            st.info("Connected to Lakebase but no tables found in schema.")
-    except Exception as e:
-        st.warning(f"Could not query Lakebase metadata: {e}")
-
-
-run_live_dashboard(_home_snapshot_and_charts, interval_seconds=22, manual_key="hl7_home_live_refresh")
-
-st.markdown("---")
-render_home_navigation()
 st.markdown("---")
 st.caption(
     "Powered by Databricks Unity Catalog · Delta Live Tables · MLflow AutoML · Lakebase · Apps"
