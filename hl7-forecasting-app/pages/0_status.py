@@ -39,6 +39,11 @@ Before demos or after deployments; when charts elsewhere look empty or out of da
         """
     )
 
+# SLO strip + DLT: keep **outside** the auto-refresh fragment so links and subheaders do not
+# re-mount every few seconds (reduces layout flicker in Databricks App iframes).
+with st.container(border=True):
+    render_status_slo_banner()
+
 
 def _hours_since(ts) -> float | None:
     if ts is None:
@@ -67,8 +72,9 @@ def _lakebase_table_exists(table: str) -> bool:
 def _status_label(age_h: float | None, stale_after: float | None) -> str:
     if age_h is None:
         return "—"
+    # No threshold in STATUS_MONITOR_SPECS: show age in "Age" but do not label as ok/stale/critical
     if stale_after is None:
-        return "ok"
+        return "no SLO"
     if age_h <= stale_after:
         return "ok"
     if age_h <= stale_after * 2:
@@ -77,8 +83,6 @@ def _status_label(age_h: float | None, stale_after: float | None) -> str:
 
 
 def _status_main() -> None:
-    render_status_slo_banner()
-
     if st.button("Refresh snapshot", type="primary"):
         st.rerun()
     
@@ -130,7 +134,9 @@ def _status_main() -> None:
     st.subheader("Gold table freshness")
     st.caption(
         "**ok** = last activity within the table’s SLO target · **stale** = up to **2×** that target · **critical** = older. "
-        "Thresholds differ by table (stream vs dimensions vs ML); the **SLO snapshot** above uses the same rule on three headliners."
+        "**no SLO** = we only show last activity, no health rule (e.g. `gold_forecast_accuracy`). "
+        "**Patient** SLO is **7d**; **encounters** is **3d**—same `last_updated_at` can be **stale** for one and **ok** for the other. "
+        "The **SLO snapshot** on this page uses three headline rules only."
     )
     st.caption(
         "**📭 not in Lakebase** = Postgres has no table yet (run **`hl7_lakebase_load`** and check **`hl7_lakebase_app_grants`**). "
@@ -186,26 +192,35 @@ def _status_main() -> None:
         ok_n = (summary["Check"] == "ok").sum()
         stale_n = (summary["Check"] == "stale").sum()
         crit_n = (summary["Check"] == "critical").sum()
+        slo_na_n = (summary["Check"] == "no SLO").sum()
         s1, s2, s3, s4 = st.columns(4)
         s1.metric("Tables · ok", int(ok_n))
         s2.metric("Tables · stale", int(stale_n))
         s3.metric("Tables · critical", int(crit_n))
         s4.metric("Tables tracked", len(summary))
+        if slo_na_n:
+            st.caption(f"**{slo_na_n}** table(s) have **no age SLO** in config (e.g. accuracy roll-up) — we still show *Age* only.")
     
         display = summary.copy()
-        display["Check"] = display["Check"].map(
-            lambda x: {
-                "ok": "✅ ok",
-                "stale": "⚠️ stale",
-                "critical": "🔴 critical",
-                "empty": "⬜ empty",
-                "no data": "❓ no data",
-                "missing in Lakebase": "📭 not in Lakebase (run lakebase load)",
-                "n/a": "➖ n/a",
-                "—": "—",
-            }.get(str(x), str(x))
+        _chk = {
+            "ok": "✅ ok",
+            "stale": "⚠️ stale",
+            "critical": "🔴 critical",
+            "no SLO": "ℹ️ no SLO (age only)",
+            "empty": "⬜ empty",
+            "no data": "❓ no data",
+            "missing in Lakebase": "📭 not in Lakebase",
+            "n/a": "➖ n/a",
+            "—": "—",
+        }
+        display["Check"] = display["Check"].map(lambda x: _chk.get(str(x), str(x)))
+        h = min(560, 38 + 32 * max(4, len(display)))
+        st.dataframe(
+            display,
+            use_container_width=True,
+            hide_index=True,
+            height=h,
         )
-        st.dataframe(display, use_container_width=True, hide_index=True)
     else:
         st.warning("No status rows built.")
     
@@ -230,4 +245,4 @@ def _status_main() -> None:
     
     st.caption("Data source: Lakebase schema `ankur_nayyar` · Times are as stored in Postgres (naive local).")
 
-run_live_dashboard(_status_main, interval_seconds=25, manual_key="hl7_status_live_refresh")
+run_live_dashboard(_status_main, interval_seconds=45, manual_key="hl7_status_live_refresh")

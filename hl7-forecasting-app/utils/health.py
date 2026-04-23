@@ -225,7 +225,7 @@ def render_status_slo_banner() -> None:
         dlt_h = f"HL7_PIPELINE_ID: {PIPELINE_ID or 'unset'}\n\n{dlt}"
         st.metric("DLT (workspace)", dlt_s, help=dlt_h)
 
-    c1, c2 = st.columns([3, 1], vertical_alignment="center")
+    c1, c2 = st.columns([3, 1], gap="small")
     with c1:
         st.page_link("pages/z_run_jobs.py", label="Open Run jobs & workflow", icon="🚀", use_container_width=True)
     with c2:

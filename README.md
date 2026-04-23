@@ -779,7 +779,8 @@ The **shared cluster id** (historically used for many notebooks) is no longer pa
 | `hl7_ed_icu_dashboard` | Dashboard | Lakeview: ED/ICU operations (`hl7_ed_icu_operations.lvdash.json`) |
 | `hl7_ed_icu_dashboard_main` | Dashboard | Lakeview: ED/ICU (`hl7_ed_icu.lvdash.json`) |
 | `hl7_patient_clinical_dashboard` | Dashboard | Lakeview dashboard for patient clinical analytics |
-| `hl7_daily_data_insight_email` | SQL alert | Daily (07:00 America/Los_Angeles) **Databricks SQL alert** — emails **HL7 gold** KPIs to `hl7_insight_email` (default `ankur.nayyar@databricks.com`). Configure `sql_warehouse_id` in the bundle to match a warehouse with read access to `${catalog}.${schema}`. Deploy with `databricks bundle deploy -t dev`. |
+| `hl7_daily_data_insight_email` | SQL alert | **PAUSED** (replaced by job below). The old one-row table email is disabled so you are not double-notified. |
+| `hl7_daily_insight_html_email` | Job | Daily **07:10** PT — notebook **`14_daily_insight_html_email`**: **HTML** digest with **inline chart images** (30d encounters, 72h throughput, message mix) plus metric cards. Writes `dbfs:/FileStore/hl7_insights/hl7_insight_*.html` always. **SendGrid:** create secret scope `email-insight` (or `hl7_insight_secret_scope`) with keys `sendgrid_api_key` and optional `from_email`; without secrets, the job still runs and only saves the HTML. |
 | `hl7_gold_message_freshness_stale` | SQL alert | **Every 4 hours** — emails if `gold_message_metrics` has no `last_message_at` or it is older than `hl7_freshness_stale_after_hours` (default **36**), at most **once per 24h** while still stale; **notify_on_ok** when back to fresh. |
 
 ---

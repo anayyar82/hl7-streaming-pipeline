@@ -155,8 +155,10 @@ def humanize_pipeline_error(msg: str) -> str:
     )
     if not_in_workspace or ("404" in s and "pipeline" in low):
         return (
-            "That pipeline was not found in this workspace. Set HL7_PIPELINE_ID in the app "
-            "to a valid pipeline (Databricks Pipelines, or: databricks pipelines list)."
+            "That pipeline was not found for this app’s workspace. Set environment variable "
+            "HL7_PIPELINE_ID to your bundle’s DLT id (databricks bundle summary → Pipelines → "
+            "hl7_streaming_dlt URL). In Databricks Apps, remove a wrong HL7_PIPELINE_ID in "
+            "hl7app → Environment if it overrides Git/app.yaml; redeploy the app after changing it."
         )
     if "permission" in low or "forbidden" in low or " 403" in s or "unauthorized" in low:
         return (

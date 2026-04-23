@@ -50,6 +50,7 @@ resources:
           subscriptions:
             - user_email: ${var.hl7_insight_email}
 
+    # Paused: replaced by job `hl7_daily_insight_html_email` (HTML + chart images via SendGrid + FileStore).
     hl7_daily_data_insight_email:
       display_name: "[${bundle.target}] HL7 data insights — daily email"
       custom_summary: "HL7 gold — daily insight digest"
@@ -59,7 +60,7 @@ resources:
         Unity Catalog gold layer (${var.catalog}.${var.schema}).
       warehouse_id: ${var.sql_warehouse_id}
       schedule:
-        pause_status: UNPAUSED
+        pause_status: PAUSED
         # 07:00 every day, America/Los_Angeles
         quartz_cron_schedule: "0 0 7 * * ?"
         timezone_id: America/Los_Angeles

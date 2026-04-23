@@ -35,8 +35,10 @@ env:
     value: 'ankur_nayyar'
   - name: HL7_LANDING_VOLUME
     value: 'landing'
-  # DLT: must match the deployed bundle pipeline in THIS workspace. After deploy, run
-  # `databricks bundle summary -t dev` and set this to the URL id under Pipelines / hl7_streaming_dlt.
+  # DLT: must be the same workspace as this app. Id from: `databricks bundle summary -t dev` →
+  # Pipelines / hl7_streaming_dlt (UUID in the URL). If the message "pipeline was not found" still
+  # appears, open Databricks → Apps → hl7app → **Environment/Variables**: remove a stale
+  # HL7_PIPELINE_ID override or set it to that UUID (Git + app.yaml are ignored when the UI sets the var).
   - name: HL7_PIPELINE_ID
     value: 'a28d206f-e707-4951-ba16-42a94f075be0'
   - name: HL7_JOB_SAMPLE_DATA

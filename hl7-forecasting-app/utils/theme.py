@@ -234,21 +234,45 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   margin: 0 0 1rem 0;
 }
 
-/* Home — live / charts section headers (injected in app.py) */
-.hl7-live-head, .hl7-charts-head {
+/* Home — live / charts / observability / Lakebase section headers (injected in app.py) */
+.hl7-live-head,
+.hl7-charts-head,
+.hl7-observability-top,
+.hl7-lakebase-head {
   margin: 0 0 8px 0;
   padding: 0 2px 10px 0;
   border-bottom: 1px solid #e2e8f0;
 }
-.hl7-live-head h2, .hl7-charts-head h2 {
+.hl7-live-head h2,
+.hl7-charts-head h2,
+.hl7-observability-top h2,
+.hl7-lakebase-head h2,
+h2.hl7-section-h2 {
   margin: 0 0 4px 0 !important;
   font-size: 1.28rem !important;
   font-weight: 700 !important;
   color: #0f172a !important;
   letter-spacing: -0.02em !important;
   border: none !important;
+  line-height: 1.25 !important;
+}
+h3.hl7-section-h3 {
+  margin: 0 0 4px 0 !important;
+  font-size: 1.12rem !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  border: none !important;
+  line-height: 1.3 !important;
 }
 .hl7-charts-head h2 { margin-top: 4px !important; }
+.hl7-ops-snapshot-deck {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+  max-width: 820px;
+}
 .hl7-live-deck, .hl7-charts-deck {
   font-size: 0.9rem;
   line-height: 1.5;
