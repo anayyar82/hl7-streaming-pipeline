@@ -780,8 +780,18 @@ The **shared cluster id** (historically used for many notebooks) is no longer pa
 | `hl7_ed_icu_dashboard_main` | Dashboard | Lakeview: ED/ICU (`hl7_ed_icu.lvdash.json`) |
 | `hl7_patient_clinical_dashboard` | Dashboard | Lakeview dashboard for patient clinical analytics |
 | `hl7_daily_data_insight_email` | SQL alert | **PAUSED** (replaced by job below). The old one-row table email is disabled so you are not double-notified. |
-| `hl7_daily_insight_html_email` | Job | Daily **07:10** PT — notebook **`14_daily_insight_html_email`**: **HTML** digest with **inline chart images** (30d encounters, 72h throughput, message mix) plus metric cards. Writes `dbfs:/FileStore/hl7_insights/hl7_insight_*.html` always. **SendGrid:** create secret scope `email-insight` (or `hl7_insight_secret_scope`) with keys `sendgrid_api_key` and optional `from_email`; without secrets, the job still runs and only saves the HTML. |
+| `hl7_daily_insight_html_email` | Job | Daily **07:10** PT — notebook **`14_daily_insight_html_email`**: **HTML** digest with **inline chart images** (30d encounters, 72h throughput, message mix) plus metric cards. Writes `dbfs:/FileStore/hl7_insights/hl7_insight_*.html` always. **SendGrid:** see below; if the API key is missing, the run still **succeeds** and only the **HTML on DBFS** is produced. |
 | `hl7_gold_message_freshness_stale` | SQL alert | **Every 4 hours** — emails if `gold_message_metrics` has no `last_message_at` or it is older than `hl7_freshness_stale_after_hours` (default **36**), at most **once per 24h** while still stale; **notify_on_ok** when back to fresh. |
+
+**SendGrid (HL7 daily insight job):** The bundle defaults to `hl7_insight_secret_scope: email-insight` and the notebook looks up `sendgrid_api_key` in that scope. Until it exists, you will see a short “skipped” line in the run output, not a failed job.
+
+1. [SendGrid](https://sendgrid.com): create an API key; verify a **single sender** email in SendGrid.
+2. In the workspace, create a **Databricks secret scope** and keys (or use the UI: **User Settings** → **Secret management**):
+   - `databricks secrets create-scope email-insight` (no-op if the scope already exists; some workspaces require `--profile` / admin approval for custom scopes)
+   - `databricks secrets put-secret email-insight sendgrid_api_key` — paste the key when prompted
+   - optional: `databricks secrets put-secret email-insight from_email` — verified `From` address; if omitted, the job uses the `recipient` parameter
+3. Grant the **job run as user** (or the job’s service principal) **read** on that secret scope.
+4. **To skip email entirely** without creating secrets: in `databricks.yml` under your target, set `hl7_insight_secret_scope: ""`, run `databricks bundle deploy`, and the job will pass an empty `secret_scope` (HTML-only).
 
 ---
 
