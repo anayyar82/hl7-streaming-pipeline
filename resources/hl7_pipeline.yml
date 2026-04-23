@@ -57,8 +57,8 @@ variables:
     description: Hours without HL7 on gold_message_metrics before the stale alert fires
     default: 36
   hl7_insight_secret_scope:
-    description: Databricks secret scope for SendGrid (see notebooks/14_daily_insight_html_email.py)
-    default: email-insight
+    description: Secret scope for SendGrid; leave empty for HTML-on-DBFS only (set to e.g. email-insight and add sendgrid_api_key to enable email)
+    default: ""
 
 resources:
   jobs:

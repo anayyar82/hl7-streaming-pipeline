@@ -80,7 +80,7 @@ def _metric_block(label: str, value: str, sub: str = "") -> str:
 dbutils.widgets.text("catalog", "users", "catalog")
 dbutils.widgets.text("schema", "ankur_nayyar", "schema")
 dbutils.widgets.text("recipient", "ankur.nayyar@databricks.com", "recipient")
-dbutils.widgets.text("secret_scope", "email-insight", "secret_scope (SendGrid)")
+dbutils.widgets.text("secret_scope", "", "secret_scope (SendGrid; empty = no email)")
 
 spark = SparkSession.builder.getOrCreate()
 catalog = dbutils.widgets.get("catalog")
@@ -362,10 +362,13 @@ if send_try:
 # COMMAND ----------
 
 if not sent:
-    print(
-        "To receive this digest by email, add SendGrid: "
-        f"create secret scope `{_esc(secret_scope) or 'email-insight'}` with `sendgrid_api_key` and optional `from_email`."
-    )
+    if (secret_scope or "").strip():
+        print(
+            "To receive this digest by email, add SendGrid: "
+            f"create secret scope `{_esc(secret_scope)}` with `sendgrid_api_key` and optional `from_email`."
+        )
+    else:
+        print("Email delivery is off (empty `secret_scope`). Set job param to a Databricks secret scope with `sendgrid_api_key` to enable.")
     print(
         f"HTML is on DBFS: dbfs:/FileStore/hl7_insights/{out_name} (download or mount to view offline)."
     )
