@@ -260,7 +260,7 @@ def render_system_health_hero(
 <div class="hl7-sys-health">
   <div class="hl7-sys-health-head">
     <h2 class="hl7-sys-health-title">System health</h2>
-    <p class="hl7-sys-health-deck">Lakebase freshness and DLT pipeline. Same SLO model as <strong>Status</strong> in the sidebar.</p>
+    <p class="hl7-sys-health-deck">Stream, gold, and ML table freshness — plus DLT in this workspace. Same SLO rules as <strong>Status</strong> (sidebar).</p>
   </div>
   <ul class="hl7-sys-health-list" role="list">
 {"".join(li_parts)}
