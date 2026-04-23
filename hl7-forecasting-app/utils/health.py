@@ -184,9 +184,9 @@ def render_freshness_metrics_row(home_batch: dict[str, pd.DataFrame] | None = No
         )
 
     st.caption(
-        "SLO: **ok** = within per-table target age · **stale** = up to 2× that · **critical** = older "
+        f"SLO: **ok** within the target window · **stale** up to 2× that · **critical** beyond 2× "
         f"(stream {int(slo['h_msg'])}h, encounters {int(slo['h_enc'])}h, ML {int(slo['h_ml'])}h). "
-        "See **System status** for the full matrix."
+        "Per-table list: **Status** (sidebar)."
     )
     dlt_l = dlt_line.lower()
     dlt_broken = "not found" in dlt_l or "id not in workspace" in dlt_l or dlt_sh == "Not configured"

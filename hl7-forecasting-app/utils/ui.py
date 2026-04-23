@@ -15,27 +15,27 @@ def home_focus_picker() -> str:
     Returns one of: clinical | platform | genie
     """
     options = [
-        ("Clinical views", "clinical"),
-        ("Platform & jobs", "platform"),
-        ("Ask Genie", "genie"),
+        ("Clinical", "clinical"),
+        ("Platform", "platform"),
+        ("Genie", "genie"),
     ]
     labels = [o[0] for o in options]
     values = [o[1] for o in options]
     try:
         raw = st.segmented_control(
-            "Start here",
+            "Group",
             options=labels,
             default=labels[0],
             key="hl7_home_focus_seg",
-            help="Choose a lane, then use the quick links below.",
+            help="Choose a group; the three link buttons update.",
         )
     except (TypeError, AttributeError):
         sel = st.radio(
-            "Start here",
+            "Group",
             labels,
             horizontal=True,
             key="hl7_home_focus_radio",
-            help="Choose a lane, then use the quick links below.",
+            help="Choose a group; the three link buttons update.",
         )
         return values[labels.index(sel)]
     if raw is None:

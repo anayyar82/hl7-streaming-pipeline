@@ -12,7 +12,7 @@ import streamlit as st
 from utils.db import run_query_batch, PGHOST, PGDATABASE, ENDPOINT_NAME
 from utils import queries
 from utils.theme import apply_theme
-from utils.navigation import render_sidebar_nav, render_home_navigation
+from utils.navigation import render_sidebar_nav, render_home_footer
 from utils.plotly_selection import selection_state_from_chart, selected_row_indices
 from utils.ui import home_focus_picker, home_quick_links
 from utils.health import health_freshness_queries, render_freshness_metrics_row
@@ -35,125 +35,39 @@ FROM pg_tables
 WHERE schemaname = 'ankur_nayyar'
 """
 
-# ---- Hero ----
+# ---- Header + primary actions (full navigation stays in the sidebar) ----
 st.markdown(
     """
-<div class="hl7-hero">
-  <div class="hl7-hero-inner">
-    <p class="hl7-hero-kicker">Medallion · real-time · ML on gold</p>
-    <h1>HL7 ED & ICU Operations</h1>
-    <p class="hl7-hero-deck">
-      One place for <strong>operational census</strong>, <strong>clinical activity</strong>, and <strong>forecasts</strong> — served from
-      <strong>Delta Live Tables</strong> gold through <strong>Unity Catalog</strong> to <strong>Lakebase (Postgres)</strong> for a fast, governed app and Genie.
-    </p>
-    <p class="hl7-hero-meta">
-      <strong>Clinical</strong> dashboards in the left nav · <strong>Platform</strong> (DLT, jobs, health) in the next group · <strong>Genie</strong> for ask-your-data in plain English.
-    </p>
-    <div class="hl7-badge-row" aria-label="Stack">
-      <span class="hl7-badge">DLT</span>
-      <span class="hl7-badge">Unity Catalog</span>
-      <span class="hl7-badge">Lakebase</span>
-      <span class="hl7-badge">AutoML &amp; MLflow</span>
-      <span class="hl7-badge">Databricks Apps</span>
-    </div>
-  </div>
+<div class="hl7-app-header">
+  <p class="hl7-app-eyebrow">ED &amp; ICU · Lakebase</p>
+  <h1>Operations dashboard</h1>
+  <p class="hl7-app-lead">Census, throughput, and model outputs on Unity Catalog gold, served to this app and Genie. The sidebar lists every page; use the row below for common entry points.</p>
 </div>
     """,
     unsafe_allow_html=True,
 )
-
-# ---- Data pipeline (logical) ----
-st.markdown(
-    """
-<div class="hl7-dataflow-wrap">
-  <p class="hl7-home-eyebrow">End-to-end path</p>
-  <h2 class="hl7-dataflow-title">Data flow</h2>
-  <p class="hl7-dataflow-deck">Logical order — <strong>Run jobs &amp; workflow</strong> in the app mirrors this when you refresh the full stack.</p>
-  <div class="hl7-arch">
-    <div class="hl7-arch-step"><strong>HL7</strong><span>Volume / landing</span></div>
-    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
-    <div class="hl7-arch-step"><strong>Bronze &amp; Silver</strong><span>DLT parse &amp; conform</span></div>
-    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
-    <div class="hl7-arch-step"><strong>Gold</strong><span>UC tables · facts / dims</span></div>
-    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
-    <div class="hl7-arch-step"><strong>ML</strong><span>Features · training · predict</span></div>
-    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
-    <div class="hl7-arch-step"><strong>Lakebase</strong><span>Postgres to gold</span></div>
-    <span class="hl7-arch-arrow" aria-hidden="true">→</span>
-    <div class="hl7-arch-step"><strong>HL7App</strong><span>Streamlit + Genie</span></div>
-  </div>
-</div>
-    """,
-    unsafe_allow_html=True,
-)
-
-ed1, ed2 = st.columns(2, gap="medium")
-with ed1:
-    with st.expander("2-minute demo path", expanded=False):
-        st.markdown(
-            """
-1. Scroll to **System health** and **snapshot** (below) — SLOs + live KPIs.  
-2. **Run jobs** — DLT → Inference → Lakebase bundle, then **Refresh** here.  
-3. **Real-time ops** &amp; **ML forecasting** for census and models.  
-4. **Genie** — one NL question.  
-5. **System status** for the per-table matrix.
-            """
-        )
-        c_demo1, c_demo2 = st.columns(2, gap="small")
-        c_demo1.page_link("pages/z_run_jobs.py", label="Run jobs", icon="🚀", use_container_width=True)
-        c_demo2.page_link("pages/0_status.py", label="System status", icon="📡", use_container_width=True)
-with ed2:
-    with st.expander("All pages (quick map)", expanded=False):
-        st.markdown(
-            """
-**Clinical:** real-time, trends, ML, model performance, patient &amp; clinical, combined forecast, HL7 ops.  
-**Platform:** system status, sample to volume, live activity, DLT live, run jobs, platform pulse.  
-**Genie:** ask your data.
-            """
-        )
+a1, a2, a3, a4 = st.columns(4, gap="small")
+with a1:
+    st.page_link("pages/1_realtime.py", label="Real-time", icon="📊", use_container_width=True)
+with a2:
+    st.page_link("pages/0_status.py", label="Status", icon="📡", use_container_width=True)
+with a3:
+    st.page_link("pages/z_run_jobs.py", label="Jobs", icon="🚀", use_container_width=True)
+with a4:
+    st.page_link("pages/8_genie_chat.py", label="Genie", icon="💬", use_container_width=True)
+st.markdown("")
 
 with st.container(border=True):
     st.markdown(
         """
-<p class="hl7-panel-eyebrow" style="margin-top:0">Choose your lane</p>
-<h3 style="margin:0 0 6px; font-size:1.2rem; font-weight:700; color:#0f172a; border:none">Quick start</h3>
-<p style="margin:0; font-size:0.9rem; color:#64748b; line-height:1.5">Use the control and links — the three buttons update for <strong>clinical</strong>, <strong>platform</strong>, or <strong>Genie</strong> workflows.</p>
+<p class="hl7-pro-quickstart-title" style="margin:0 0 2px">More shortcuts</p>
+<p class="hl7-pro-quickstart-hint" style="margin:0 0 12px">Select a group; the three links match that group.</p>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("")
     focus = home_focus_picker()
     home_quick_links(focus)
-
-with st.expander("Full page index (detail)", expanded=False):
-    st.markdown(
-        """
-### Clinical intelligence
-| Page | What it does |
-|------|--------------|
-| **Real-time ops** | Current ED/ICU census and hourly flow. |
-| **Trends** | Daily rollups, heatmaps, ED vs ICU. |
-| **ML forecasting** | Horizons, bands, predicted vs actual. |
-| **Model performance** | MAE, MAPE, coverage, comparison. |
-| **Patient & clinical** | Demographics, dx, labs, orders. |
-| **Combined forecast** | ED+ICU pressure and ratios. |
-| **HL7 operations** | Message throughput, breakdown. |
-
-### Platform
-| Page | What it does |
-|------|--------------|
-| **System status** | Per-table freshness &amp; runbook. |
-| **Sample → volume** | Land files to UC volume. |
-| **Live activity** | DLT + job runs. |
-| **DLT update live** | Per-flow + row metrics. |
-| **Run jobs** | DLT, bundle, inference, Lakebase. |
-| **Platform pulse** | Treemap, ML snapshot. |
-| **Load test** | Optional Lakebase probe. |
-
-### Genie
-| **Ask your data** | Natural language over your space. |
-        """
-    )
+st.markdown("")
 
 def _safe_int(df, col, default=0):
     if df is None or df.empty or col not in df.columns:
@@ -199,10 +113,9 @@ def _home_snapshot_and_charts() -> None:
         st.markdown(
             """
 <div class="hl7-observability-top">
-  <p class="hl7-home-eyebrow">Observability</p>
-  <h2 class="hl7-section-h2">System health &amp; SLOs</h2>
-  <p class="hl7-live-deck">Lakebase freshness and DLT state — same <strong>ok / stale / critical</strong> rules as
-  <strong>System status</strong>. Use <strong>Run jobs</strong> if data looks old.</p>
+  <p class="hl7-home-eyebrow">Health</p>
+  <h2 class="hl7-section-h2">SLOs &amp; DLT</h2>
+  <p class="hl7-live-deck">Rules match <strong>System status</strong> (ok / stale / critical). Stale? Run the pipeline from <strong>Jobs</strong>.</p>
 </div>
             """,
             unsafe_allow_html=True,
@@ -213,9 +126,9 @@ def _home_snapshot_and_charts() -> None:
         with hc1:
             st.markdown(
                 """
-    <p class="hl7-home-eyebrow" style="margin:0 0 2px">Live metrics</p>
-    <h3 class="hl7-section-h3">Operational snapshot</h3>
-    <p class="hl7-ops-snapshot-deck">Counts from Lakebase gold — same path as <strong>Real-time</strong> and <strong>Trends</strong>.</p>
+    <p class="hl7-home-eyebrow" style="margin:0 0 2px">KPIs</p>
+    <h3 class="hl7-section-h3">Headline metrics</h3>
+    <p class="hl7-ops-snapshot-deck">Lakebase gold, same as Real-time and Trends. Use <strong>Refresh</strong> to reload.</p>
                 """,
                 unsafe_allow_html=True,
             )
@@ -266,10 +179,9 @@ def _home_snapshot_and_charts() -> None:
         st.markdown(
             """
 <div class="hl7-charts-head">
-  <p class="hl7-home-eyebrow">Visual analytics</p>
+  <p class="hl7-home-eyebrow">Analytics</p>
   <h2 class="hl7-section-h2">Throughput &amp; encounters</h2>
-  <p class="hl7-charts-deck"><strong>Left:</strong> hourly message volume (72h). <strong>Right:</strong> daily encounters (30d).
-  Use the chart toolbar to <strong>box- or lasso-select</strong> — totals show under the chart.</p>
+  <p class="hl7-charts-deck">72h message volume (left) and 30d encounters (right). Select a range on a chart for subtotals.</p>
 </div>
             """,
             unsafe_allow_html=True,
@@ -405,9 +317,9 @@ def _home_snapshot_and_charts() -> None:
         st.markdown(
             """
 <div class="hl7-lakebase-head">
-  <p class="hl7-home-eyebrow">Connection</p>
-  <h2 class="hl7-section-h2">Lakebase (this app)</h2>
-  <p class="hl7-live-deck">Postgres via Lakebase — same read path as Genie, Real-time, and the tables below.</p>
+  <p class="hl7-home-eyebrow">Data connection</p>
+  <h2 class="hl7-section-h2">Lakebase / Postgres</h2>
+  <p class="hl7-live-deck">Read path shared with the rest of the app and Genie.</p>
 </div>
             """,
             unsafe_allow_html=True,
@@ -450,14 +362,6 @@ def _home_snapshot_and_charts() -> None:
 
 
 _home_snapshot_and_charts()
-st.caption("Use **Refresh** in the operational snapshot to reload metrics and charts from the database.")
+st.caption("**Refresh** reloads data from the database for the block above.")
 
-st.markdown("---")
-render_home_navigation()
-st.markdown("---")
-st.markdown(
-    '<p class="hl7-powered-foot">'
-    "Databricks &mdash; Unity Catalog · Delta Live Tables · MLflow &amp; AutoML · Lakebase · Genie &middot; Apps"
-    "</p>",
-    unsafe_allow_html=True,
-)
+render_home_footer()

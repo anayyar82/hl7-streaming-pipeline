@@ -107,9 +107,9 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   padding: 2px 4px;
 }
 
-/* Primary buttons — Databricks-adjacent accent */
+/* Primary — restrained teal (enterprise) */
 .stButton > button[kind="primary"] {
-  background: linear-gradient(180deg, #ff4c00 0%, #e04200 100%) !important;
+  background: linear-gradient(180deg, #0f766e 0%, #0d5c56 100%) !important;
   border: none !important;
   font-weight: 600 !important;
 }
@@ -120,85 +120,55 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   color: #334155 !important;
 }
 
-/* Home & nav cards */
-.hl7-hero {
-  background: linear-gradient(128deg, #0b1220 0%, #0f172a 28%, #1e3a5f 55%, #1d4ed8 100%);
-  background-size: 100% 100%;
-  color: #f8fafc;
-  border-radius: 20px;
-  padding: 0;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(255,255,255,0.07) inset;
-  overflow: hidden;
-  position: relative;
+/* Home — professional header (light) */
+.hl7-app-header {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #0f766e;
+  border-radius: 12px;
+  padding: 22px 24px 20px;
+  margin: 0 0 1.25rem 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
-.hl7-hero::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, #38bdf8, #60a5fa, #a78bfa, #f472b6);
-  opacity: 0.9;
-}
-.hl7-hero-inner {
-  padding: 26px 32px 28px;
-  position: relative;
-}
-.hl7-hero-kicker {
+.hl7-app-eyebrow {
   display: block;
-  font-size: 0.72rem !important;
+  font-size: 0.65rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #93c5fd !important;
-  margin: 0 0 6px 0 !important;
+  color: #64748b !important;
+  margin: 0 0 8px 0 !important;
 }
-.hl7-hero h1 {
-  color: #f8fafc !important;
-  font-size: 1.95rem !important;
+.hl7-app-header h1 {
+  color: #0f172a !important;
+  font-size: 1.6rem !important;
   line-height: 1.2 !important;
-  margin: 0 0 10px 0 !important;
-  font-weight: 700 !important;
+  margin: 0 0 8px 0 !important;
+  font-weight: 600 !important;
   letter-spacing: -0.03em !important;
   border: none !important;
 }
-.hl7-hero .hl7-hero-deck {
-  font-size: 0.98rem;
-  line-height: 1.6;
-  opacity: 0.9;
-  margin: 0 0 0 0;
-  max-width: 880px;
-  color: #e2e8f0;
+.hl7-app-lead {
+  margin: 0 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.55;
+  color: #475569 !important;
+  max-width: 720px;
 }
-.hl7-hero .hl7-hero-meta {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  max-width: 900px;
-  color: #cbd5e1;
-  opacity: 0.88;
+/* Home — more shortcuts (inside st.container) */
+.hl7-pro-quickstart-title {
+  margin: 0 0 2px 0 !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  border: none !important;
+  letter-spacing: -0.02em !important;
 }
-@keyframes hl7-hero-flow {
-  0%, 100% { background-position: 0% 40%; }
-  50% { background-position: 100% 60%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hl7-hero { animation: none; background-size: 100% 100%; }
-}
-.hl7-hero .hl7-badge-row {
-  margin-top: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.hl7-badge {
-  display: inline-block;
-  background: rgba(255,255,255,0.11);
-  border: 1px solid rgba(255,255,255,0.22);
-  border-radius: 999px;
-  padding: 5px 13px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.hl7-pro-quickstart-hint {
+  margin: 0 0 12px 0 !important;
+  font-size: 0.8rem !important;
+  color: #64748b !important;
+  line-height: 1.45;
 }
 
 /* Home — data flow card (pipeline strip) */
