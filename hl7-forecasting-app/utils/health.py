@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import html
 import re
+import traceback
 from typing import Any
 
 import pandas as pd
@@ -200,6 +201,18 @@ def render_system_health_hero(
     if b is None:
         b = run_query_batch(health_freshness_queries(), quiet=True)
 
+    try:
+        _render_system_health_hero_impl(b)
+    except Exception as e:  # noqa: BLE001 — show UI instead of a blank app
+        st.error("Could not render system health. Check Databricks / Lakebase, then try **Refresh**.")
+        with st.expander("Error details (for support)", expanded=True):
+            st.code(str(e), language="text")
+            st.code(traceback.format_exc(), language="text")
+
+
+def _render_system_health_hero_impl(
+    b: dict[str, pd.DataFrame] | None,
+) -> None:
     slo = queries.HEALTH_SLO_HOURS
     dlt_line = dlt_snapshot_cached(PIPELINE_ID)
     dlt_sh = _dlt_metric_short(dlt_line)
@@ -286,12 +299,20 @@ def render_system_health_hero(
             use_container_width=True,
         )
     with c3:
-        if st.button("Refresh", use_container_width=True, help="Re-query Lakebase freshness and DLT state"):
+        if st.button(
+            "Refresh",
+            key="home_refresh_health",
+            use_container_width=True,
+            help="Re-query Lakebase freshness and DLT state",
+        ):
             st.rerun()
 
+    s_msg = int(slo.get("h_msg", 36))
+    s_enc = int(slo.get("h_enc", 72))
+    s_ml = int(slo.get("h_ml", 48))
     _cap1 = (
         f"SLO: **ok** in-window · **stale** to 2× · **critical** beyond. "
-        f"Targets: stream {int(slo['h_msg'])}h, encounters {int(slo['h_enc'])}h, ML {int(slo['h_ml'])}h. "
+        f"Targets: stream {s_msg}h, encounters {s_enc}h, ML {s_ml}h. "
     )
     _cap2 = (
         f"Pipeline: `{PIPELINE_ID}`."

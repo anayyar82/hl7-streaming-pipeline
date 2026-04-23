@@ -1171,7 +1171,8 @@ div[data-testid="stSegmentedControl"] {
 
 
 def apply_theme() -> None:
-    st.markdown(f"<style>{PROFESSIONAL_CSS}</style>", unsafe_allow_html=True)
+    # Use concatenation, not f-string, so unescaped { } in CSS are never misparsed.
+    st.markdown("<style>" + PROFESSIONAL_CSS + "</style>", unsafe_allow_html=True)
 
 
 def sidebar_product_context() -> None:
