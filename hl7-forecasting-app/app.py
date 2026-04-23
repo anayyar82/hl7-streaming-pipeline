@@ -33,8 +33,7 @@ HOME_ARCH_HTML = f"""
   <header class="hl7-hero-2025">
     <p class="hl7-hero-kicker">Medallion · Databricks</p>
     <h1 class="hl7-hero-title">ED &amp; ICU intelligence</h1>
-    <p class="hl7-hero-sub">Architecture, security posture, and live path health in one place. Analytics, throughput, and deep exploration are on
-    <strong>Real-time</strong>, <strong>Trends</strong>, and <strong>Operations</strong> in the sidebar — not on Home.</p>
+    <p class="hl7-hero-sub">Architecture, security, and <strong>system health</strong> (below) in one place. Deeper analytics and volume charts live in the sidebar — e.g. <strong>Real-time</strong> and <strong>Trends</strong> — not on this page.</p>
   </header>
 
   <div class="hl7-home-bento">
