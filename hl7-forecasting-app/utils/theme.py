@@ -183,6 +183,206 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
   color: var(--dbx-gray-text) !important;
   max-width: 720px;
 }
+.hl7-app-header--tight h1 {
+  font-size: 1.75rem !important;
+  margin-bottom: 0.4rem !important;
+}
+/* Architecture card: Sankey + doc links (home) */
+.hl7-arch-sankey-shell {
+  margin: 0 0 0.5rem 0;
+}
+.hl7-doc-pills {
+  background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid var(--dbx-gray-lines);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  min-height: 200px;
+  animation: hl7-arch-breathe 6s ease-in-out infinite;
+}
+@keyframes hl7-arch-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 114, 180, 0.04); }
+  50% { box-shadow: 0 0 0 1px rgba(34, 114, 180, 0.08), 0 6px 20px rgba(15, 23, 42, 0.04); }
+}
+.hl7-doc-pills-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dbx-gray-text);
+  margin: 0 0 10px 0;
+}
+.hl7-doc-pills-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.hl7-doc-pills-list li {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0 0 10px 0;
+  color: #334155;
+  padding-left: 0;
+}
+.hl7-doc-pills-list a {
+  color: var(--dbx-blue-600) !important;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(34, 114, 180, 0.25);
+}
+.hl7-doc-pills-list a:hover {
+  border-bottom-color: var(--dbx-blue-600);
+}
+.hl7-doc-pills-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 12px 0 0 0;
+  line-height: 1.4;
+}
+/* Home — system health (no st.metric) */
+.hl7-app-header a {
+  color: var(--dbx-blue-600) !important;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(34, 114, 180, 0.3);
+}
+.hl7-app-header a:hover {
+  border-bottom-color: var(--dbx-blue-600);
+}
+.hl7-sys-health {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--dbx-gray-lines);
+  border-radius: 16px;
+  padding: 0 0 8px 0;
+  margin: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.hl7-sys-health-head {
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px 16px 0 0;
+}
+.hl7-sys-health-title {
+  margin: 0 0 6px 0 !important;
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  color: var(--dbx-navy-800) !important;
+  letter-spacing: -0.02em !important;
+  border: none !important;
+}
+.hl7-sys-health-deck {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--dbx-gray-text);
+  max-width: 720px;
+}
+.hl7-sys-health-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px 0 0;
+}
+.hl7-sys-health-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e8eef3;
+  transition: background 0.15s ease;
+}
+.hl7-sys-health-row:hover {
+  background: rgba(34, 114, 180, 0.03);
+}
+.hl7-sys-health-row--dlt {
+  background: rgba(11, 79, 122, 0.03);
+  border-bottom: none;
+  border-radius: 0 0 12px 12px;
+}
+.hl7-sys-health-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+.hl7-sys-health-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+.hl7-sys-health-age {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 500;
+}
+.hl7-hs-tier {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+.hl7-hs-tier--ok {
+  color: #0f766e;
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+}
+.hl7-hs-tier--stale {
+  color: #9a3412;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+.hl7-hs-tier--critical {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+.hl7-hs-tier--na {
+  color: #475569;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.hl7-sys-dlt-pill {
+  display: inline-block;
+  font-size: 0.8rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  margin-top: 4px;
+  color: #0f172a;
+}
+.hl7-sys-dlt-hint {
+  margin: 0;
+  padding: 10px 20px 4px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #94a3b8;
+  word-break: break-word;
+}
+.hl7-sys-dlt-full {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  line-height: 1.4;
+  font-weight: 400;
+  background: transparent;
+  border: none;
+  padding: 0;
+  white-space: pre-wrap;
+}
 /* Home — more shortcuts (inside st.container) */
 .hl7-pro-quickstart-title {
   margin: 0 0 2px 0 !important;

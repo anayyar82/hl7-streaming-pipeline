@@ -5,6 +5,7 @@ Thresholds line up with `STATUS_MONITOR_SPECS` + `_status_label` on 0_status.
 
 from __future__ import annotations
 
+import html
 import re
 from typing import Any
 
@@ -188,12 +189,119 @@ def render_freshness_metrics_row(home_batch: dict[str, pd.DataFrame] | None = No
         f"(stream {int(slo['h_msg'])}h, encounters {int(slo['h_enc'])}h, ML {int(slo['h_ml'])}h). "
         "Per-table list: **Status** (sidebar)."
     )
+
+
+def render_system_health_hero(
+    b: dict[str, pd.DataFrame] | None = None,
+) -> None:
+    """
+    Home page only: SLO + DLT state in one panel. No st.metric, no business KPIs.
+    """
+    if b is None:
+        b = run_query_batch(health_freshness_queries(), quiet=True)
+
+    slo = queries.HEALTH_SLO_HOURS
+    dlt_line = dlt_snapshot_cached(PIPELINE_ID)
+    dlt_sh = _dlt_metric_short(dlt_line)
     dlt_l = dlt_line.lower()
     dlt_broken = "not found" in dlt_l or "id not in workspace" in dlt_l or dlt_sh == "Not configured"
+    dlt_looks_ok = bool(PIPELINE_ID) and not dlt_broken and "unavailable" not in dlt_l[:32]
+
+    li_parts: list[str] = []
+    any_crit = False
+    max_age = 0.0
+
+    for key, label in (
+        ("h_msg", "Message stream (source freshness)"),
+        ("h_enc", "Encounters (gold)"),
+        ("h_ml", "ML prediction tables"),
+    ):
+        df = b.get(key, pd.DataFrame()) if b else pd.DataFrame()
+        ts = _cell_ts(df)
+        age = _hours_since(ts)
+        if age is not None:
+            max_age = max(max_age, float(age))
+        tier = slo_tier(age, slo.get(key))
+        if tier == "critical":
+            any_crit = True
+        age_s = _format_age(age)
+        tier_s = f"{_tier_emoji(tier)} {tier}" if tier != "—" else "—"
+        tcls = f"hl7-hs-tier hl7-hs-tier--{tier}" if tier in ("ok", "stale", "critical") else "hl7-hs-tier hl7-hs-tier--na"
+        hint = html.escape(f"Last activity: {ts}" if ts is not None else "No timestamp in table")
+        li_parts.append(
+            f'<li class="hl7-sys-health-row" role="listitem">'
+            f'<div class="hl7-sys-health-main">'
+            f'<span class="hl7-sys-health-label">{html.escape(label)}</span>'
+            f'<span class="hl7-sys-health-age" title="{hint}">{html.escape(age_s)}</span>'
+            f"</div>"
+            f'<span class="{tcls}" title="{hint}">{html.escape(tier_s)}</span>'
+            f"</li>"
+        )
+
+    dlt_tier = "ok" if dlt_looks_ok else "na"
+    dlt_tier_class = f"hl7-hs-tier hl7-hs-tier--{dlt_tier}"
+    dlt_emoji = "🟢" if dlt_looks_ok else ("🔴" if dlt_broken else "➖")
+    dlt_sh_e = html.escape(dlt_sh)
+    dlt_line_e = html.escape(dlt_line)
+    dlt_id_title = html.escape(PIPELINE_ID or "unset")
+
+    li_parts.append(
+        f'<li class="hl7-sys-health-row hl7-sys-health-row--dlt" role="listitem">'
+        f'<div class="hl7-sys-health-main">'
+        f'<span class="hl7-sys-health-label">DLT pipeline (workspace)</span>'
+        f'<code class="hl7-sys-dlt-pill" title="Pipeline id: {dlt_id_title}">{dlt_sh_e}</code>'
+        f"</div>"
+        f'<span class="{dlt_tier_class}">{dlt_emoji} summary</span>'
+        f"</li>"
+    )
+
+    st.markdown(
+        f"""
+<div class="hl7-sys-health">
+  <div class="hl7-sys-health-head">
+    <h2 class="hl7-sys-health-title">System health</h2>
+    <p class="hl7-sys-health-deck">Lakebase freshness and DLT pipeline. Same SLO model as <strong>Status</strong> in the sidebar.</p>
+  </div>
+  <ul class="hl7-sys-health-list" role="list">
+{"".join(li_parts)}
+  </ul>
+  <p class="hl7-sys-dlt-hint" title="DLT one-line (API)"><code class="hl7-sys-dlt-full">{dlt_line_e}</code></p>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    c1, c2, c3 = st.columns([1, 1, 1.2], gap="medium")
+    with c1:
+        st.page_link(
+            "pages/0_status.py",
+            label="Full system status",
+            icon="📡",
+            use_container_width=True,
+        )
+    with c2:
+        st.page_link(
+            "pages/z_run_jobs.py",
+            label="Run jobs & workflow",
+            icon="🚀",
+            use_container_width=True,
+        )
+    with c3:
+        if st.button("Refresh", use_container_width=True, help="Re-query Lakebase freshness and DLT state"):
+            st.rerun()
+
+    _cap1 = (
+        f"SLO: **ok** in-window · **stale** to 2× · **critical** beyond. "
+        f"Targets: stream {int(slo['h_msg'])}h, encounters {int(slo['h_enc'])}h, ML {int(slo['h_ml'])}h. "
+    )
+    _cap2 = (
+        f"Pipeline: `{PIPELINE_ID}`."
+        if PIPELINE_ID
+        else "Set **HL7_PIPELINE_ID** in the app if DLT shows *not found* or *not configured*."
+    )
+    st.caption(_cap1 + _cap2)
     if (any_crit or max_age >= 48.0) and dlt_broken:
         st.caption(
-            "If this environment is meant to be live, **set `HL7_PIPELINE_ID` to a pipeline in this workspace** "
-            "(Pipelines list / `databricks pipelines list`) and run **Run jobs** → the **DLT → Inference → Lakebase** job so Lakebase and gold see new data."
+            "To recover: set **HL7_PIPELINE_ID** in this workspace and run **Run jobs** → the pipeline → Lakebase path when that job is configured."
         )
 
 
