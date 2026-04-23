@@ -8,7 +8,14 @@ import streamlit as st
 
 from utils.theme import sidebar_product_context
 
-# (path, label, icon) — order within each section is display order.
+# (path, label, icon) — order within each section is display order. icon None = no emoji.
+def _sidebar_page_link(path: str, label: str, icon: str | None) -> None:
+    if icon:
+        st.sidebar.page_link(path, label=label, icon=icon)
+    else:
+        st.sidebar.page_link(path, label=label)
+
+
 _CLINICAL = [
     ("pages/1_realtime.py", "Real-time ops", "📊"),
     ("pages/2_trends.py", "Trends & heatmaps", "📈"),
@@ -24,6 +31,7 @@ _PLATFORM = [
     ("pages/0a_sample_to_volume.py", "Sample → volume", "📤"),
     ("pages/0b_live_activity.py", "Live activity", "⚡"),
     ("pages/0c_dlt_update_live.py", "DLT update live", "🔄"),
+    ("pages/0d_load_test.py", "Load test", "🧪"),
     ("pages/z_run_jobs.py", "Run jobs & workflow", "🚀"),
     ("pages/9_platform_pulse.py", "Platform pulse", "🛰️"),
 ]
@@ -53,15 +61,15 @@ def render_sidebar_nav() -> None:
 
     st.sidebar.markdown('<p class="hl7-sidebar-cat">Clinical intelligence</p>', unsafe_allow_html=True)
     for path, label, icon in _CLINICAL:
-        st.sidebar.page_link(path, label=label, icon=icon)
+        _sidebar_page_link(path, label, icon)
 
     st.sidebar.markdown('<p class="hl7-sidebar-cat hl7-sidebar-cat-platform">Platform</p>', unsafe_allow_html=True)
     for path, label, icon in _PLATFORM:
-        st.sidebar.page_link(path, label=label, icon=icon)
+        _sidebar_page_link(path, label, icon)
 
     st.sidebar.markdown('<p class="hl7-sidebar-cat">Ask your data</p>', unsafe_allow_html=True)
     for path, label, icon in _GENIE:
-        st.sidebar.page_link(path, label=label, icon=icon)
+        _sidebar_page_link(path, label, icon)
 
     st.sidebar.markdown("---")
     sidebar_product_context()

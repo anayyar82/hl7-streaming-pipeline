@@ -4,11 +4,11 @@ Live Databricks activity — active job runs and DLT pipeline state (auto-refres
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta, timezone
 
 import streamlit as st
 
+from utils.hl7_env import hl7_pipeline_id
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav
 from utils.databricks_activity import (
@@ -23,7 +23,7 @@ st.set_page_config(page_title="Live Activity", page_icon="📡", layout="wide")
 apply_theme()
 render_sidebar_nav()
 
-PIPELINE_ID = (os.environ.get("HL7_PIPELINE_ID") or "").strip()
+PIPELINE_ID = hl7_pipeline_id()
 
 st.title("Live activity")
 st.caption(

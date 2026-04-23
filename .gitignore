@@ -29,3 +29,11 @@ Thumbs.db
 # Secrets
 .env
 credentials.json
+
+# Databricks AppKit app (scaffold with scripts/bootstrap_appkit_hl7_app.sh)
+hl7-appkit-app/node_modules/
+hl7-appkit-app/dist/
+hl7-appkit-app/client/dist/
+hl7-appkit-app/.env
+hl7-appkit-app/playwright-report/
+hl7-appkit-app/test-results/

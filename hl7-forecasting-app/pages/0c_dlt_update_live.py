@@ -4,11 +4,11 @@ Live DLT / Lakeflow pipeline update monitor — per-flow status and row metrics 
 
 from __future__ import annotations
 
-import os
 from datetime import timedelta
 
 import streamlit as st
 
+from utils.hl7_env import hl7_pipeline_id
 from utils.databricks_activity import get_pipeline_snapshot
 from utils.databricks_trigger import pipeline_update_url
 from utils.dlt_live_monitor import (
@@ -24,7 +24,7 @@ st.set_page_config(page_title="DLT update live", page_icon="🔄", layout="wide"
 apply_theme()
 render_sidebar_nav()
 
-PIPELINE_ID = (os.environ.get("HL7_PIPELINE_ID") or "").strip()
+PIPELINE_ID = hl7_pipeline_id()
 
 st.title("DLT update — live monitor")
 st.caption(
@@ -56,6 +56,10 @@ if not PIPELINE_ID:
     st.stop()
 
 snap = get_pipeline_snapshot(PIPELINE_ID)
+if snap.error:
+    st.error(snap.error)
+    st.stop()
+
 default_uid = (snap.update_id or "").strip()
 
 c1, c2, c3 = st.columns([2, 2, 1])

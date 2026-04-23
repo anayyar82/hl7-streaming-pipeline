@@ -1,0 +1,111 @@
+# Databricks SQL (Lakehouse) Alert v2 — daily email with aggregate "insights" from gold tables.
+# Deploy: databricks bundle deploy -t dev
+# The alert fires on every successful evaluation (always_fire = 1.0) so the daily schedule can email
+# a digest. Requires workspace email delivery enabled for the recipient and warehouse access for the
+# run-as user (or use run_as in an older client if you need the alert to run as a service principal).
+# Stale alert: same recipient; notify again at most once per 24h while still stale; optional OK on recovery.
+# Docs: https://docs.databricks.com/api/workspace/alertsv2/
+
+resources:
+  alerts:
+    hl7_gold_message_freshness_stale:
+      display_name: "[${bundle.target}] HL7 gold — message pipeline STALE (alert)"
+      custom_summary: "HL7: gold_message_metrics is stale (no recent messages)"
+      custom_description: >
+        Fires when max(last_message_at) on gold_message_metrics is NULL or older than
+        ${var.hl7_freshness_stale_after_hours} hours. Aligns with the Streamlit SLO for pipeline throughput.
+        Check DLT, landing volume, and the hl7_streaming_dlt/hl7_refresh_workflow stack.
+      warehouse_id: ${var.sql_warehouse_id}
+      schedule:
+        pause_status: UNPAUSED
+        # Every 4 hours (stale should be noticed same day)
+        quartz_cron_schedule: "0 0 0/4 * * ?"
+        timezone_id: America/Los_Angeles
+      query_text: |
+        SELECT
+          CASE
+            WHEN last_msg IS NULL THEN 1.0
+            WHEN (
+              (UNIX_TIMESTAMP(CURRENT_TIMESTAMP()) - UNIX_TIMESTAMP(CAST(last_msg AS TIMESTAMP)))
+              / 3600.0
+            ) > ${var.hl7_freshness_stale_after_hours}
+            THEN 1.0
+            ELSE 0.0
+          END AS should_alert
+        FROM (
+          SELECT MAX(last_message_at) AS last_msg
+          FROM ${var.catalog}.${var.schema}.gold_message_metrics
+        ) t
+      evaluation:
+        comparison_operator: GREATER_THAN
+        source:
+          aggregation: MAX
+          name: should_alert
+        threshold:
+          value:
+            double_value: 0.5
+        notification:
+          notify_on_ok: true
+          retrigger_seconds: 86400
+          subscriptions:
+            - user_email: ${var.hl7_insight_email}
+
+    hl7_daily_data_insight_email:
+      display_name: "[${bundle.target}] HL7 data insights — daily email"
+      custom_summary: "HL7 gold — daily insight digest"
+      custom_description: >
+        One-row snapshot: encounters (7d), message volume (24h), patients, ML predictions (24h),
+        latest pipeline freshness, and a daily encounter trend. Sent from a Databricks SQL alert on the
+        Unity Catalog gold layer (${var.catalog}.${var.schema}).
+      warehouse_id: ${var.sql_warehouse_id}
+      schedule:
+        pause_status: UNPAUSED
+        # 07:00 every day, America/Los_Angeles
+        quartz_cron_schedule: "0 0 7 * * ?"
+        timezone_id: America/Los_Angeles
+      # Single row; always_fire lets the condition pass every time so a daily retrigger is allowed
+      # (see retrigger_seconds in evaluation.notification).
+      query_text: |
+        SELECT
+          1.0 AS always_fire,
+          (
+            SELECT CAST(COUNT(*) AS BIGINT)
+            FROM ${var.catalog}.${var.schema}.gold_encounter_fact
+            WHERE to_date(created_at) >= date_sub(CURRENT_DATE(), 7)
+          ) AS encounters_7d,
+          (
+            SELECT CAST(COALESCE(SUM(message_count), 0) AS BIGINT)
+            FROM ${var.catalog}.${var.schema}.gold_message_metrics
+            WHERE CAST(processing_hour AS TIMESTAMP) >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+          ) AS messages_24h,
+          (
+            SELECT CAST(COUNT(*) AS BIGINT)
+            FROM ${var.catalog}.${var.schema}.gold_patient_dim
+          ) AS total_patients,
+          (
+            SELECT CAST(COUNT(*) AS BIGINT)
+            FROM ${var.catalog}.${var.schema}.gold_forecast_predictions
+            WHERE forecast_generated_at >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+          ) AS ml_predictions_24h,
+          (
+            SELECT max(last_message_at)
+            FROM ${var.catalog}.${var.schema}.gold_message_metrics
+          ) AS last_message_at,
+          (
+            SELECT CAST(COUNT(*) AS BIGINT)
+            FROM ${var.catalog}.${var.schema}.gold_encounter_fact
+            WHERE to_date(created_at) = CURRENT_DATE()
+          ) AS encounters_today
+      evaluation:
+        comparison_operator: GREATER_THAN
+        source:
+          aggregation: MAX
+          name: always_fire
+        threshold:
+          value:
+            double_value: 0.0
+        notification:
+          notify_on_ok: false
+          retrigger_seconds: 1
+          subscriptions:
+            - user_email: ${var.hl7_insight_email}

@@ -268,6 +268,16 @@ Interactive Streamlit dashboard deployed as a Databricks App, connecting to Lake
 
 **URL:** `https://hl7app-1444828305810485.aws.databricksapps.com`
 
+### AppKit (Node + React) — optional replacement UI
+
+The current app is **Streamlit** (`hl7-forecasting-app/`). If the UI feels slow or you want a production-oriented TypeScript stack, Databricks **[AppKit](https://github.com/databricks/appkit)** is the supported path: React, Express, plugins for **Lakebase**, **Analytics** (SQL warehouse), **Genie**, and related workspace APIs. See the **[AppKit docs](https://databricks.github.io/appkit/docs/)** (CLI **0.295+**, Node **22+**).
+
+1. From an empty directory under this repo, run **`databricks apps init`** and follow the prompts (same flow as the [manual quick start](https://databricks.github.io/appkit/docs/#manual-quick-start)).
+2. Port environment and behavior from **`hl7-forecasting-app/app.yaml`** (Lakebase `PG*`, `GENIE_SPACE_ID`, job IDs, UC paths) into the AppKit app’s configuration.
+3. Print a second-app bundle snippet: **`./scripts/bootstrap_appkit_hl7_app.sh --print-bundle-snippet`** — merge that into **`resources/hl7_pipeline.yml`** (or a new file under `resources/`) to deploy **`hl7app_appkit`** alongside **`hl7app`**, then port pages incrementally before switching `hl7app`’s `source_code_path` or retiring Streamlit.
+
+For a short command checklist: **`./scripts/bootstrap_appkit_hl7_app.sh --init-hint`**.
+
 ### Dashboard Pages
 
 | Page | Name | Filters | Description |
@@ -369,8 +379,8 @@ POST {DATABRICKS_HOST}/api/2.0/postgres/credentials
     ▼
 OAuth Token (short-lived, ~60 min)
     │
-    │  psycopg3 ConnectionPool with OAuthConnection
-    │  (generates a fresh token for each new connection)
+    │  psycopg3 short-lived connections + process lock (no pool; avoids checkout timeouts)
+    │  (token mint with a short in-memory cache; new TCP connection per query/batch)
     ▼
 Lakebase Postgres (sslmode=require)
 ```
@@ -747,7 +757,11 @@ databricks bundle run hl7_model_inference -t dev
 
 **`hl7_automl_training`** and **`hl7_model_inference`** share the same cluster shape: **17.3.x LTS ML** (`ml_spark_version`), **i3.xlarge** driver and workers, autoscale **1–2** workers, **`SPOT_WITH_FALLBACK`** with **`first_on_demand: 1`**, and **`ml_zone_id`** for AZ pinning. The runtime includes **MLflow 3**; do not **`pip install`** a different MLflow on the cluster. **`08`** uses plain **`pyfunc.predict`**.
 
-The **DLT** pipeline uses its own cluster definition and is unchanged by these variables.
+The **DLT** pipeline is configured as **serverless** (no `clusters` block) for managed scaling. **Workflow jobs** in `resources/hl7_pipeline.yml` use **serverless compute for workflows** with `environments` / `environment_key` instead of `existing_cluster_id` or `new_cluster`. To tune the image, set bundle variable `serverless_env_version` (default `4`).
+
+If **AutoML (07)** fails on serverless, check the job run log; you can temporarily reintroduce a `new_cluster` (DBR ML) for `hl7_automl_training` only.
+
+The **shared cluster id** (historically used for many notebooks) is no longer part of the bundle; cancel stray runs in **Jobs** if old runs still show classic clusters.
 
 ### Deployed Resources (via DAB)
 
@@ -760,10 +774,13 @@ The **DLT** pipeline uses its own cluster definition and is unchanged by these v
 | `hl7_model_inference` | Job | Hourly batch inference (PAUSED by default) |
 | `hl7_lakebase_sync` | Job | CDF enablement for Lakebase sync |
 | `hl7_genie_uc_grants` | Job | One-shot UC + warehouse grants for **hl7app** / Genie (`12_genie_uc_grants.py`) |
+| `hl7_lakebase_app_grants` | Job | Lakebase `databricks_create_role` + schema SELECT for **hl7app** SP (`11_lakebase_grants.py`; var `hl7_app_service_principal_id`) |
 | `hl7app` | App | Streamlit dashboard (Databricks App, `sql` scope) |
 | `hl7_ed_icu_dashboard` | Dashboard | Lakeview: ED/ICU operations (`hl7_ed_icu_operations.lvdash.json`) |
 | `hl7_ed_icu_dashboard_main` | Dashboard | Lakeview: ED/ICU (`hl7_ed_icu.lvdash.json`) |
 | `hl7_patient_clinical_dashboard` | Dashboard | Lakeview dashboard for patient clinical analytics |
+| `hl7_daily_data_insight_email` | SQL alert | Daily (07:00 America/Los_Angeles) **Databricks SQL alert** — emails **HL7 gold** KPIs to `hl7_insight_email` (default `ankur.nayyar@databricks.com`). Configure `sql_warehouse_id` in the bundle to match a warehouse with read access to `${catalog}.${schema}`. Deploy with `databricks bundle deploy -t dev`. |
+| `hl7_gold_message_freshness_stale` | SQL alert | **Every 4 hours** — emails if `gold_message_metrics` has no `last_message_at` or it is older than `hl7_freshness_stale_after_hours` (default **36**), at most **once per 24h** while still stale; **notify_on_ok** when back to fresh. |
 
 ---
 

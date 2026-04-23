@@ -12,6 +12,11 @@ env:
     value: '5432'
   - name: PGSSLMODE
     value: 'require'
+  # Lakebase OAuth: Postgres login name MUST match a role created with databricks_create_role
+  # for this exact UUID. If the app was recreated, update this and re-run Lakebase SQL + grants.
+  # CLI: databricks apps get hl7app -o json | jq -r '.service_principal_client_id // empty'
+  - name: PGUSER
+    value: 'd27fa0aa-3bf3-49c0-9fcc-160243c99035'
   - name: ENDPOINT_NAME
     value: 'projects/ankurhlsproject/branches/production/endpoints/primary'
   # Genie space UUID from URL .../genie/rooms/<SPACE_ID> (e2-demo-field-eng).
@@ -30,8 +35,10 @@ env:
     value: 'ankur_nayyar'
   - name: HL7_LANDING_VOLUME
     value: 'landing'
+  # DLT: must match the deployed bundle pipeline in THIS workspace. After deploy, run
+  # `databricks bundle summary -t dev` and set this to the URL id under Pipelines / hl7_streaming_dlt.
   - name: HL7_PIPELINE_ID
-    value: '84427bd5-c3b2-4f00-8bc1-387d94130eec'
+    value: 'a28d206f-e707-4951-ba16-42a94f075be0'
   - name: HL7_JOB_SAMPLE_DATA
     value: '544648305465960'
   # Set after deploy: Workflows → hl7_automl_training → URL contains /job/<id>/

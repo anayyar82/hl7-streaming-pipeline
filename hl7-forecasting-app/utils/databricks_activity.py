@@ -5,6 +5,7 @@ Fetch Databricks job and DLT pipeline status for the live activity monitor.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
@@ -134,6 +135,38 @@ class PipelineSnapshot:
     error: str
 
 
+def humanize_pipeline_error(msg: str) -> str:
+    """
+    Shorter, workspace-friendly copy for the Pipelines API when the raw message
+    is a long "specified pipeline ... not found" (wrong HL7_PIPELINE_ID, etc.).
+    """
+    s = (msg or "").strip()
+    if not s:
+        return "Unknown pipeline error."
+    # SDK / app layers sometimes prefix "error:"; strip so matching works.
+    s = re.sub(r"(?i)^error:\s*", "", s, count=1).strip()
+    if not s:
+        return "Unknown pipeline error."
+    low = s.lower()
+    not_in_workspace = (
+        "the specified pipeline" in low
+        or "resource_does_not_exist" in low
+        or (("does not exist" in low or "not found" in low) and "pipeline" in low)
+    )
+    if not_in_workspace or ("404" in s and "pipeline" in low):
+        return (
+            "That pipeline was not found in this workspace. Set HL7_PIPELINE_ID in the app "
+            "to a valid pipeline (Databricks Pipelines, or: databricks pipelines list)."
+        )
+    if "permission" in low or "forbidden" in low or " 403" in s or "unauthorized" in low:
+        return (
+            "Not permitted to read this pipeline. Grant the app identity access to the pipeline in Databricks."
+        )
+    if len(s) > 200:
+        return s[:197] + "…"
+    return s
+
+
 def get_pipeline_snapshot(pipeline_id: str) -> PipelineSnapshot:
     if not pipeline_id.strip():
         return PipelineSnapshot("", "", "—", "", "", "", "", "Pipeline ID not configured")
@@ -177,7 +210,7 @@ def get_pipeline_snapshot(pipeline_id: str) -> PipelineSnapshot:
             latest_update_state="",
             update_id="",
             cluster_id="",
-            error=str(e)[:400],
+            error=humanize_pipeline_error(str(e)),
         )
 
 

@@ -26,6 +26,10 @@ variables:
   ml_zone_id:
     description: AWS AZ for cluster placement (same region as workspace)
     default: us-west-2a
+  # Lakeflow / Jobs serverless environment (see job.environments in bundle reference)
+  serverless_env_version:
+    description: Serverless environment version string for workflow notebook tasks
+    default: "4"
   app_git_url:
     description: HTTPS clone URL for the repo that contains hl7-forecasting-app (Git-only Apps workspaces)
     default: https://github.com/anayyar82/hl7-streaming-pipeline.git
@@ -35,14 +39,37 @@ variables:
   app_git_provider:
     description: Git provider (case-insensitive in API; use gitHub for github.com)
     default: gitHub
+  hl7_app_service_principal_id:
+    description: hl7app service_principal_client_id for Lakebase databricks_create_role (databricks apps get hl7app -o json)
+    default: "d27fa0aa-3bf3-49c0-9fcc-160243c99035"
+  lakebase_connect_user:
+    description: Databricks user email for 11_lakebase_grants (Lakebase OAuth "connect as" user; required for serverless)
+    default: ""
+  # Used by resources/hl7_sql_alerts.yml (Databricks SQL alert v2 — must match a warehouse the deploy user can use)
+  sql_warehouse_id:
+    description: SQL warehouse ID for scheduled SQL alerts (same as Lakeview dashboards when possible)
+    default: e9b34f7a2e4b0561
+  hl7_insight_email:
+    description: Recipient for the daily HL7 data insight SQL alert email
+    default: ankur.nayyar@databricks.com
+  # gold_message_metrics — flag stale when max(last_message_at) older than this (matches app SLO strip)
+  hl7_freshness_stale_after_hours:
+    description: Hours without HL7 on gold_message_metrics before the stale alert fires
+    default: 36
 
 resources:
   jobs:
+    # Notebook tasks use serverless compute for workflows (no cluster / existing_cluster_id).
+    # See https://docs.databricks.com/aws/en/dev-tools/bundles/resources#job
     hl7_lakebase_sync:
       name: "[${bundle.target}] HL7 Lakebase Sync"
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: ${var.serverless_env_version}
       tasks:
         - task_key: setup_and_validate
-          existing_cluster_id: 0311-163008-zyak1y4y
+          environment_key: default
           notebook_task:
             notebook_path: ../notebooks/09_lakebase_sync.py
             base_parameters:
@@ -53,9 +80,13 @@ resources:
 
     hl7_lakebase_load:
       name: "[${bundle.target}] HL7 Lakebase Load"
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: ${var.serverless_env_version}
       tasks:
         - task_key: load_gold_to_lakebase
-          existing_cluster_id: 0311-163008-zyak1y4y
+          environment_key: default
           notebook_task:
             notebook_path: ../notebooks/10_lakebase_load.py
             base_parameters:
@@ -65,17 +96,40 @@ resources:
 
     hl7_genie_uc_grants:
       name: "[${bundle.target}] HL7 Genie UC Grants (hl7app SP)"
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: ${var.serverless_env_version}
       tasks:
         - task_key: apply_uc_grants
-          existing_cluster_id: 0311-163008-zyak1y4y
+          environment_key: default
           notebook_task:
             notebook_path: ../notebooks/12_genie_uc_grants.py
 
+    hl7_lakebase_app_grants:
+      name: "[${bundle.target}] HL7 Lakebase App OAuth Grants"
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: ${var.serverless_env_version}
+      tasks:
+        - task_key: lakebase_oauth_grants
+          environment_key: default
+          notebook_task:
+            notebook_path: ../notebooks/11_lakebase_grants.py
+            base_parameters:
+              app_sp_client_id: ${var.hl7_app_service_principal_id}
+              lakebase_connect_user: ${var.lakebase_connect_user}
+
     hl7_sample_data:
       name: "[${bundle.target}] HL7 Generate Sample Data"
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: ${var.serverless_env_version}
       tasks:
         - task_key: generate_hl7_files
-          existing_cluster_id: 0311-163008-zyak1y4y
+          environment_key: default
           notebook_task:
             notebook_path: ../notebooks/06_generate_sample_data.py
             base_parameters:
@@ -86,7 +140,7 @@ resources:
               num_patients: "150"
               clear_existing: "yes"
 
-    # Ephemeral DBR 17.x ML job cluster per run (same pattern as inference).
+    # AutoML requires databricks.automl (DBR ML) — not available on serverless job environments.
     hl7_automl_training:
       name: "[${bundle.target}] HL7 AutoML Model Training"
       tasks:
@@ -114,30 +168,19 @@ resources:
               experiment_prefix: hl7_forecasting
               timeout_minutes: "5"
 
-    # Ephemeral DBR 17.x ML job cluster per run (task-level new_cluster — not shared / not existing cluster).
     hl7_model_inference:
       name: "[${bundle.target}] HL7 Model Inference"
       schedule:
         quartz_cron_expression: "0 0 * * * ?"
         timezone_id: America/Los_Angeles
         pause_status: PAUSED
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: ${var.serverless_env_version}
       tasks:
         - task_key: run_inference
-          new_cluster:
-            spark_version: ${var.ml_spark_version}
-            driver_node_type_id: ${var.ml_node_type}
-            node_type_id: ${var.ml_node_type}
-            autoscale:
-              min_workers: 1
-              max_workers: 2
-            aws_attributes:
-              availability: ${var.ml_aws_availability}
-              first_on_demand: ${var.ml_first_on_demand}
-              zone_id: ${var.ml_zone_id}
-            data_security_mode: SINGLE_USER
-            custom_tags:
-              hl7_job: model_inference
-              hl7_compute: dbr17-ml-ephemeral
+          environment_key: default
           notebook_task:
             notebook_path: ../notebooks/08_model_inference.py
             base_parameters:
@@ -201,6 +244,7 @@ resources:
           group_name: users
 
   pipelines:
+    # Serverless Lakeflow Pipelines — no `clusters` block; see serverless DLT docs.
     hl7_streaming_dlt:
       name: "[${bundle.target}] HL7 Streaming Pipeline"
       catalog: ${var.catalog}
@@ -208,6 +252,7 @@ resources:
       development: true
       channel: CURRENT
       photon: true
+      serverless: true
       edition: ADVANCED
       continuous: false
       configuration:
@@ -227,14 +272,3 @@ resources:
             path: ../notebooks/04_reports.py
         - notebook:
             path: ../notebooks/05_forecasting.py
-      clusters:
-        - label: default
-          autoscale:
-            min_workers: 1
-            max_workers: 2
-          spark_conf:
-            spark.databricks.delta.optimizeWrite.enabled: "true"
-            spark.databricks.delta.autoCompact.enabled: "true"
-          custom_tags:
-            project: hl7-streaming
-            environment: ${bundle.target}

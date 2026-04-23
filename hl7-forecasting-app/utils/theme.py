@@ -122,15 +122,60 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 
 /* Home & nav cards */
 .hl7-hero {
-  background: linear-gradient(125deg, #0f172a 0%, #1e3a5f 40%, #312e81 72%, #0c4a6e 100%);
+  background: linear-gradient(128deg, #0b1220 0%, #0f172a 28%, #1e3a5f 55%, #1d4ed8 100%);
   background-size: 100% 100%;
-  /* Static hero — animated gradient was heavy on low-power clients */
-  animation: none;
   color: #f8fafc;
-  border-radius: 16px;
-  padding: 28px 32px;
+  border-radius: 20px;
+  padding: 0;
   margin-bottom: 1.5rem;
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(255,255,255,0.06) inset;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(255,255,255,0.07) inset;
+  overflow: hidden;
+  position: relative;
+}
+.hl7-hero::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #60a5fa, #a78bfa, #f472b6);
+  opacity: 0.9;
+}
+.hl7-hero-inner {
+  padding: 26px 32px 28px;
+  position: relative;
+}
+.hl7-hero-kicker {
+  display: block;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #93c5fd !important;
+  margin: 0 0 6px 0 !important;
+}
+.hl7-hero h1 {
+  color: #f8fafc !important;
+  font-size: 1.95rem !important;
+  line-height: 1.2 !important;
+  margin: 0 0 10px 0 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  border: none !important;
+}
+.hl7-hero .hl7-hero-deck {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  opacity: 0.9;
+  margin: 0 0 0 0;
+  max-width: 880px;
+  color: #e2e8f0;
+}
+.hl7-hero .hl7-hero-meta {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 900px;
+  color: #cbd5e1;
+  opacity: 0.88;
 }
 @keyframes hl7-hero-flow {
   0%, 100% { background-position: 0% 40%; }
@@ -139,35 +184,94 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 @media (prefers-reduced-motion: reduce) {
   .hl7-hero { animation: none; background-size: 100% 100%; }
 }
-.hl7-hero h1 {
-  color: #f8fafc !important;
-  font-size: 1.85rem !important;
-  margin: 0 0 8px 0 !important;
-  border: none !important;
-}
-.hl7-hero p {
-  margin: 0;
-  opacity: 0.92;
-  font-size: 1.05rem;
-  line-height: 1.5;
-  max-width: 820px;
-}
 .hl7-hero .hl7-badge-row {
-  margin-top: 16px;
+  margin-top: 20px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 .hl7-badge {
   display: inline-block;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.11);
+  border: 1px solid rgba(255,255,255,0.22);
   border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 0.75rem;
+  padding: 5px 13px;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
+
+/* Home — data flow card (pipeline strip) */
+.hl7-dataflow-wrap {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px 22px 18px;
+  margin: 0 0 1.5rem 0;
+  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05);
+}
+.hl7-home-eyebrow {
+  display: block;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #64748b !important;
+  margin: 0 0 4px 0 !important;
+}
+.hl7-dataflow-title {
+  margin: 0 0 6px 0 !important;
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  border: none !important;
+}
+.hl7-dataflow-deck {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0 0 1rem 0;
+}
+
+/* Home — live / charts section headers (injected in app.py) */
+.hl7-live-head, .hl7-charts-head {
+  margin: 0 0 8px 0;
+  padding: 0 2px 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+.hl7-live-head h2, .hl7-charts-head h2 {
+  margin: 0 0 4px 0 !important;
+  font-size: 1.28rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  border: none !important;
+}
+.hl7-charts-head h2 { margin-top: 4px !important; }
+.hl7-live-deck, .hl7-charts-deck {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+  max-width: 820px;
+}
+
+/* Lakebase connection strip on home */
+.hl7-conn-surface {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 4px 8px 12px 8px;
+  margin-top: 8px;
+}
+.hl7-powered-foot {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 0.5rem;
+}
+.hl7-home-demo-row { margin-bottom: 1rem; }
 
 .hl7-arch {
   display: flex;
@@ -531,6 +635,14 @@ div[data-testid="stSegmentedControl"] {
   .hl7-nav-card-v2:hover {
     transform: none !important;
   }
+}
+
+/* Bordered panels (e.g. Quick start, connection card) */
+[data-testid="stAppViewContainer"] [data-testid="stVerticalBlockBorderWrapper"] {
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04) !important;
 }
 
 """

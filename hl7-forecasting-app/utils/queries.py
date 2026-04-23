@@ -463,6 +463,25 @@ FROM {_fqn('gold_message_metrics')}
 """
 
 # ---------------------------------------------------------------------------
+# Home + status “SLO strip” (aligned with STATUS_MONITOR_SPECS + _status_label)
+# ---------------------------------------------------------------------------
+
+def _health_max_ts_query(table: str, col: str) -> str:
+    return f"SELECT MAX({col}) AS t FROM {_fqn(table)}"
+
+
+HEALTH_FRESHNESS_MSG = _health_max_ts_query("gold_message_metrics", "last_message_at")
+HEALTH_FRESHNESS_ENC = _health_max_ts_query("gold_encounter_fact", "created_at")
+HEALTH_FRESHNESS_ML = _health_max_ts_query("gold_forecast_predictions", "forecast_generated_at")
+
+# Per-signal SLOs (must match STATUS_MONITOR_SPECS for these tables, before 2× band)
+HEALTH_SLO_HOURS = {
+    "h_msg": 36.0,
+    "h_enc": 72.0,
+    "h_ml": 48.0,
+}
+
+# ---------------------------------------------------------------------------
 # System status page (Lakebase snapshot; one row per table)
 # stale_after_hours: warn when last_activity older than this (None = no age rule)
 # ---------------------------------------------------------------------------

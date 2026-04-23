@@ -12,6 +12,7 @@ from utils import queries
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav
 from utils.streamlit_refresh import run_live_dashboard
+from utils.health import render_status_slo_banner
 
 st.set_page_config(page_title="System Status", page_icon="📡", layout="wide")
 apply_theme()
@@ -76,6 +77,8 @@ def _status_label(age_h: float | None, stale_after: float | None) -> str:
 
 
 def _status_main() -> None:
+    render_status_slo_banner()
+
     if st.button("Refresh snapshot", type="primary"):
         st.rerun()
     
@@ -91,15 +94,33 @@ def _status_main() -> None:
     # ---- Forecast activity (single query) ----
     st.subheader("ML predictions (24h)")
     try:
+        pred_exists = _lakebase_table_exists("gold_forecast_predictions")
         fa = run_query(queries.STATUS_FORECAST_ACTIVITY, quiet=True)
-        if not fa.empty and fa.iloc[0].get("last_run") is not None:
-            r0 = fa.iloc[0]
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Last inference time", str(r0.get("last_run"))[:19])
-            m2.metric("Prediction rows (24h)", f"{int(r0.get('rows_24h') or 0):,}")
-            m3.metric("Models in table", int(r0.get("distinct_models") or 0))
+        if not pred_exists:
+            st.warning(
+                "Table **`gold_forecast_predictions`** is not in Lakebase yet. "
+                "Run **`hl7_lakebase_load`** after Delta has rows (pipeline **`05_forecasting`**, then **`hl7_model_inference`**)."
+            )
+        elif fa.empty:
+            st.warning(
+                "Could not read **`gold_forecast_predictions`** from Lakebase (query returned no result). "
+                "Check app SP grants and that the table exists in schema **`ankur_nayyar`**."
+            )
         else:
-            st.info("No rows in `gold_forecast_predictions`, or table not reachable.")
+            r0 = fa.iloc[0]
+            last_run = r0.get("last_run")
+            rows_24h = int(r0.get("rows_24h") or 0)
+            if last_run is not None or rows_24h > 0:
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Last inference time", str(last_run)[:19])
+                m2.metric("Prediction rows (24h)", f"{rows_24h:,}")
+                m3.metric("Models in table", int(r0.get("distinct_models") or 0))
+            else:
+                st.info(
+                    "Lakebase has **`gold_forecast_predictions`**, but it is **empty** (no scored rows yet). "
+                    "Typical order: DLT **`05_forecasting`** → **`hl7_automl_training`** (registers **champion** models) → **`hl7_model_inference`** → **`hl7_lakebase_load**`. "
+                    "Use **Run jobs & workflow** in the sidebar, or `databricks bundle run hl7_model_inference -t dev` then `hl7_lakebase_load`."
+                )
     except Exception as e:
         st.warning(f"Forecast summary: {e}")
     
@@ -108,12 +129,12 @@ def _status_main() -> None:
     # ---- Per-table matrix ----
     st.subheader("Gold table freshness")
     st.caption(
-        "**ok** = last activity within threshold · **stale** = up to 2× threshold · **critical** = older. "
-        "Thresholds differ by table (stream vs dimensions vs ML)."
+        "**ok** = last activity within the table’s SLO target · **stale** = up to **2×** that target · **critical** = older. "
+        "Thresholds differ by table (stream vs dimensions vs ML); the **SLO snapshot** above uses the same rule on three headliners."
     )
     st.caption(
-        "**📭 not in Lakebase** = Postgres has no table yet (run **`hl7_lakebase_load`**). "
-        "**❓ no data** = query error. Forecast feature tables also need DLT **`05_forecasting`** to succeed in UC before load can copy rows."
+        "**📭 not in Lakebase** = Postgres has no table yet (run **`hl7_lakebase_load`** and check **`hl7_lakebase_app_grants`**). "
+        "**❓ no data** = query error. Forecast feature tables also need DLT **`05_forecasting`** in UC before load can copy rows."
     )
     
     rows_out = []
@@ -201,7 +222,7 @@ def _status_main() -> None:
     
     **Order (typical):** DLT → (optional AutoML) → inference → lakebase load → refresh this page.
     
-    **From this app:** **0a · Sample → volume** writes HL7 to the landing volume (parameterized). **0b · Live activity** shows live DLT/job runs. **Run Databricks jobs** starts DLT and other workflows (set IDs in app environment variables).
+    **From this app:** **0a · Sample → volume** lands HL7 on the volume. **Run jobs & workflow** (`pages/z_run_jobs.py`) is the one-click path when **`HL7_JOB_REFRESH_WORKFLOW`** is set — DLT, inference, and Lakebase load. **0b · Live activity** shows live runs.
     
     **Git app deploy:** If the workspace requires Git, push to the repo configured on **hl7app** and deploy from **Compute → Apps**.
             """

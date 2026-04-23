@@ -10,6 +10,7 @@ from datetime import timedelta
 import pandas as pd
 import streamlit as st
 
+from utils.hl7_env import hl7_pipeline_id
 from utils.theme import apply_theme
 from utils.navigation import render_sidebar_nav
 from utils.databricks_trigger import (
@@ -59,7 +60,7 @@ If `DATABRICKS_ORG_ID` is set (workspace org id from your browser URL `?o=...`),
         """
     )
 
-PIPELINE_ID = (os.environ.get("HL7_PIPELINE_ID") or "").strip()
+PIPELINE_ID = hl7_pipeline_id()
 JOB_SAMPLE = parse_job_id(os.environ.get("HL7_JOB_SAMPLE_DATA"))
 JOB_AUTOML = parse_job_id(os.environ.get("HL7_JOB_AUTOML"))
 JOB_INFERENCE = parse_job_id(os.environ.get("HL7_JOB_INFERENCE"))

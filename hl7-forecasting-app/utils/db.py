@@ -1,11 +1,12 @@
 """
 Lakebase Postgres via OAuth (Databricks Apps service principal).
 
-Aligned with the working pattern: mint DB tokens with POST /api/2.0/postgres/credentials
-and WorkspaceClient.config.authenticate() headers (same as a plain requests client).
+Uses POST /api/2.0/postgres/credentials and WorkspaceClient.config.authenticate().
 
-Conninfo matches the minimal form (no search_path options); all SQL uses schema-qualified
-identifiers in utils/queries.py.
+This module intentionally avoids psycopg_pool: under Streamlit + fragments + many
+sessions, pool checkout produced "couldn't get a connection after 30.00 sec" even
+with raised limits. A process-wide lock and short-lived connections (with a small
+token cache) removes pool contention and stale-pooled-token edge cases.
 
 Prerequisite (Lakebase SQL):
 
@@ -13,15 +14,17 @@ Prerequisite (Lakebase SQL):
     SELECT databricks_create_role('<DATABRICKS_CLIENT_ID>'::text, 'service_principal'::text);
 """
 
-import os
-from concurrent.futures import ThreadPoolExecutor
+from __future__ import annotations
 
-import streamlit as st
+import os
+import threading
+import time
+
+import pandas as pd
 import psycopg
 import requests
-from psycopg_pool import ConnectionPool
+import streamlit as st
 from psycopg.rows import dict_row
-import pandas as pd
 
 PGHOST = os.environ.get(
     "PGHOST",
@@ -36,6 +39,15 @@ ENDPOINT_NAME = os.environ.get(
     "projects/ankurhlsproject/branches/production/endpoints/primary",
 )
 
+# Serialize Lakebase access in this Python process (Streamlit may overlap fragment runs).
+_db_lock = threading.Lock()
+
+_token_lock = threading.Lock()
+_cached_token: str | None = None
+_cached_at: float = 0.0
+# Reuse the same DB token for a short window to avoid hammering /postgres/credentials.
+_TOKEN_TTL_SEC = float(os.environ.get("LAKEBASE_TOKEN_CACHE_SEC", "50"))
+
 _workspace_client = None
 
 
@@ -49,7 +61,7 @@ def _workspace_for_auth():
 
 
 def _generate_db_credential() -> str:
-    """Fresh Lakebase OAuth token via workspace REST API (same as working app)."""
+    """Fresh Lakebase OAuth token via workspace REST API."""
     w = _workspace_for_auth()
     api_url = f"{w.config.host}/api/2.0/postgres/credentials"
     headers = dict(w.config.authenticate())
@@ -66,8 +78,28 @@ def _generate_db_credential() -> str:
     return token
 
 
+def _invalidate_token_cache() -> None:
+    global _cached_token, _cached_at
+    with _token_lock:
+        _cached_token = None
+        _cached_at = 0.0
+
+
+def _lakebase_password() -> str:
+    global _cached_token, _cached_at
+    now = time.monotonic()
+    with _token_lock:
+        if _cached_token is not None and (now - _cached_at) < _TOKEN_TTL_SEC:
+            return _cached_token
+    tok = _generate_db_credential()
+    with _token_lock:
+        _cached_token = tok
+        _cached_at = time.monotonic()
+    return tok
+
+
 def _conninfo_base() -> str:
-    """Libpq keyword connection string (no password)."""
+    """Libpq keyword connection string (password supplied separately to connect())."""
     if not PGUSER:
         raise RuntimeError("PGUSER / DATABRICKS_CLIENT_ID is required.")
     return (
@@ -76,66 +108,112 @@ def _conninfo_base() -> str:
     )
 
 
-class OAuthConnection(psycopg.Connection):
-    """Postgres connection that uses a freshly minted Lakebase DB credential."""
-
-    @classmethod
-    def connect(cls, conninfo="", **kwargs):
-        kwargs["password"] = _generate_db_credential()
-        return super().connect(conninfo, **kwargs)
+def _connect_timeout_sec() -> int:
+    return max(5, int(os.environ.get("PGCONNECT_TIMEOUT", "25")))
 
 
-@st.cache_resource
-def get_pool() -> ConnectionPool:
-    return ConnectionPool(
-        conninfo=_conninfo_base(),
-        connection_class=OAuthConnection,
-        min_size=1,
-        max_size=10,
-        open=True,
-        kwargs={"row_factory": dict_row},
+def _lakebase_auth_hint(exc: BaseException) -> str:
+    """Actionable text when Lakebase rejects OAuth (usually missing databricks_create_role)."""
+    msg = str(exc).lower()
+    if "password authentication failed" not in msg:
+        return ""
+    uid = os.environ.get("PGUSER") or os.environ.get("DATABRICKS_CLIENT_ID") or "<PGUSER>"
+    return (
+        f" **Lakebase:** In the Lakebase **SQL Editor**, as a user who can administer the database, run "
+        f"`CREATE EXTENSION IF NOT EXISTS databricks_auth;` then "
+        f"`SELECT databricks_create_role('{uid}'::text, 'service_principal'::text);` "
+        f"then GRANT CONNECT on the database and USAGE/SELECT on schema (see **notebooks/11_lakebase_grants.py**). "
+        f"The UUID must match **PGUSER** / `databricks apps get hl7app` → `service_principal_client_id`."
     )
+
+
+def _connect():
+    """New connection; caller must hold _db_lock for the connection's lifetime."""
+    pwd = _lakebase_password()
+    try:
+        return psycopg.connect(
+            _conninfo_base(),
+            password=pwd,
+            connect_timeout=_connect_timeout_sec(),
+            row_factory=dict_row,
+        )
+    except psycopg.OperationalError:
+        _invalidate_token_cache()
+        pwd = _lakebase_password()
+        return psycopg.connect(
+            _conninfo_base(),
+            password=pwd,
+            connect_timeout=_connect_timeout_sec(),
+            row_factory=dict_row,
+        )
+
+
+def execute_load_probe(query: str, params=None) -> tuple[bool, float, str | None]:
+    """
+    One Lakebase round-trip without the process-wide _db_lock so threads can run in parallel.
+
+    Use only from the Load test page. Normal pages keep using run_query / run_query_batch to
+    avoid connection storms under Streamlit fragments.
+    """
+    t0 = time.perf_counter()
+    try:
+        with _connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                if cur.description is not None:
+                    cur.fetchall()
+        return True, time.perf_counter() - t0, None
+    except Exception as e:
+        _invalidate_token_cache()
+        return False, time.perf_counter() - t0, (str(e) or "")[:500]
 
 
 def run_query(query: str, params=None, *, quiet: bool = False) -> pd.DataFrame:
     try:
-        pool = get_pool()
-        with pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(query, params)
-                rows = cur.fetchall()
-                if not rows:
-                    return pd.DataFrame()
-                return pd.DataFrame(rows)
+        with _db_lock:
+            with _connect() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query, params)
+                    rows = cur.fetchall()
+        if not rows:
+            return pd.DataFrame()
+        return pd.DataFrame(rows)
     except Exception as e:
+        _invalidate_token_cache()
         if not quiet:
-            st.error(f"Database connection error: {e}")
-        try:
-            get_pool.clear()
-        except Exception:
-            pass
+            st.error(f"Database connection error: {e}{_lakebase_auth_hint(e)}")
         return pd.DataFrame()
 
 
 def run_query_batch(named_sql: dict[str, str], *, quiet: bool = True) -> dict[str, pd.DataFrame]:
     """
-    Run several independent SELECTs in parallel (faster home / pulse pages).
+    Run several independent SELECTs on one connection (single lock hold).
 
     Preserves key order in the returned dict for stable UI.
     """
     if not named_sql:
         return {}
-    keys = list(named_sql.keys())
-    n = len(keys)
-    workers = min(8, max(1, n))
-
-    def _one(name: str, sql: str) -> tuple[str, pd.DataFrame]:
-        return name, run_query(sql, quiet=quiet)
-
     out: dict[str, pd.DataFrame] = {}
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = [ex.submit(_one, k, named_sql[k]) for k in keys]
-        for fut in futs:
-            name, df = fut.result()
-            out[name] = df
+    try:
+        with _db_lock:
+            with _connect() as conn:
+                with conn.cursor() as cur:
+                    for name, sql in named_sql.items():
+                        try:
+                            cur.execute(sql)
+                            rows = cur.fetchall()
+                            if not rows:
+                                out[name] = pd.DataFrame()
+                            else:
+                                out[name] = pd.DataFrame(rows)
+                        except Exception as e:
+                            conn.rollback()
+                            if not quiet:
+                                st.error(f"Database connection error: {e}{_lakebase_auth_hint(e)}")
+                            out[name] = pd.DataFrame()
+    except Exception as e:
+        _invalidate_token_cache()
+        if not quiet:
+            st.error(f"Database connection error: {e}{_lakebase_auth_hint(e)}")
+        return {k: pd.DataFrame() for k in named_sql}
     return out

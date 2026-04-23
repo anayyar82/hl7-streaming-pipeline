@@ -2,10 +2,12 @@
 # MAGIC %md
 # MAGIC # Grant Lakebase Permissions to HL7App Service Principal
 # MAGIC
-# MAGIC This notebook grants the app's service principal (`f348a6bb-fdfc-4826-9fa4-6cbc0d156ae8`)
-# MAGIC the necessary Postgres-level permissions to read from Lakebase tables.
+# MAGIC **Important:** the app’s service principal UUID changes if the Databricks App is recreated.
+# MAGIC Set the widget to the **current** value from:
+# MAGIC `databricks apps get hl7app -o json | jq -r '.service_principal_client_id'`
+# MAGIC (must match **`PGUSER`** in `hl7-forecasting-app/app.yaml`).
 # MAGIC
-# MAGIC Run this notebook as your user (ankur.nayyar) who owns the schema.
+# MAGIC Run this notebook as your user (schema owner) in the workspace that owns the Lakebase project.
 
 # COMMAND ----------
 
@@ -17,24 +19,101 @@
 import requests
 import psycopg2
 
+dbutils.widgets.text(
+    "app_sp_client_id",
+    "",
+    "service_principal_client_id (UUID) from: databricks apps get hl7app -o json",
+)
+dbutils.widgets.text(
+    "lakebase_connect_user",
+    "",
+    "Your Databricks / Lakebase user email. Set for serverless jobs; optional in classic interactive.",
+)
+APP_SP_CLIENT_ID = dbutils.widgets.get("app_sp_client_id").strip()
+if not APP_SP_CLIENT_ID:
+    raise ValueError(
+        "Set widget **app_sp_client_id** to hl7app's service_principal_client_id UUID "
+        "(Apps → hl7app → Environment, or CLI above)."
+    )
+
 PG_HOST = "ep-wandering-meadow-d1tdkigo.database.us-west-2.cloud.databricks.com"
 PG_PORT = 5432
 PG_DBNAME = "databricks_postgres"
 PG_SCHEMA = "ankur_nayyar"
 PG_ENDPOINT = "projects/ankurhlsproject/branches/production/endpoints/primary"
 
-APP_SP_CLIENT_ID = "f348a6bb-fdfc-4826-9fa4-6cbc0d156ae8"
-
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Generate Credentials (as current user / schema owner)
+# MAGIC
+# MAGIC **Serverless note:** do not use `getContext().tags()["user"]` (Py4J whitelist in jobs). Set widget **lakebase_connect_user** to your
+# MAGIC Databricks email, or set bundle variable `lakebase_connect_user` in `databricks.yml` (dev) / job parameters.
 
 # COMMAND ----------
 
+def _resolve_lakebase_pg_user() -> str:
+    w = (dbutils.widgets.get("lakebase_connect_user") or "").strip()
+    if w:
+        return w
+    # Spark (often has user in serverless)
+    try:
+        from pyspark.sql import SparkSession
+        s = SparkSession.getActiveSession()
+        if s is not None:
+            for key in (
+                "spark.databricks.userInfo.userName",
+                "spark.databricks.userInfo.userId",
+                "spark.databricks.clusterUsageTags.userEmail",
+                "spark.databricks.clusterUsageTags.user",
+            ):
+                v = s.conf.get(key, None)
+                if v:
+                    return str(v).strip()
+    except Exception:
+        pass
+    # Classic interactive only (getContext().tags() is blocked in serverless)
+    try:
+        t = (
+            dbutils.notebook.entry_point.getDbutils()
+            .notebook()
+            .getContext()
+            .tags()
+            .get("user")
+        )
+        if t is not None and hasattr(t, "get"):
+            s = t.get()
+        else:
+            s = str(t) if t is not None else ""
+        s = str(s).strip() if s else ""
+        if s:
+            return s
+    except Exception:
+        pass
+    try:
+        s = str(
+            dbutils.notebook.entry_point.getDbutils()
+            .notebook()
+            .getContext()
+            .userName()
+            .get()
+        ).strip()
+        if s:
+            return s
+    except Exception:
+        pass
+    return ""
+
+
 ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 api_token = ctx.apiToken().get()
-pg_user = ctx.tags().get("user").get()
+pg_user = _resolve_lakebase_pg_user()
+if not pg_user:
+    raise ValueError(
+        "Could not determine Lakebase Postgres user. In serverless jobs, set the "
+        "**lakebase_connect_user** widget (or job parameter) to your Databricks login email, "
+        "e.g. you@databricks.com — the same user used to get /api/2.0/postgres/credentials."
+    )
 workspace_url = "https://e2-demo-field-eng.cloud.databricks.com"
 
 cred_resp = requests.post(
