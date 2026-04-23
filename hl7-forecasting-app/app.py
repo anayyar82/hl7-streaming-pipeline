@@ -28,16 +28,18 @@ APPS_DOCS = "https://docs.databricks.com/en/dev-tools/databricks-apps.html"
 def _home_health_batch() -> dict:
     return run_query_batch(health_freshness_queries(), quiet=True)
 
+# Use only div/ol/ul/li — Streamlit's sanitizer (DOMPurify) for unsafe_allow_html often
+# drops <header>/<section> so tags show as raw text. Global styles target class names, not element type.
 HOME_ARCH_HTML = f"""
 <div class="hl7-home-root">
-  <header class="hl7-hero-2025">
+  <div class="hl7-hero-2025" role="banner">
     <p class="hl7-hero-kicker">Medallion · Databricks</p>
     <h1 class="hl7-hero-title">ED &amp; ICU intelligence</h1>
     <p class="hl7-hero-sub">Architecture, security, and <strong>system health</strong> (below) in one place. Deeper analytics and volume charts live in the sidebar — e.g. <strong>Real-time</strong> and <strong>Trends</strong> — not on this page.</p>
-  </header>
+  </div>
 
   <div class="hl7-home-bento">
-    <section class="hl7-bento hl7-bento--flow" aria-labelledby="flow-heading">
+    <div class="hl7-bento hl7-bento--flow" role="region" aria-labelledby="flow-heading">
       <div class="hl7-bento-head">
         <h2 id="flow-heading" class="hl7-bento-title">Data flow</h2>
         <p class="hl7-bento-deck">End-to-end path from files to apps. Details align with the <a href="{ARCH_DOCS_HREF}" target="_blank" rel="noopener noreferrer">architecture doc</a> and the runbook in <code>docs/ARCHITECTURE.md</code>.</p>
@@ -86,9 +88,9 @@ HOME_ARCH_HTML = f"""
           </div>
         </li>
       </ol>
-    </section>
+    </div>
 
-    <section class="hl7-bento hl7-bento--sec" aria-labelledby="sec-heading">
+    <div class="hl7-bento hl7-bento--sec" role="region" aria-labelledby="sec-heading">
       <div class="hl7-bento-head">
         <h2 id="sec-heading" class="hl7-bento-title">Security &amp; governance</h2>
         <p class="hl7-bento-deck">High-level model; implement with UC grants, bundle scopes, and the grant notebooks in the repo.</p>
@@ -115,8 +117,8 @@ HOME_ARCH_HTML = f"""
           <p>Prefer private and org-approved connectivity to data services. <strong>Secrets</strong> for email or third parties live in Databricks <strong>secret scopes</strong> in jobs, not in git-tracked <code>app.yaml</code> text.</p>
         </li>
       </ul>
-      <a class="hl7-sec-cta" href="{ARCH_DOCS_HREF}" target="_blank" rel="noopener noreferrer">Read full security &amp; flow — <code>docs/ARCHITECTURE.md</code> ↗</a>
-    </section>
+      <a class="hl7-sec-cta" href="{ARCH_DOCS_HREF}" target="_blank" rel="noopener noreferrer">Read full security &amp; flow (docs/ARCHITECTURE.md) ↗</a>
+    </div>
   </div>
 </div>
 """
