@@ -29,7 +29,7 @@ npm run dev          # local dev (optional .env from .env.example)
    databricks bundle deploy -t dev
    ```
 
-   The app resource is **`hl7app_appkit`**; git settings use the `app_git_*` variables in `resources/hl7_appkit_app_resource.yml`.
+   The Databricks app name is **`hl7app-appkit`** (resource key in YAML is `hl7app_appkit`); git settings use the `app_git_*` variables in `resources/hl7_appkit_app_resource.yml`.
 3. If the **Streamlit** app and this app share a service principal for Lakebase, you set `PGUSER` to the same `service_principal_client_id` (or update Lakebase role after the AppKit app is first created). Both apps’ `app.yaml` files are aligned, but the active SP UUID comes from the deployed app in your workspace.
 4. **Build output must be in Git** or produced by your CI before the app runs `npm start`, unless you use a custom image or build step. The default `command` is `npm run start` (see `app.yaml`).
 

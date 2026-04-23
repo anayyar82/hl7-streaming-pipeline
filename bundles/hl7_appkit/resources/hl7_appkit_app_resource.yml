@@ -11,7 +11,8 @@ variables:
 resources:
   apps:
     hl7app_appkit:
-      name: hl7app_appkit
+      # Workspace name: letters, numbers, dashes only (no underscores).
+      name: hl7app-appkit
       description: "HL7 ED/ICU — AppKit (TypeScript) — see hl7-appkit-app/README.md"
       git_repository:
         provider: ${var.app_git_provider}

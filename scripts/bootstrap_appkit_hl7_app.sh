@@ -38,7 +38,7 @@ case "${1:-}" in
     echo "  npm run build"
     echo "  Copy Lakebase and Genie settings from hl7-forecasting-app/app.yaml into the App env (.env locally; app.yaml or Apps UI in workspace)."
     echo "  Commit hl7-appkit-app/, then from repo:  cd bundles/hl7_appkit && databricks bundle deploy -t dev"
-    echo "  databricks apps deploy hl7app_appkit --source-code-path \"$TARGET\"   # if not using Git-only redeploy"
+    echo "  databricks apps deploy hl7app-appkit --source-code-path \"$TARGET\"   # if not using Git-only redeploy"
     exit 0
     ;;
   -h|--help|"")
