@@ -1,5 +1,7 @@
 # HL7 Streaming — evaluator cheat sheet (1 page)
 
+**Slides:** `docs/presentations/HL7_Streaming_Evaluation_Deck.pptx` — rebuild with `python3 scripts/build_evaluation_deck.py` (see `docs/presentations/README.md`).
+
 Quick map from **rubric category → where to look in repo → what to say in demo**. Full narrative: `ARCHITECTURE.md`, `README.md`, `SOLUTION_BRIEF_HL7_STREAMING.md`.
 
 | Category | Points | Evidence (paths) | One-liner for evaluators |
