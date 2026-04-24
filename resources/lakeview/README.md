@@ -2,6 +2,19 @@
 
 File: `adt_events_dashboard.json` — import or merge into a **Lakeview** dashboard in Databricks (Dashboards / Lakeview UI) or use as a reference for `.lvdash.json` workflows.
 
+## Table: `bronze.ensemble.ens_adt` (confirm in Unity Catalog)
+
+Core columns used in the dashboard (from live schema / sample rows):
+
+- **Identity / time:** `message_id`, `message_type` (use **`ADT`**), `message_event_type` (A01, A08, A03, …), `event_time_stamp`
+- **Patient:** `patient_mrn`, `patient_har`, `patient_csn`, `patient_class`, `patient_first_name`, `patient_last_name`
+- **Location / source:** `sending_facility` (e.g. EPIC), `facility` (e.g. IHS), `department` (e.g. PTFFX), `room`, `bed`, prior fields
+- **PV1 style:** `admission_type` (e.g. EL), `financial_class` (e.g. COMM), `admit_date_time`, `discharge_date_time`, **`discharge_diposition`** (column name spelling in bronze)
+
+`ds_sending_facility` splits **sending** application (MSH) from **facility** (site) — your sample has both.
+
+---
+
 ## What was wrong in the original
 
 1. **Trend chart (`w_event_volume`)** had `encodings: {}` and `disaggregated: false` without a proper query field list — the chart has nothing to plot on X/Y. The fixed file uses a **line** chart with `event_date` (x, temporal) and `event_count` (y) and `disaggregated: true` with explicit fields.

@@ -2,73 +2,87 @@
   "datasets": [
     {
       "name": "ds_total_events",
-      "displayName": "Total ADT Events",
+      "displayName": "Total ADT message rows",
       "queryLines": [
         "SELECT COUNT(*) AS total_events",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE event_time_stamp >= date_sub(current_date(), 365)"
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp IS NOT NULL",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)"
       ]
     },
     {
       "name": "ds_unique_patients",
-      "displayName": "Unique Patients",
+      "displayName": "Distinct MRN (patient_mrn)",
       "queryLines": [
         "SELECT COUNT(DISTINCT patient_mrn) AS unique_patients",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE event_time_stamp >= date_sub(current_date(), 365)"
+        "WHERE message_type = 'ADT'",
+        "  AND patient_mrn IS NOT NULL",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)"
       ]
     },
     {
       "name": "ds_admissions_today",
-      "displayName": "Admissions Today",
+      "displayName": "Admit messages today (A01)",
       "queryLines": [
         "SELECT COUNT(*) AS admissions_today",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE message_event_type = 'A01'",
+        "WHERE message_type = 'ADT'",
+        "  AND message_event_type = 'A01'",
+        "  AND event_time_stamp IS NOT NULL",
         "  AND DATE(event_time_stamp) = CURRENT_DATE()"
       ]
     },
     {
       "name": "ds_event_volume",
-      "displayName": "ADT Event Volume Over Time",
+      "displayName": "Daily event volume (event_time_stamp)",
       "queryLines": [
-        "SELECT DATE_TRUNC('day', event_time_stamp) AS event_date, COUNT(*) AS event_count",
+        "SELECT DATE_TRUNC('DAY', event_time_stamp) AS event_date, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE event_time_stamp >= date_sub(current_date(), 365)",
-        "GROUP BY 1",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp IS NOT NULL",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "GROUP BY DATE_TRUNC('DAY', event_time_stamp)",
         "ORDER BY 1"
       ]
     },
     {
       "name": "ds_events_by_type",
-      "displayName": "ADT Events by Event Type",
+      "displayName": "Events by message_event_type",
       "queryLines": [
         "SELECT message_event_type, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE event_time_stamp >= date_sub(current_date(), 365)",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND message_event_type IS NOT NULL",
         "GROUP BY message_event_type",
         "ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_patient_class",
-      "displayName": "Patient Class Distribution",
+      "displayName": "patient_class distribution",
       "queryLines": [
         "SELECT patient_class, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE event_time_stamp >= date_sub(current_date(), 365)",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND patient_class IS NOT NULL",
         "GROUP BY patient_class",
         "ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_top_departments",
-      "displayName": "Top 10 Departments",
+      "displayName": "Top 10 department (location)",
       "queryLines": [
         "SELECT department, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE department IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(current_date(), 365)",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND TRIM(department) <> ''",
+        "  AND department IS NOT NULL",
         "GROUP BY department",
         "ORDER BY event_count DESC",
         "LIMIT 10"
@@ -76,48 +90,67 @@
     },
     {
       "name": "ds_facility_volume",
-      "displayName": "Facility Volume",
+      "displayName": "facility (site) volume",
       "queryLines": [
         "SELECT facility, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE facility IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(current_date(), 365)",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND TRIM(facility) <> ''",
+        "  AND facility IS NOT NULL",
         "GROUP BY facility",
         "ORDER BY event_count DESC"
       ]
     },
     {
+      "name": "ds_sending_facility",
+      "displayName": "sending_facility (MSH-4) volume",
+      "queryLines": [
+        "SELECT sending_facility, COUNT(*) AS event_count",
+        "FROM bronze.ensemble.ens_adt",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND TRIM(sending_facility) <> ''",
+        "  AND sending_facility IS NOT NULL",
+        "GROUP BY sending_facility",
+        "ORDER BY event_count DESC"
+      ]
+    },
+    {
       "name": "ds_admission_type",
-      "displayName": "Admission Type Breakdown",
+      "displayName": "admission_type (e.g. EL)",
       "queryLines": [
         "SELECT admission_type, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE admission_type IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(current_date(), 365)",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND admission_type IS NOT NULL",
         "GROUP BY admission_type",
         "ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_financial_class",
-      "displayName": "Financial Class Distribution",
+      "displayName": "financial_class (e.g. COMM)",
       "queryLines": [
         "SELECT financial_class, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE financial_class IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(current_date(), 365)",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND financial_class IS NOT NULL",
         "GROUP BY financial_class",
         "ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_discharge_disposition",
-      "displayName": "Discharge Disposition",
+      "displayName": "discharge_diposition (PV1-36)",
       "queryLines": [
         "SELECT discharge_diposition, COUNT(*) AS event_count",
         "FROM bronze.ensemble.ens_adt",
-        "WHERE discharge_diposition IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(current_date(), 365)",
+        "WHERE message_type = 'ADT'",
+        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
+        "  AND discharge_diposition IS NOT NULL",
         "GROUP BY discharge_diposition",
         "ORDER BY event_count DESC"
       ]
@@ -126,43 +159,43 @@
   "pages": [
     {
       "name": "adt_main",
-      "displayName": "ADT Events Analytics",
+      "displayName": "ADT — ens_adt",
       "layout": [
         {
           "widget": {
             "name": "w_title",
             "multilineTextboxSpec": {
               "lines": [
-                "# ADT Events Analytics Dashboard\n",
-                "Admit, discharge, and transfer (ADT) monitoring. Default window: **last 365 days** (set in each dataset `WHERE` — adjust as needed or replace catalog `bronze.ensemble` with your Unity Catalog path)."
+                "# `bronze.ensemble.ens_adt`\n",
+                "**Time axis:** `event_time_stamp` (EVN / message clock). **HL7:** `message_type` = ADT, **`message_event_type`** = trigger (A01 admit, A08 update, A03 discharge, …). **Patient:** `patient_mrn`, `patient_class` (e.g. IPTC). **Routing:** `facility` (IHS in sample), `department` (e.g. PTFFX), **`sending_facility`** (e.g. EPIC). **PV1 fields:** `admission_type`, `financial_class`, **`discharge_diposition`** (schema spelling). **Default filter:** last **365** days; *Admit today* = A01 on **CURRENT_DATE()** (warehouse timezone).\n"
               ]
             }
           },
-          "position": { "x": 0, "y": 0, "width": 6, "height": 1 }
+          "position": { "x": 0, "y": 0, "width": 6, "height": 2 }
         },
         {
           "widget": {
             "name": "w_lookback_note",
             "multilineTextboxSpec": {
               "lines": [
-                "##### Time range\n",
-                "Charts and KPIs use a **365-day** lookback on `event_time_stamp` (except *Admissions today*). To use an interactive date filter, re-add a **date range** control in the Lakeview UI and bind a **row-level** dataset that exposes `event_time_stamp` (aggregate-only SQL breaks cross-filters).\n"
+                "##### Scope\n",
+                "Every query uses **`message_type = 'ADT'`** so you only count ADT rows. Interactive date range filters need a row-level dataset in Lakeview; this file uses a fixed **365-day** window on `event_time_stamp`.\n"
               ]
             }
           },
-          "position": { "x": 0, "y": 1, "width": 6, "height": 1 }
+          "position": { "x": 0, "y": 2, "width": 6, "height": 1 }
         },
         {
           "widget": {
             "name": "w_hdr_kpis",
             "multilineTextboxSpec": {
               "lines": [
-                "## Key performance indicators\n",
-                "Total ADT events, distinct patients, and same-day A01 admissions."
+                "## Key metrics\n",
+                "Row count, **distinct `patient_mrn`**, and **A01** rows with `DATE(event_time_stamp) = CURRENT_DATE()`. MRN nulls excluded from the distinct count.\n"
               ]
             }
           },
-          "position": { "x": 0, "y": 2, "width": 6, "height": 1 }
+          "position": { "x": 0, "y": 3, "width": 6, "height": 1 }
         },
         {
           "widget": {
@@ -185,12 +218,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "total_events",
-                  "displayName": "Total ADT events"
+                  "displayName": "ADT rows (365d)"
                 }
               }
             }
           },
-          "position": { "x": 0, "y": 3, "width": 2, "height": 1 }
+          "position": { "x": 0, "y": 4, "width": 2, "height": 1 }
         },
         {
           "widget": {
@@ -213,12 +246,12 @@
               "encodings": {
                 "value": {
                   "fieldName": "unique_patients",
-                  "displayName": "Unique patients"
+                  "displayName": "Distinct patient_mrn"
                 }
               }
             }
           },
-          "position": { "x": 2, "y": 3, "width": 2, "height": 1 }
+          "position": { "x": 2, "y": 4, "width": 2, "height": 1 }
         },
         {
           "widget": {
@@ -241,24 +274,24 @@
               "encodings": {
                 "value": {
                   "fieldName": "admissions_today",
-                  "displayName": "Admissions today (A01)"
+                  "displayName": "A01 today"
                 }
               }
             }
           },
-          "position": { "x": 4, "y": 3, "width": 2, "height": 1 }
+          "position": { "x": 4, "y": 4, "width": 2, "height": 1 }
         },
         {
           "widget": {
             "name": "w_hdr_trend",
             "multilineTextboxSpec": {
               "lines": [
-                "## Event volume (daily)\n",
-                "Count of ADT events per day — use **line** to emphasize the time series."
+                "## Daily ADT volume\n",
+                "One point per day = count of ADT rows with non-null `event_time_stamp`.\n"
               ]
             }
           },
-          "position": { "x": 0, "y": 4, "width": 6, "height": 1 }
+          "position": { "x": 0, "y": 5, "width": 6, "height": 1 }
         },
         {
           "widget": {
@@ -282,30 +315,30 @@
               "encodings": {
                 "x": {
                   "fieldName": "event_date",
-                  "displayName": "Date",
+                  "displayName": "Day",
                   "scale": { "type": "temporal" }
                 },
                 "y": {
                   "fieldName": "event_count",
-                  "displayName": "Events",
+                  "displayName": "Row count",
                   "scale": { "type": "quantitative" }
                 }
               }
             }
           },
-          "position": { "x": 0, "y": 5, "width": 6, "height": 3 }
+          "position": { "x": 0, "y": 6, "width": 6, "height": 3 }
         },
         {
           "widget": {
             "name": "w_hdr_breakdown",
             "multilineTextboxSpec": {
               "lines": [
-                "## Event type and patient class\n",
-                "HL7 event type (A01, A02, A03, …) and **patient class** share of volume."
+                "## `message_event_type` and `patient_class`\n",
+                "HL7 trigger codes (left) and PV1 **patient class** (right) — e.g. A08 updates vs A01 admits.\n"
               ]
             }
           },
-          "position": { "x": 0, "y": 8, "width": 6, "height": 1 }
+          "position": { "x": 0, "y": 9, "width": 6, "height": 1 }
         },
         {
           "widget": {
@@ -329,7 +362,7 @@
               "encodings": {
                 "x": {
                   "fieldName": "message_event_type",
-                  "displayName": "Event type",
+                  "displayName": "message_event_type",
                   "scale": { "type": "categorical" }
                 },
                 "y": {
@@ -340,7 +373,7 @@
               }
             }
           },
-          "position": { "x": 0, "y": 9, "width": 3, "height": 3 }
+          "position": { "x": 0, "y": 10, "width": 3, "height": 3 }
         },
         {
           "widget": {
@@ -369,25 +402,25 @@
                 },
                 "color": {
                   "fieldName": "patient_class",
-                  "displayName": "Patient class",
+                  "displayName": "patient_class",
                   "scale": { "type": "categorical" }
                 }
               }
             }
           },
-          "position": { "x": 3, "y": 9, "width": 3, "height": 3 }
+          "position": { "x": 3, "y": 10, "width": 3, "height": 3 }
         },
         {
           "widget": {
             "name": "w_hdr_location",
             "multilineTextboxSpec": {
               "lines": [
-                "## Location\n",
-                "Top departments and facilities by event volume (horizontal bar reads rank clearly)."
+                "## `department`, `facility`, `sending_facility`\n",
+                "**Left:** top departments (e.g. PTFFX). **Center:** `facility` (IHS, …). **Right:** `sending_facility` (e.g. EPIC from MSH-4) — not the same as site `facility`.\n"
               ]
             }
           },
-          "position": { "x": 0, "y": 12, "width": 6, "height": 1 }
+          "position": { "x": 0, "y": 13, "width": 6, "height": 1 }
         },
         {
           "widget": {
@@ -416,13 +449,13 @@
                 },
                 "y": {
                   "fieldName": "department",
-                  "displayName": "Department",
+                  "displayName": "department",
                   "scale": { "type": "categorical" }
                 }
               }
             }
           },
-          "position": { "x": 0, "y": 13, "width": 3, "height": 3 }
+          "position": { "x": 0, "y": 14, "width": 2, "height": 3 }
         },
         {
           "widget": {
@@ -446,7 +479,7 @@
               "encodings": {
                 "x": {
                   "fieldName": "facility",
-                  "displayName": "Facility",
+                  "displayName": "facility",
                   "scale": { "type": "categorical" }
                 },
                 "y": {
@@ -457,19 +490,54 @@
               }
             }
           },
-          "position": { "x": 3, "y": 13, "width": 3, "height": 3 }
+          "position": { "x": 2, "y": 14, "width": 2, "height": 3 }
+        },
+        {
+          "widget": {
+            "name": "w_sending_facility",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_sending_facility",
+                  "fields": [
+                    { "name": "sending_facility", "expression": "`sending_facility`" },
+                    { "name": "event_count", "expression": "`event_count`" }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sending_facility",
+                  "displayName": "sending_facility",
+                  "scale": { "type": "categorical" }
+                },
+                "y": {
+                  "fieldName": "event_count",
+                  "displayName": "Events",
+                  "scale": { "type": "quantitative" }
+                }
+              }
+            }
+          },
+          "position": { "x": 4, "y": 14, "width": 2, "height": 3 }
         },
         {
           "widget": {
             "name": "w_hdr_class",
             "multilineTextboxSpec": {
               "lines": [
-                "## Admission, financial, and discharge\n",
-                "Optional: switch middle chart to **donut** in the Lakeview editor if it reads better for your team."
+                "## `admission_type` · `financial_class` · `discharge_diposition`\n",
+                "From your sample: EL, COMM, null disposition on an A08 — charts hide nulls. Rename column in Delta later to fix **diposition** typo if desired.\n"
               ]
             }
           },
-          "position": { "x": 0, "y": 16, "width": 6, "height": 1 }
+          "position": { "x": 0, "y": 17, "width": 6, "height": 1 }
         },
         {
           "widget": {
@@ -493,7 +561,7 @@
               "encodings": {
                 "x": {
                   "fieldName": "admission_type",
-                  "displayName": "Admission type",
+                  "displayName": "admission_type",
                   "scale": { "type": "categorical" }
                 },
                 "y": {
@@ -504,7 +572,7 @@
               }
             }
           },
-          "position": { "x": 0, "y": 17, "width": 2, "height": 3 }
+          "position": { "x": 0, "y": 18, "width": 2, "height": 3 }
         },
         {
           "widget": {
@@ -528,7 +596,7 @@
               "encodings": {
                 "x": {
                   "fieldName": "financial_class",
-                  "displayName": "Financial class",
+                  "displayName": "financial_class",
                   "scale": { "type": "categorical" }
                 },
                 "y": {
@@ -539,7 +607,7 @@
               }
             }
           },
-          "position": { "x": 2, "y": 17, "width": 2, "height": 3 }
+          "position": { "x": 2, "y": 18, "width": 2, "height": 3 }
         },
         {
           "widget": {
@@ -563,7 +631,7 @@
               "encodings": {
                 "x": {
                   "fieldName": "discharge_diposition",
-                  "displayName": "Discharge disposition",
+                  "displayName": "discharge_diposition",
                   "scale": { "type": "categorical" }
                 },
                 "y": {
@@ -574,7 +642,7 @@
               }
             }
           },
-          "position": { "x": 4, "y": 17, "width": 2, "height": 3 }
+          "position": { "x": 4, "y": 18, "width": 2, "height": 3 }
         }
       ],
       "pageType": "PAGE_TYPE_CANVAS"
