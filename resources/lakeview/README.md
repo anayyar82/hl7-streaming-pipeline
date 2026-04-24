@@ -1,6 +1,11 @@
 # ADT Lakeview dashboard (JSON)
 
-File: `adt_events_dashboard.json` — import or merge into a **Lakeview** dashboard in Databricks (Dashboards / Lakeview UI) or use as a reference for `.lvdash.json` workflows.
+| File | Role |
+|------|------|
+| `adt_events_dashboard.json` | Lakeview dashboard: **12** datasets, one `queryLines` string each (avoids broken token joins). |
+| `ens_adt_dataset_queries.sql` | **Same 12 SQL statements** in readable form — run in Databricks SQL to validate before/after import. |
+
+**Shared rules (all time-filtered metrics except A01-today):** `FROM bronze.ensemble.ens_adt` **→** `message_type = 'ADT'` **→** `event_time_stamp IS NOT NULL` **→** `event_time_stamp >= date_sub(CURRENT_DATE(), 365)` **→** field-specific `IS NOT NULL` / `TRIM` as needed. **A01 today** uses `to_date(event_time_stamp) = CURRENT_DATE()` instead of the 365d window.
 
 ### `queryLines` and “stuck together” SQL
 
