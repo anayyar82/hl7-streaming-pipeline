@@ -1,119 +1,329 @@
 {
   "datasets": [
     {
+      "name": "ds_adt_all",
+      "displayName": "ADT message rows (365d, filterable)",
+      "queryLines": [
+        "SELECT event_time_stamp, CAST(event_time_stamp AS DATE) AS event_date, date_format(date_trunc('day', event_time_stamp), 'yyyy-MM-dd') AS event_day, HOUR(event_time_stamp) AS hour_of_day, CASE WHEN dayofweek(event_time_stamp) IN (1, 7) THEN 'Weekend' ELSE 'Weekday' END AS day_kind, coalesce(nullif(trim(message_event_type), ''), '(null)') AS message_event_type, coalesce(nullif(trim(patient_class), ''), '(null)') AS patient_class, coalesce(nullif(trim(department), ''), '(empty)') AS department, coalesce(nullif(trim(facility), ''), '(empty)') AS facility, coalesce(nullif(trim(sending_facility), ''), '(empty)') AS sending_facility, coalesce(nullif(trim(admission_type), ''), '(null)') AS admission_type, coalesce(nullif(trim(financial_class), ''), '(null)') AS financial_class, coalesce(nullif(trim(CAST(discharge_diposition AS STRING)), ''), '(null)') AS discharge_disposition, patient_mrn, CAST(1 AS INT) AS row_n, CASE WHEN coalesce(nullif(trim(message_event_type), ''), '') = 'A01' THEN 1 ELSE 0 END AS a01_f FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)"
+      ]
+    },
+    {
       "name": "ds_total_events",
-      "displayName": "Total ADT message rows",
+      "displayName": "Total ADT rows (365d, all) — reference",
       "queryLines": [
         "SELECT COUNT(*) AS total_events FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)"
       ]
     },
     {
-      "name": "ds_unique_patients",
-      "displayName": "Distinct MRN (patient_mrn)",
-      "queryLines": [
-        "SELECT COUNT(DISTINCT patient_mrn) AS unique_patients FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND patient_mrn IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)"
-      ]
-    },
-    {
       "name": "ds_admissions_today",
-      "displayName": "Admit messages today (A01)",
+      "displayName": "A01 today (all) — reference",
       "queryLines": [
         "SELECT COUNT(*) AS admissions_today FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND message_event_type = 'A01' AND event_time_stamp IS NOT NULL AND to_date(event_time_stamp) = CURRENT_DATE()"
-      ]
-    },
-    {
-      "name": "ds_event_volume",
-      "displayName": "Daily event volume (event_time_stamp)",
-      "queryLines": [
-        "SELECT date_format(date_trunc('day', event_time_stamp), 'yyyy-MM-dd') AS event_day, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) GROUP BY date_format(date_trunc('day', event_time_stamp), 'yyyy-MM-dd') ORDER BY 1"
-      ]
-    },
-    {
-      "name": "ds_events_by_type",
-      "displayName": "Events by message_event_type",
-      "queryLines": [
-        "SELECT message_event_type, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND message_event_type IS NOT NULL GROUP BY message_event_type ORDER BY event_count DESC"
-      ]
-    },
-    {
-      "name": "ds_patient_class",
-      "displayName": "patient_class distribution",
-      "queryLines": [
-        "SELECT patient_class, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND patient_class IS NOT NULL GROUP BY patient_class ORDER BY event_count DESC"
-      ]
-    },
-    {
-      "name": "ds_top_departments",
-      "displayName": "Top 10 department (location)",
-      "queryLines": [
-        "SELECT department, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND TRIM(department) <> '' AND department IS NOT NULL GROUP BY department ORDER BY event_count DESC LIMIT 10"
-      ]
-    },
-    {
-      "name": "ds_facility_volume",
-      "displayName": "facility (site) volume",
-      "queryLines": [
-        "SELECT facility, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND TRIM(facility) <> '' AND facility IS NOT NULL GROUP BY facility ORDER BY event_count DESC"
-      ]
-    },
-    {
-      "name": "ds_sending_facility",
-      "displayName": "sending_facility (MSH-4) volume",
-      "queryLines": [
-        "SELECT sending_facility, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND TRIM(sending_facility) <> '' AND sending_facility IS NOT NULL GROUP BY sending_facility ORDER BY event_count DESC"
-      ]
-    },
-    {
-      "name": "ds_admission_type",
-      "displayName": "admission_type (e.g. EL)",
-      "queryLines": [
-        "SELECT admission_type, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND admission_type IS NOT NULL GROUP BY admission_type ORDER BY event_count DESC"
-      ]
-    },
-    {
-      "name": "ds_financial_class",
-      "displayName": "financial_class (e.g. COMM)",
-      "queryLines": [
-        "SELECT financial_class, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND financial_class IS NOT NULL GROUP BY financial_class ORDER BY event_count DESC"
-      ]
-    },
-    {
-      "name": "ds_discharge_disposition",
-      "displayName": "discharge_diposition (PV1-36)",
-      "queryLines": [
-        "SELECT discharge_diposition, COUNT(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(CURRENT_DATE(), 365) AND discharge_diposition IS NOT NULL GROUP BY discharge_diposition ORDER BY event_count DESC"
       ]
     }
   ],
   "pages": [
     {
-      "name": "adt_main",
-      "displayName": "ADT \u2014 ens_adt",
+      "name": "pg1_overview",
+      "displayName": "1. Overview (filtered)",
       "layout": [
         {
           "widget": {
-            "name": "w_title",
-            "multilineTextboxSpec": {
-              "lines": [
-                "# `bronze.ensemble.ens_adt`\n",
-                "**Time axis:** `event_time_stamp` (EVN / message clock). **HL7:** `message_type` = ADT, **`message_event_type`** = trigger (A01 admit, A08 update, A03 discharge, \u2026). **Patient:** `patient_mrn`, `patient_class` (e.g. IPTC). **Routing:** `facility` (IHS in sample), `department` (e.g. PTFFX), **`sending_facility`** (e.g. EPIC). **PV1 fields:** `admission_type`, `financial_class`, **`discharge_diposition`** (schema spelling). **Default filter:** last **365** days; *Admit today* = A01 on **CURRENT_DATE()** (warehouse timezone).\n"
-              ]
+            "name": "p1_f_date",
+            "queries": [
+              {
+                "name": "q_p1_date",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "daily(event_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_date`)"
+                    },
+                    {
+                      "name": "daily(event_date)_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "daily(event_date)",
+                    "displayName": "Calendar date",
+                    "queryName": "q_p1_date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Calendar date"
+              },
+              "selection": {
+                "version": 2,
+                "defaultSelection": {
+                  "operator": {
+                    "operator": "AND",
+                    "args": []
+                  }
+                }
+              }
             }
           },
           "position": {
             "x": 0,
             "y": 0,
-            "width": 6,
-            "height": 2
+            "width": 2,
+            "height": 1
           }
         },
         {
           "widget": {
-            "name": "w_lookback_note",
+            "name": "p1_f_evt",
+            "queries": [
+              {
+                "name": "q_p1_evt",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "message_event_type",
+                      "expression": "`message_event_type`"
+                    },
+                    {
+                      "name": "message_event_type_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "message_event_type",
+                    "displayName": "Trigger",
+                    "queryName": "q_p1_evt"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "message_event_type"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_f_pcl",
+            "queries": [
+              {
+                "name": "q_p1_pcl",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "patient_class",
+                      "expression": "`patient_class`"
+                    },
+                    {
+                      "name": "patient_class_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "patient_class",
+                    "displayName": "class",
+                    "queryName": "q_p1_pcl"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "patient_class"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_f_dep",
+            "queries": [
+              {
+                "name": "q_p1_dep",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "department",
+                      "expression": "`department`"
+                    },
+                    {
+                      "name": "department_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "department",
+                    "displayName": "Dept",
+                    "queryName": "q_p1_dep"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "department"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_f_fac",
+            "queries": [
+              {
+                "name": "q_p1_fac",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "facility",
+                      "expression": "`facility`"
+                    },
+                    {
+                      "name": "facility_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "facility",
+                    "displayName": "Site",
+                    "queryName": "q_p1_fac"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "facility"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_f_dk",
+            "queries": [
+              {
+                "name": "q_p1_dk",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "day_kind",
+                      "expression": "`day_kind`"
+                    },
+                    {
+                      "name": "day_kind_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "day_kind",
+                    "displayName": "Wknd?",
+                    "queryName": "q_p1_dk"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "day kind"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_hint",
             "multilineTextboxSpec": {
               "lines": [
-                "##### Scope\n",
-                "Every query uses **`message_type = 'ADT'`** so you only count ADT rows. Interactive date range filters need a row-level dataset in Lakeview; this file uses a fixed **365-day** window on `event_time_stamp`.\n"
+                "**Slicing:** all pages share **`ds_adt_all`**; pick dates and dimensions, then read **selection** counters vs the **ref** (unfiltered) row.\n"
               ]
             }
           },
@@ -126,11 +336,11 @@
         },
         {
           "widget": {
-            "name": "w_hdr_kpis",
+            "name": "p1_title",
             "multilineTextboxSpec": {
               "lines": [
-                "## Key metrics\n",
-                "Row count, **distinct `patient_mrn`**, and **A01** rows on **today** (warehouse `CURRENT_DATE()`). MRN nulls excluded from the distinct count.\n"
+                "# ADT — `bronze.ensemble.ens_adt` (multi-page)\n",
+                "**1 Overview** — KPIs, daily, trigger mix, class pie, message sample. **2 Time** — hour, weekend, daily trend, A01 by day. **3 Location** — depts, facilities, sending, admission/fin/dispo.\n"
               ]
             }
           },
@@ -143,7 +353,160 @@
         },
         {
           "widget": {
-            "name": "w_total_events",
+            "name": "p1_kpi_rows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "m",
+                      "expression": "COUNT(`row_n`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "m",
+                  "displayName": "",
+                  "style": {
+                    "bold": true
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "ADT rows (selection)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_kpi_dmr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "m",
+                      "expression": "COUNT(DISTINCT `patient_mrn`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "m",
+                  "displayName": "",
+                  "style": {
+                    "bold": true
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "Distinct patient_mrn (selection)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 5,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_kpi_a01s",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "m",
+                      "expression": "SUM(`a01_f`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "m",
+                  "displayName": "",
+                  "style": {
+                    "bold": true
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "A01 count (selection)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 5,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_k_ref_tot",
             "queries": [
               {
                 "name": "main_query",
@@ -165,7 +528,7 @@
               "encodings": {
                 "value": {
                   "fieldName": "total_events",
-                  "displayName": "ADT rows (365d)",
+                  "displayName": "all",
                   "style": {
                     "bold": true
                   },
@@ -180,72 +543,21 @@
                 }
               },
               "frame": {
-                "title": "Total ADT rows (365d)",
+                "title": "Ref: 365d row count (unfiltered)",
                 "showTitle": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 5,
-            "width": 2,
-            "height": 2
+            "y": 7,
+            "width": 1,
+            "height": 1
           }
         },
         {
           "widget": {
-            "name": "w_unique_patients",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_unique_patients",
-                  "fields": [
-                    {
-                      "name": "unique_patients",
-                      "expression": "`unique_patients`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "unique_patients",
-                  "displayName": "patient_mrn",
-                  "style": {
-                    "bold": true
-                  },
-                  "format": {
-                    "type": "number-plain",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 0
-                    }
-                  }
-                }
-              },
-              "frame": {
-                "title": "Distinct patient MRN",
-                "showTitle": true
-              }
-            }
-          },
-          "position": {
-            "x": 2,
-            "y": 5,
-            "width": 2,
-            "height": 2
-          }
-        },
-        {
-          "widget": {
-            "name": "w_admissions_today",
+            "name": "p1_k_ref_a01",
             "queries": [
               {
                 "name": "main_query",
@@ -282,51 +594,66 @@
                 }
               },
               "frame": {
-                "title": "A01 today",
+                "title": "Ref: A01 today (unfiltered)",
                 "showTitle": true
               }
             }
           },
           "position": {
-            "x": 4,
-            "y": 5,
-            "width": 2,
-            "height": 2
+            "x": 1,
+            "y": 7,
+            "width": 1,
+            "height": 1
           }
         },
         {
           "widget": {
-            "name": "w_hdr_trend",
+            "name": "p1_ref_n",
             "multilineTextboxSpec": {
               "lines": [
-                "## Daily ADT volume\n",
-                "One point per day = count of ADT rows with non-null `event_time_stamp`.\n"
+                "**Ref** = fixed SQL, no slicers. Compare to **selection** above.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 7,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p1_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Volume & class (selection)\n"
               ]
             }
           },
           "position": {
             "x": 0,
-            "y": 7,
+            "y": 8,
             "width": 6,
             "height": 1
           }
         },
         {
           "widget": {
-            "name": "w_event_volume",
+            "name": "p1_b_day",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_event_volume",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "event_day",
                       "expression": "`event_day`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -339,14 +666,14 @@
               "encodings": {
                 "x": {
                   "fieldName": "event_day",
-                  "displayName": "Day",
+                  "displayName": "day",
                   "scale": {
                     "type": "categorical"
                   }
                 },
                 "y": {
-                  "fieldName": "event_count",
-                  "displayName": "Row count",
+                  "fieldName": "row_n",
+                  "displayName": "msgs",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -356,53 +683,34 @@
                 }
               },
               "frame": {
-                "title": "Daily ADT volume (by day)",
-                "showTitle": true,
-                "description": "String YYYY-MM-dd + COUNT \u2014 matches working hl7_*.lvdash bar spec.",
-                "showDescription": true
+                "title": "Messages / day",
+                "showTitle": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 8,
+            "y": 9,
             "width": 6,
             "height": 3
           }
         },
         {
           "widget": {
-            "name": "w_hdr_breakdown",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## `message_event_type` and `patient_class`\n",
-                "HL7 trigger codes (left) and PV1 **patient class** (right) \u2014 e.g. A08 updates vs A01 admits.\n"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 11,
-            "width": 6,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "w_events_by_type",
+            "name": "p1_b_evt",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_events_by_type",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "message_event_type",
                       "expression": "`message_event_type`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -415,14 +723,14 @@
               "encodings": {
                 "x": {
                   "fieldName": "message_event_type",
-                  "displayName": "message_event_type",
+                  "displayName": "trigger",
                   "scale": {
                     "type": "categorical"
                   }
                 },
                 "y": {
-                  "fieldName": "event_count",
-                  "displayName": "Events",
+                  "fieldName": "row_n",
+                  "displayName": "n",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -432,7 +740,7 @@
                 }
               },
               "frame": {
-                "title": "Events by message_event_type",
+                "title": "By message_event_type",
                 "showTitle": true
               }
             }
@@ -446,20 +754,20 @@
         },
         {
           "widget": {
-            "name": "w_patient_class",
+            "name": "p1_pie_c",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_patient_class",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "patient_class",
                       "expression": "`patient_class`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -471,12 +779,12 @@
               "widgetType": "pie",
               "encodings": {
                 "angle": {
-                  "fieldName": "event_count",
-                  "displayName": "Events"
+                  "fieldName": "row_n",
+                  "displayName": "n"
                 },
                 "color": {
                   "fieldName": "patient_class",
-                  "displayName": "patient_class",
+                  "displayName": "class",
                   "scale": {
                     "type": "categorical"
                   }
@@ -500,37 +808,423 @@
         },
         {
           "widget": {
-            "name": "w_hdr_location",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## `department`, `facility`, `sending_facility`\n",
-                "**Left:** top departments (e.g. PTFFX). **Center:** `facility` (IHS, \u2026). **Right:** `sending_facility` (e.g. EPIC from MSH-4) \u2014 not the same as site `facility`.\n"
-              ]
+            "name": "p1_t1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "event_time_stamp",
+                      "expression": "`event_time_stamp`"
+                    },
+                    {
+                      "name": "message_event_type",
+                      "expression": "`message_event_type`"
+                    },
+                    {
+                      "name": "patient_class",
+                      "expression": "`patient_class`"
+                    },
+                    {
+                      "name": "department",
+                      "expression": "`department`"
+                    },
+                    {
+                      "name": "facility",
+                      "expression": "`facility`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "frame": {
+                "title": "Message sample (selection, scroll)",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_time_stamp",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 0,
+                    "title": "time"
+                  },
+                  {
+                    "fieldName": "message_event_type",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 1,
+                    "title": "t"
+                  },
+                  {
+                    "fieldName": "patient_class",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 2,
+                    "title": "cl"
+                  },
+                  {
+                    "fieldName": "department",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 3,
+                    "title": "dept"
+                  },
+                  {
+                    "fieldName": "facility",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 4,
+                    "title": "fac"
+                  }
+                ]
+              }
             }
           },
           "position": {
             "x": 0,
             "y": 15,
             "width": 6,
+            "height": 3
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "pg2_time",
+      "displayName": "2. Time & patterns",
+      "layout": [
+        {
+          "widget": {
+            "name": "p2_f_date",
+            "queries": [
+              {
+                "name": "q_p2_date",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "daily(event_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_date`)"
+                    },
+                    {
+                      "name": "daily(event_date)_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "daily(event_date)",
+                    "displayName": "Calendar date",
+                    "queryName": "q_p2_date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Calendar date"
+              },
+              "selection": {
+                "version": 2,
+                "defaultSelection": {
+                  "operator": {
+                    "operator": "AND",
+                    "args": []
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
             "height": 1
           }
         },
         {
           "widget": {
-            "name": "w_top_departments",
+            "name": "p2_f_evt",
             "queries": [
               {
-                "name": "main_query",
+                "name": "q_p2_evt",
                 "query": {
-                  "datasetName": "ds_top_departments",
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "message_event_type",
+                      "expression": "`message_event_type`"
+                    },
+                    {
+                      "name": "message_event_type_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "message_event_type",
+                    "displayName": "Trigger",
+                    "queryName": "q_p2_evt"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "message_event_type"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_f_pcl",
+            "queries": [
+              {
+                "name": "q_p2_pcl",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "patient_class",
+                      "expression": "`patient_class`"
+                    },
+                    {
+                      "name": "patient_class_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "patient_class",
+                    "displayName": "class",
+                    "queryName": "q_p2_pcl"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "patient_class"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_f_dep",
+            "queries": [
+              {
+                "name": "q_p2_dep",
+                "query": {
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "department",
                       "expression": "`department`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "department_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "department",
+                    "displayName": "Dept",
+                    "queryName": "q_p2_dep"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "department"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_f_fac",
+            "queries": [
+              {
+                "name": "q_p2_fac",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "facility",
+                      "expression": "`facility`"
+                    },
+                    {
+                      "name": "facility_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "facility",
+                    "displayName": "Site",
+                    "queryName": "q_p2_fac"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "facility"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_f_snd",
+            "queries": [
+              {
+                "name": "q_p2_snd",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "sending_facility",
+                      "expression": "`sending_facility`"
+                    },
+                    {
+                      "name": "sending_facility_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "sending_facility",
+                    "displayName": "MSH-4",
+                    "queryName": "q_p2_snd"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "sending"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Time: hour, calendar, A01 (selection, **use calendar filter** above)\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_b_hr",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "hour_of_day",
+                      "expression": "`hour_of_day`"
+                    },
+                    {
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -542,8 +1236,625 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "event_count",
-                  "displayName": "Events",
+                  "fieldName": "hour_of_day",
+                  "displayName": "h",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "row_n",
+                  "displayName": "n",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "title": "Hour of day (0-23)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_b_wd",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "day_kind",
+                      "expression": "`day_kind`"
+                    },
+                    {
+                      "name": "row_n",
+                      "expression": "`row_n`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "day_kind",
+                  "displayName": "kind",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "row_n",
+                  "displayName": "n",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "title": "Weekend (Sun/Sat) vs Weekday (Spark dayofweek)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_b_day2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "event_day",
+                      "expression": "`event_day`"
+                    },
+                    {
+                      "name": "row_n",
+                      "expression": "`row_n`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "event_day",
+                  "displayName": "day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "row_n",
+                  "displayName": "n",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "title": "Daily (line, categorical x)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_b_a01d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "event_day",
+                      "expression": "`event_day`"
+                    },
+                    {
+                      "name": "a01_f",
+                      "expression": "`a01_f`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "event_day",
+                  "displayName": "day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "a01_f",
+                  "displayName": "A01",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "title": "Admits (A01) / day in selection",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "p2_t2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "event_day",
+                      "expression": "`event_day`"
+                    },
+                    {
+                      "name": "hour_of_day",
+                      "expression": "`hour_of_day`"
+                    },
+                    {
+                      "name": "message_event_type",
+                      "expression": "`message_event_type`"
+                    },
+                    {
+                      "name": "a01_f",
+                      "expression": "`a01_f`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "frame": {
+                "title": "Time fields (export)",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_day",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 0,
+                    "title": "day"
+                  },
+                  {
+                    "fieldName": "hour_of_day",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 1,
+                    "title": "hr"
+                  },
+                  {
+                    "fieldName": "message_event_type",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 2,
+                    "title": "t"
+                  },
+                  {
+                    "fieldName": "a01_f",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 3,
+                    "title": "a1"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 3
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "pg3_loc",
+      "displayName": "3. Location & billing",
+      "layout": [
+        {
+          "widget": {
+            "name": "p3_f_date",
+            "queries": [
+              {
+                "name": "q_p3_date",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "daily(event_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_date`)"
+                    },
+                    {
+                      "name": "daily(event_date)_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "daily(event_date)",
+                    "displayName": "Calendar date",
+                    "queryName": "q_p3_date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Calendar date"
+              },
+              "selection": {
+                "version": 2,
+                "defaultSelection": {
+                  "operator": {
+                    "operator": "AND",
+                    "args": []
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p3_f_evt",
+            "queries": [
+              {
+                "name": "q_p3_evt",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "message_event_type",
+                      "expression": "`message_event_type`"
+                    },
+                    {
+                      "name": "message_event_type_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "message_event_type",
+                    "displayName": "Trigger",
+                    "queryName": "q_p3_evt"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "message_event_type"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p3_f_pcl",
+            "queries": [
+              {
+                "name": "q_p3_pcl",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "patient_class",
+                      "expression": "`patient_class`"
+                    },
+                    {
+                      "name": "patient_class_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "patient_class",
+                    "displayName": "class",
+                    "queryName": "q_p3_pcl"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "patient_class"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p3_f_dep",
+            "queries": [
+              {
+                "name": "q_p3_dep",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "department",
+                      "expression": "`department`"
+                    },
+                    {
+                      "name": "department_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "department",
+                    "displayName": "Dept",
+                    "queryName": "q_p3_dep"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "department"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p3_f_fac",
+            "queries": [
+              {
+                "name": "q_p3_fac",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "facility",
+                      "expression": "`facility`"
+                    },
+                    {
+                      "name": "facility_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "facility",
+                    "displayName": "Site",
+                    "queryName": "q_p3_fac"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "facility"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p3_f_dk",
+            "queries": [
+              {
+                "name": "q_p3_dk",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "day_kind",
+                      "expression": "`day_kind`"
+                    },
+                    {
+                      "name": "day_kind_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "day_kind",
+                    "displayName": "Wknd?",
+                    "queryName": "q_p3_dk"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "day kind"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p3_h",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Location, routing, PV1 billing (selection) — `discharge_diposition` in bronze\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p3_hb_d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_adt_all",
+                  "fields": [
+                    {
+                      "name": "department",
+                      "expression": "`department`"
+                    },
+                    {
+                      "name": "row_n",
+                      "expression": "`row_n`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "row_n",
+                  "displayName": "Count",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -560,34 +1871,34 @@
                 }
               },
               "frame": {
-                "title": "Top departments",
+                "title": "Department (all values in selection)",
                 "showTitle": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 16,
-            "width": 2,
-            "height": 3
+            "y": 3,
+            "width": 3,
+            "height": 4
           }
         },
         {
           "widget": {
-            "name": "w_facility_volume",
+            "name": "p3_b_fac",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_facility_volume",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "facility",
                       "expression": "`facility`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -600,14 +1911,14 @@
               "encodings": {
                 "x": {
                   "fieldName": "facility",
-                  "displayName": "facility",
+                  "displayName": "f",
                   "scale": {
                     "type": "categorical"
                   }
                 },
                 "y": {
-                  "fieldName": "event_count",
-                  "displayName": "Events",
+                  "fieldName": "row_n",
+                  "displayName": "n",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -617,34 +1928,34 @@
                 }
               },
               "frame": {
-                "title": "By facility",
+                "title": "Site `facility`",
                 "showTitle": true
               }
             }
           },
           "position": {
-            "x": 2,
-            "y": 16,
-            "width": 2,
-            "height": 3
+            "x": 3,
+            "y": 3,
+            "width": 3,
+            "height": 4
           }
         },
         {
           "widget": {
-            "name": "w_sending_facility",
+            "name": "p3_hb_s",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_sending_facility",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "sending_facility",
                       "expression": "`sending_facility`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -656,17 +1967,17 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
+                  "fieldName": "row_n",
+                  "displayName": "Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
                   "fieldName": "sending_facility",
                   "displayName": "sending_facility",
                   "scale": {
                     "type": "categorical"
-                  }
-                },
-                "y": {
-                  "fieldName": "event_count",
-                  "displayName": "Events",
-                  "scale": {
-                    "type": "quantitative"
                   }
                 },
                 "label": {
@@ -674,51 +1985,34 @@
                 }
               },
               "frame": {
-                "title": "By sending facility (MSH-4)",
+                "title": "sending_facility (MSH-4)",
                 "showTitle": true
               }
             }
           },
           "position": {
-            "x": 4,
-            "y": 16,
-            "width": 2,
-            "height": 3
-          }
-        },
-        {
-          "widget": {
-            "name": "w_hdr_class",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## `admission_type` \u00b7 `financial_class` \u00b7 `discharge_diposition`\n",
-                "From your sample: EL, COMM, null disposition on an A08 \u2014 charts hide nulls. Rename column in Delta later to fix **diposition** typo if desired.\n"
-              ]
-            }
-          },
-          "position": {
             "x": 0,
-            "y": 19,
-            "width": 6,
-            "height": 1
+            "y": 7,
+            "width": 3,
+            "height": 4
           }
         },
         {
           "widget": {
-            "name": "w_admission_type",
+            "name": "p3_b_at",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_admission_type",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "admission_type",
                       "expression": "`admission_type`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -731,14 +2025,14 @@
               "encodings": {
                 "x": {
                   "fieldName": "admission_type",
-                  "displayName": "admission_type",
+                  "displayName": "a",
                   "scale": {
                     "type": "categorical"
                   }
                 },
                 "y": {
-                  "fieldName": "event_count",
-                  "displayName": "Events",
+                  "fieldName": "row_n",
+                  "displayName": "n",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -748,34 +2042,34 @@
                 }
               },
               "frame": {
-                "title": "By admission type",
+                "title": "admission_type (PV1-14 area)",
                 "showTitle": true
               }
             }
           },
           "position": {
-            "x": 0,
-            "y": 20,
-            "width": 2,
-            "height": 3
+            "x": 3,
+            "y": 7,
+            "width": 3,
+            "height": 2
           }
         },
         {
           "widget": {
-            "name": "w_financial_class",
+            "name": "p3_b_fn",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_financial_class",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
                       "name": "financial_class",
                       "expression": "`financial_class`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -788,14 +2082,14 @@
               "encodings": {
                 "x": {
                   "fieldName": "financial_class",
-                  "displayName": "financial_class",
+                  "displayName": "fc",
                   "scale": {
                     "type": "categorical"
                   }
                 },
                 "y": {
-                  "fieldName": "event_count",
-                  "displayName": "Events",
+                  "fieldName": "row_n",
+                  "displayName": "n",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -805,34 +2099,34 @@
                 }
               },
               "frame": {
-                "title": "By financial class",
+                "title": "financial_class",
                 "showTitle": true
               }
             }
           },
           "position": {
-            "x": 2,
-            "y": 20,
-            "width": 2,
-            "height": 3
+            "x": 3,
+            "y": 9,
+            "width": 3,
+            "height": 2
           }
         },
         {
           "widget": {
-            "name": "w_discharge_disposition",
+            "name": "p3_b_dch",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_discharge_disposition",
+                  "datasetName": "ds_adt_all",
                   "fields": [
                     {
-                      "name": "discharge_diposition",
-                      "expression": "`discharge_diposition`"
+                      "name": "discharge_disposition",
+                      "expression": "`discharge_disposition`"
                     },
                     {
-                      "name": "event_count",
-                      "expression": "`event_count`"
+                      "name": "row_n",
+                      "expression": "`row_n`"
                     }
                   ],
                   "disaggregated": true
@@ -844,15 +2138,15 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "discharge_diposition",
-                  "displayName": "discharge_diposition",
+                  "fieldName": "discharge_disposition",
+                  "displayName": "d",
                   "scale": {
                     "type": "categorical"
                   }
                 },
                 "y": {
-                  "fieldName": "event_count",
-                  "displayName": "Events",
+                  "fieldName": "row_n",
+                  "displayName": "n",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -862,15 +2156,15 @@
                 }
               },
               "frame": {
-                "title": "By discharge disposition",
+                "title": "discharge disposition (typos per bronze column name)",
                 "showTitle": true
               }
             }
           },
           "position": {
-            "x": 4,
-            "y": 20,
-            "width": 2,
+            "x": 0,
+            "y": 11,
+            "width": 6,
             "height": 3
           }
         }
@@ -881,6 +2175,10 @@
   "uiSettings": {
     "theme": {
       "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "genieSpace": {
+      "isEnabled": true,
+      "enablementMode": "ENABLED"
     },
     "applyModeEnabled": false
   }

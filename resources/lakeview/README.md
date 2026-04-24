@@ -2,9 +2,9 @@
 
 | File | Role |
 |------|------|
-| `adt_events_dashboard.json` | Lakeview dashboard (updated to match **working** `dashboards/hl7_*.lvdash.json` patterns: **spec v3**, `frame` titles, `label.show` on charts, daily volume as **bar** + string `event_day`). |
-| `../../dashboards/adt_ens_bronze.lvdash.json` | **Same JSON** with the correct **`.lvdash.json`** name — use **Dashboards → Import dashboard from file** and pick this file. |
-| `ens_adt_dataset_queries.sql` | **Same 12 SQL statements** in readable form — run in Databricks SQL to validate before/after import. |
+| `adt_events_dashboard.json` | **Multi-page** ADT Lakeview: row-level **`ds_adt_all`**, **HLS-style filters** on all pages, charts that respect selection; **regenerate** from `scripts/generate_adt_ens_lvdash.py` after changing the script. |
+| `../../dashboards/adt_ens_bronze.lvdash.json` | **Same JSON** (`.lvdash.json` name) — **Dashboards → Import dashboard from file**. |
+| `ens_adt_dataset_queries.sql` | `ds_adt_all` (filterable) plus **reference** SQL you can run in Databricks. |
 
 **Shared rules (all time-filtered metrics except A01-today):** `FROM bronze.ensemble.ens_adt` **→** `message_type = 'ADT'` **→** `event_time_stamp IS NOT NULL` **→** `event_time_stamp >= date_sub(CURRENT_DATE(), 365)` **→** field-specific `IS NOT NULL` / `TRIM` as needed. **A01 today** uses `to_date(event_time_stamp) = CURRENT_DATE()` instead of the 365d window.
 
