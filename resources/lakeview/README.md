@@ -2,6 +2,28 @@
 
 File: `adt_events_dashboard.json` — import or merge into a **Lakeview** dashboard in Databricks (Dashboards / Lakeview UI) or use as a reference for `.lvdash.json` workflows.
 
+### `queryLines` and “stuck together” SQL
+
+If a tool **concatenates** the `queryLines` array **without newlines or spaces**, you can get invalid tokens like `unique_patientsFROM` or `ens_adtWHERE` (parse error). This JSON uses **one string per query** in `queryLines` so the SQL stays valid no matter how the array is joined.
+
+**Valid multi-line in a SQL editor** (not the same as a bad join):
+
+```sql
+SELECT count(distinct patient_mrn) AS unique_patients
+FROM bronze.ensemble.ens_adt
+WHERE event_time_stamp >= date_sub(current_date(), 365);
+```
+
+**Minimal test (no `message_type` filter)** if you need to debug:
+
+```sql
+SELECT count(DISTINCT patient_mrn) AS unique_patients
+FROM bronze.ensemble.ens_adt
+WHERE event_time_stamp >= date_sub(current_date(), 365);
+```
+
+Add `AND message_type = 'ADT'` again once you confirm the base query runs.
+
 ## Table: `bronze.ensemble.ens_adt` (confirm in Unity Catalog)
 
 Core columns used in the dashboard (from live schema / sample rows):

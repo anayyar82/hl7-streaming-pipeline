@@ -4,155 +4,84 @@
       "name": "ds_total_events",
       "displayName": "Total ADT message rows",
       "queryLines": [
-        "SELECT COUNT(*) AS total_events",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)"
+        "SELECT COUNT(*) AS total_events FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(current_date(), 365)"
       ]
     },
     {
       "name": "ds_unique_patients",
       "displayName": "Distinct MRN (patient_mrn)",
       "queryLines": [
-        "SELECT COUNT(DISTINCT patient_mrn) AS unique_patients",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND patient_mrn IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)"
+        "SELECT COUNT(DISTINCT patient_mrn) AS unique_patients FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND patient_mrn IS NOT NULL AND event_time_stamp >= date_sub(current_date(), 365)"
       ]
     },
     {
       "name": "ds_admissions_today",
       "displayName": "Admit messages today (A01)",
       "queryLines": [
-        "SELECT COUNT(*) AS admissions_today",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND message_event_type = 'A01'",
-        "  AND event_time_stamp IS NOT NULL",
-        "  AND DATE(event_time_stamp) = CURRENT_DATE()"
+        "SELECT COUNT(*) AS admissions_today FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND message_event_type = 'A01' AND event_time_stamp IS NOT NULL AND date(event_time_stamp) = current_date()"
       ]
     },
     {
       "name": "ds_event_volume",
       "displayName": "Daily event volume (event_time_stamp)",
       "queryLines": [
-        "SELECT DATE_TRUNC('DAY', event_time_stamp) AS event_date, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp IS NOT NULL",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "GROUP BY DATE_TRUNC('DAY', event_time_stamp)",
-        "ORDER BY 1"
+        "SELECT date_trunc('day', event_time_stamp) AS event_date, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp IS NOT NULL AND event_time_stamp >= date_sub(current_date(), 365) GROUP BY date_trunc('day', event_time_stamp) ORDER BY 1"
       ]
     },
     {
       "name": "ds_events_by_type",
       "displayName": "Events by message_event_type",
       "queryLines": [
-        "SELECT message_event_type, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND message_event_type IS NOT NULL",
-        "GROUP BY message_event_type",
-        "ORDER BY event_count DESC"
+        "SELECT message_event_type, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND message_event_type IS NOT NULL GROUP BY message_event_type ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_patient_class",
       "displayName": "patient_class distribution",
       "queryLines": [
-        "SELECT patient_class, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND patient_class IS NOT NULL",
-        "GROUP BY patient_class",
-        "ORDER BY event_count DESC"
+        "SELECT patient_class, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND patient_class IS NOT NULL GROUP BY patient_class ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_top_departments",
       "displayName": "Top 10 department (location)",
       "queryLines": [
-        "SELECT department, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND TRIM(department) <> ''",
-        "  AND department IS NOT NULL",
-        "GROUP BY department",
-        "ORDER BY event_count DESC",
-        "LIMIT 10"
+        "SELECT department, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND trim(department) <> '' AND department IS NOT NULL GROUP BY department ORDER BY event_count DESC LIMIT 10"
       ]
     },
     {
       "name": "ds_facility_volume",
       "displayName": "facility (site) volume",
       "queryLines": [
-        "SELECT facility, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND TRIM(facility) <> ''",
-        "  AND facility IS NOT NULL",
-        "GROUP BY facility",
-        "ORDER BY event_count DESC"
+        "SELECT facility, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND trim(facility) <> '' AND facility IS NOT NULL GROUP BY facility ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_sending_facility",
       "displayName": "sending_facility (MSH-4) volume",
       "queryLines": [
-        "SELECT sending_facility, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND TRIM(sending_facility) <> ''",
-        "  AND sending_facility IS NOT NULL",
-        "GROUP BY sending_facility",
-        "ORDER BY event_count DESC"
+        "SELECT sending_facility, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND trim(sending_facility) <> '' AND sending_facility IS NOT NULL GROUP BY sending_facility ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_admission_type",
       "displayName": "admission_type (e.g. EL)",
       "queryLines": [
-        "SELECT admission_type, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND admission_type IS NOT NULL",
-        "GROUP BY admission_type",
-        "ORDER BY event_count DESC"
+        "SELECT admission_type, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND admission_type IS NOT NULL GROUP BY admission_type ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_financial_class",
       "displayName": "financial_class (e.g. COMM)",
       "queryLines": [
-        "SELECT financial_class, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND financial_class IS NOT NULL",
-        "GROUP BY financial_class",
-        "ORDER BY event_count DESC"
+        "SELECT financial_class, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND financial_class IS NOT NULL GROUP BY financial_class ORDER BY event_count DESC"
       ]
     },
     {
       "name": "ds_discharge_disposition",
       "displayName": "discharge_diposition (PV1-36)",
       "queryLines": [
-        "SELECT discharge_diposition, COUNT(*) AS event_count",
-        "FROM bronze.ensemble.ens_adt",
-        "WHERE message_type = 'ADT'",
-        "  AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)",
-        "  AND discharge_diposition IS NOT NULL",
-        "GROUP BY discharge_diposition",
-        "ORDER BY event_count DESC"
+        "SELECT discharge_diposition, count(*) AS event_count FROM bronze.ensemble.ens_adt WHERE message_type = 'ADT' AND event_time_stamp >= date_sub(current_date(), 365) AND discharge_diposition IS NOT NULL GROUP BY discharge_diposition ORDER BY event_count DESC"
       ]
     }
   ],
