@@ -24,13 +24,14 @@ WHERE message_type = 'ADT'
   AND event_time_stamp IS NOT NULL
   AND to_date(event_time_stamp) = CURRENT_DATE();
 
--- 4) ds_event_volume
-SELECT DATE_TRUNC('DAY', event_time_stamp) AS event_date, COUNT(*) AS event_count
+-- 4) ds_event_volume (string day + bar chart in Lakeview — matches lvdash)
+SELECT date_format(date_trunc('day', event_time_stamp), 'yyyy-MM-dd') AS event_day,
+       COUNT(*) AS event_count
 FROM bronze.ensemble.ens_adt
 WHERE message_type = 'ADT'
   AND event_time_stamp IS NOT NULL
   AND event_time_stamp >= date_sub(CURRENT_DATE(), 365)
-GROUP BY DATE_TRUNC('DAY', event_time_stamp)
+GROUP BY date_format(date_trunc('day', event_time_stamp), 'yyyy-MM-dd')
 ORDER BY 1;
 
 -- 5) ds_events_by_type
