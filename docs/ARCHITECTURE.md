@@ -70,4 +70,5 @@ A bundle workflow may wrap **DLT → inference → Lakebase** as a single multi-
 
 - [Lakeflow (DLT)](https://docs.databricks.com/lakeflow/index.html)  
 - [Databricks Apps](https://docs.databricks.com/en/dev-tools/databricks-apps.html)  
-- [AppKit](https://databricks.github.io/appkit/docs/)
+- [AppKit](https://databricks.github.io/appkit/docs/)  
+- [Genie: API, RBAC with OAuth, factory rollout](GENIE_API_RBAC_AND_FACTORY.md) (this repo)
