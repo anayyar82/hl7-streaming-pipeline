@@ -424,6 +424,15 @@ databricks apps start hl7app
 
 ## Troubleshooting
 
+### Bundle deploy: SQL alert `parent_path` in Trash
+
+If **`databricks bundle deploy`** fails updating **`hl7_gold_message_freshness_stale`** with *Updating parent path is not supported* and **`.../Trash`**, the alert was deleted to Trash while Terraform still tracked it. Alerts now declare **`parent_path`** under your bundle `resources` folder in **`resources/hl7_sql_alerts.yml`**. One-time recovery:
+
+```bash
+./scripts/bundle_rm_trashed_stale_alert_state.sh dev   # or staging / prod
+databricks bundle deploy -t dev
+```
+
 ### "App Not Available" in browser
 
 **Cause:** `app.yaml` passes `--server.port 8501` or `--server.address`, which conflicts with the port the Databricks proxy expects.

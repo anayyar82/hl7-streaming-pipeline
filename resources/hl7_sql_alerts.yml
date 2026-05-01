@@ -5,10 +5,15 @@
 # run-as user (or use run_as in an older client if you need the alert to run as a service principal).
 # Stale alert: same recipient; notify again at most once per 24h while still stale; optional OK on recovery.
 # Docs: https://docs.databricks.com/api/workspace/alertsv2/
+#
+# parent_path: keep alerts under the bundle deployment tree (same as other bundle-managed objects).
+# If deploy fails with "parent_path ... Trash", the remote alert was deleted to Trash while Terraform
+# still owned it — run: ./scripts/bundle_rm_trashed_stale_alert_state.sh [dev|staging|prod]
 
 resources:
   alerts:
     hl7_gold_message_freshness_stale:
+      parent_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/resources
       display_name: "[${bundle.target}] HL7 gold — message pipeline STALE (alert)"
       custom_summary: "HL7: gold_message_metrics is stale (no recent messages)"
       custom_description: >
@@ -52,6 +57,7 @@ resources:
 
     # Paused: replaced by job `hl7_daily_insight_html_email` (HTML + chart images via SendGrid + FileStore).
     hl7_daily_data_insight_email:
+      parent_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/resources
       display_name: "[${bundle.target}] HL7 data insights — daily email"
       custom_summary: "HL7 gold — daily insight digest"
       custom_description: >
