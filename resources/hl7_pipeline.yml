@@ -96,6 +96,7 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               project_id: ankurhlsproject
+              lakebase_connect_user: ${var.lakebase_connect_user}
 
     hl7_genie_uc_grants:
       name: "[${bundle.target}] HL7 Genie UC Grants (hl7app SP)"

@@ -25,6 +25,12 @@ catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
 project_id = dbutils.widgets.get("project_id")
 
+dbutils.widgets.text(
+    "lakebase_connect_user",
+    "",
+    "Databricks login email for /api/2.0/postgres/credentials (required on serverless jobs; bundle passes this from databricks.yml)",
+)
+
 PG_HOST = "ep-wandering-meadow-d1tdkigo.database.us-west-2.cloud.databricks.com"
 PG_PORT = 5432
 PG_DBNAME = "databricks_postgres"
@@ -46,10 +52,97 @@ print(f"Endpoint:  {PG_ENDPOINT}")
 
 # COMMAND ----------
 
+
+def _resolve_lakebase_pg_user() -> str:
+    """Same resolution strategy as 11_lakebase_grants.py — ctx.tags() is not allowed on serverless."""
+    w = (dbutils.widgets.get("lakebase_connect_user") or "").strip()
+    if w:
+        return w
+    try:
+        from pyspark.sql import SparkSession
+
+        s = SparkSession.getActiveSession()
+        if s is not None:
+            for key in (
+                "spark.databricks.userInfo.userName",
+                "spark.databricks.userInfo.userId",
+                "spark.databricks.clusterUsageTags.userEmail",
+                "spark.databricks.clusterUsageTags.user",
+            ):
+                v = s.conf.get(key, None)
+                if v:
+                    return str(v).strip()
+    except Exception:
+        pass
+    try:
+        t = (
+            dbutils.notebook.entry_point.getDbutils()
+            .notebook()
+            .getContext()
+            .tags()
+            .get("user")
+        )
+        if t is not None and hasattr(t, "get"):
+            s = t.get()
+        else:
+            s = str(t) if t is not None else ""
+        s = str(s).strip() if s else ""
+        if s:
+            return s
+    except Exception:
+        pass
+    try:
+        s = str(
+            dbutils.notebook.entry_point.getDbutils()
+            .notebook()
+            .getContext()
+            .userName()
+            .get()
+        ).strip()
+        if s:
+            return s
+    except Exception:
+        pass
+    return ""
+
+
+def _workspace_url() -> str:
+    """Databricks may set host without scheme (e.g. DATABRICKS_HOST); requests needs https://."""
+
+    def _ensure_scheme(url: str) -> str:
+        u = url.strip().rstrip("/")
+        if not u:
+            return ""
+        if u.startswith("http://") or u.startswith("https://"):
+            return u
+        return "https://" + u
+
+    try:
+        from pyspark.sql import SparkSession
+
+        s = SparkSession.getActiveSession()
+        if s is not None:
+            u = s.conf.get("spark.databricks.workspaceUrl", None)
+            if u:
+                return _ensure_scheme(str(u))
+    except Exception:
+        pass
+    h = os.environ.get("DATABRICKS_HOST", "").strip()
+    if h:
+        return _ensure_scheme(h)
+    return "https://e2-demo-field-eng.cloud.databricks.com"
+
+
 ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 api_token = ctx.apiToken().get()
-pg_user = ctx.tags().get("user").get()
-workspace_url = "https://e2-demo-field-eng.cloud.databricks.com"
+pg_user = _resolve_lakebase_pg_user()
+if not pg_user:
+    raise ValueError(
+        "Could not determine Lakebase Postgres user. On serverless jobs, set job parameter "
+        "**lakebase_connect_user** (bundle: var.lakebase_connect_user in databricks.yml) to your "
+        "Databricks login email — same as 11_lakebase_grants."
+    )
+workspace_url = _workspace_url()
 
 cred_resp = requests.post(
     f"{workspace_url}/api/2.0/postgres/credentials",
