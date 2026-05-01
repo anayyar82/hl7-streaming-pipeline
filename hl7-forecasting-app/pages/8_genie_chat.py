@@ -164,6 +164,8 @@ if prompt:
     from utils.genie_client import (
         ask_genie,
         extract_conversation_id,
+        format_genie_error,
+        genie_room_url,
         message_to_ui_parts,
         workspace_client,
     )
@@ -189,8 +191,18 @@ if prompt:
                 st.session_state.genie_messages.append(("assistant", parts))
                 _render_parts(parts)
             except Exception as e:
-                err = f"**Genie error:** `{e}`\n\nCheck Genie space permissions, warehouse access, and that the space is curated for your tables."
+                detail = format_genie_error(e)
+                err = (
+                    f"**Genie error:**\n```\n{detail}\n```\n\n"
+                    "**Typical fixes:** redeploy **hl7app** after `bundle deploy` (Genie space **CAN RUN** + warehouse **CAN USE**); "
+                    "run **`hl7_genie_uc_grants`** (warehouse id in job params); UC **SELECT** on tables in the space; "
+                    "Genie space warehouse must match a warehouse the app SP can use."
+                )
                 st.error(err)
+                room = genie_room_url(SPACE_ID)
+                if room:
+                    with st.expander("Open Genie space (Monitoring shows the exact failure)"):
+                        st.markdown(f"[Genie room — use **Monitoring** in the UI]({room})")
                 st.session_state.genie_messages.append(("assistant", err))
 
     st.rerun()
